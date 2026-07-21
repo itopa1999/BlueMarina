@@ -6,18 +6,24 @@ Authentication
 Swagger
 API configuration
 Dependency Injection registration
+
+
 2. BlueMarina.Application
 CQRS Commands/Queries
 DTOs
 Validators
 Business use cases
 Interfaces
+
+
 3. BlueMarina.Domain
 Entities
 Enums
 Value Objects
 Domain Events
 Business Rules
+
+
 4. BlueMarina.Infrastructure
 EF Core
 PostgreSQL
@@ -26,6 +32,8 @@ External APIs
 Email
 Redis
 RabbitMQ/Kafka
+
+
 5. BlueMarina.Shared
 Common Result objects
 Constants

@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Api", "BlueMarina.Api\BlueMarina.Api.csproj", "{067A5F53-0584-47FF-ACCC-640AF87285FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Application", "BlueMarina.Application\BlueMarina.Application.csproj", "{4FC374BD-2CBC-49CE-B442-2066EB53352D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Domain", "BlueMarina.Domain\BlueMarina.Domain.csproj", "{786452C9-6D9D-49FC-A094-F2739881E73C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Infrastructure", "BlueMarina.Infrastructure\BlueMarina.Infrastructure.csproj", "{DD34C523-4612-4753-8C51-05262B4C0787}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Shared", "BlueMarina.Shared\BlueMarina.Shared.csproj", "{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.UnitTests", "BlueMarina.UnitTests\BlueMarina.UnitTests.csproj", "{7355B508-6850-412E-977C-3F52391C3B6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{067A5F53-0584-47FF-ACCC-640AF87285FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{067A5F53-0584-47FF-ACCC-640AF87285FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{067A5F53-0584-47FF-ACCC-640AF87285FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{067A5F53-0584-47FF-ACCC-640AF87285FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FC374BD-2CBC-49CE-B442-2066EB53352D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FC374BD-2CBC-49CE-B442-2066EB53352D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FC374BD-2CBC-49CE-B442-2066EB53352D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FC374BD-2CBC-49CE-B442-2066EB53352D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{786452C9-6D9D-49FC-A094-F2739881E73C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{786452C9-6D9D-49FC-A094-F2739881E73C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{786452C9-6D9D-49FC-A094-F2739881E73C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{786452C9-6D9D-49FC-A094-F2739881E73C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD34C523-4612-4753-8C51-05262B4C0787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD34C523-4612-4753-8C51-05262B4C0787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD34C523-4612-4753-8C51-05262B4C0787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD34C523-4612-4753-8C51-05262B4C0787}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7355B508-6850-412E-977C-3F52391C3B6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7355B508-6850-412E-977C-3F52391C3B6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7355B508-6850-412E-977C-3F52391C3B6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7355B508-6850-412E-977C-3F52391C3B6E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
