@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="BlueMarina.Api/BlueMarina.Api.csproj" />
+  <Project Path="BlueMarina.Application/BlueMarina.Application.csproj" />
+  <Project Path="BlueMarina.Domain/BlueMarina.Domain.csproj" />
+  <Project Path="BlueMarina.Infrastructure/BlueMarina.Infrastructure.csproj" />
+  <Project Path="BlueMarina.Shared/BlueMarina.Shared.csproj" />
+  <Project Path="BlueMarina.UnitTests/BlueMarina.UnitTests.csproj" />
+</Solution>
