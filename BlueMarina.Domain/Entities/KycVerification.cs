@@ -4,15 +4,11 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Bank Account")]
+[Table("Kyc Verification")]
 public class KycVerification : BaseEntity
 {
-    [Key]
-    public Guid Id { get; set; }
-
     public Guid UserId { get; set; }
 
-    [ForeignKey(nameof(UserId))]
     public virtual UserProfile UserProfile { get; set; } = null!;
 
     public VerificationType Type { get; set; }

@@ -7,8 +7,6 @@ namespace BlueMarina.Domain.Entities;
 [Table("User Profile")]
 public class UserProfile : BaseEntity
 {
-    [Key]
-    public Guid Id { get; set; }
     public Guid UserId { get; set; }
     
     // Personal details

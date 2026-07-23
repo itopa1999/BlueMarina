@@ -1,21 +1,16 @@
 using BlueMarina.Api;
-
+using BlueMarina.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 var startup = new Startup(builder.Configuration);
 
-
-// Register services
 startup.ConfigureServices(builder.Services);
-
 
 var app = builder.Build();
 
+await app.Services.SeedIdentityAsync();
 
-// Configure pipeline
 startup.Configure(app);
-
 
 app.Run();

@@ -8,12 +8,8 @@ namespace BlueMarina.Domain.Entities;
 [Table("Kyc Document")]
 public class KycDocument : BaseEntity
 {
-    [Key]
-    public Guid Id { get; set; }
-
     public Guid UserId { get; set; }
 
-    [ForeignKey(nameof(UserId))]
     public virtual UserProfile UserProfile { get; set; } = null!;
 
     public DocumentType Type { get; set; }

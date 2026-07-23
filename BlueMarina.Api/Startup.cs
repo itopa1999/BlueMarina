@@ -1,3 +1,5 @@
+using BlueMarina.Api.Middlewares;
+using BlueMarina.Infrastructure;
 using Microsoft.OpenApi.Models;
 
 namespace BlueMarina.Api;
@@ -87,13 +89,7 @@ public class Startup
 
 
         // Later add:
-        //
-        // services.AddDbContext()
-        // services.AddAuthentication()
-        // services.AddAuthorization()
-        // services.AddMediatR()
-        // services.AddFluentValidation()
-        // services.AddInfrastructure()
+        services.AddInfrastructure(_configuration);
     }
 
 
@@ -133,15 +129,13 @@ public class Startup
         }
 
 
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
+
         app.UseHttpsRedirection();
 
+        app.UseAuthentication();
 
-        // Later:
-        //
-        // app.UseExceptionHandling();
-        // app.UseAuthentication();
-        // app.UseAuthorization();
-
+        app.UseAuthorization();
 
         app.MapControllers();
     }
