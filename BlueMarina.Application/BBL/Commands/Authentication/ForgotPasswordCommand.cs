@@ -11,23 +11,23 @@ using MediatR;
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
 
-public sealed class ResendVerificationOtpCommand
+public sealed class ForgotPasswordCommand
 {
-    public class Command: IRequest<BaseResult<ResendVerificationOtpResponseDto>>
+    public class Command: IRequest<BaseResult<ForgotPasswordResponseDto>>
     {
-        [EmailAddress]
+        [EmailAddress, MaxLength(100)]
         public string? Email { get; init; }
 
-        public string? PhoneNumber {get; init;}
+        public string? PhoneNumber { get; init; }
     }
 
-    public class ResendVerificationOtpResponseDto
+    public class ForgotPasswordResponseDto
     {
         public Guid UserId { get; set; }
         public string Data { get; set; }
-    }
 
-    public class Handler : IRequestHandler<Command, BaseResult<ResendVerificationOtpResponseDto>>
+    }
+    public class Handler : IRequestHandler<Command, BaseResult<ForgotPasswordResponseDto>>
     {
         private readonly IIdentityService _identityService;
         private readonly IUnitOfWork _unitOfWork;
@@ -45,13 +45,11 @@ public sealed class ResendVerificationOtpCommand
             _emailService = emailService;
             _smsService = smsService;
         }
-
-        public async Task<BaseResult<ResendVerificationOtpResponseDto>> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<BaseResult<ForgotPasswordResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
-            
             if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
-                return new BaseResult<ResendVerificationOtpResponseDto>(
+                return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Either Email or Phone Number must be provided.");
             }
@@ -64,10 +62,10 @@ public sealed class ResendVerificationOtpCommand
                 if (!success)
                 {
                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return new BaseResult<ResendVerificationOtpResponseDto>
+                    return new BaseResult<ForgotPasswordResponseDto>
                     (
                         HttpStatusCode.BadRequest,
-                        errorMessage
+                        "If an account exists with this email or phone number, a reset OTP will be sent"
                     );
                 }
 
@@ -78,10 +76,10 @@ public sealed class ResendVerificationOtpCommand
                 if (!success)
                 {
                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return new BaseResult<ResendVerificationOtpResponseDto>
+                    return new BaseResult<ForgotPasswordResponseDto>
                     (
                         HttpStatusCode.BadRequest,
-                        errorMessage
+                        "If an account exists with this email or phone number, a reset OTP will be sent"
                     );
                 }
 
@@ -90,24 +88,26 @@ public sealed class ResendVerificationOtpCommand
 
             if (!userId.HasValue)
             {
-                return new BaseResult<ResendVerificationOtpResponseDto>(
+                return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.BadRequest,
-                    "User not found.");
+                    "If an account exists with this email or phone number, a reset OTP will be sent.");
             }
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            try{
+            try
+            {
                 var otpCode = _otpService.GenerateOtp();
 
                 var otp = new OtpVerification
                 {
                     UserId = userId.Value,
                     OtpCode = otpCode,
-                    Purpose = OtpPurpose.AccountVerification,
+                    Purpose = OtpPurpose.PasswordReset,
                     ExpiresAt = DateTime.UtcNow.AddMinutes(2)
                 };
                 await _unitOfWork.AddAsync(otp);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.SaveChangesAsync(
+                    cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(request.Email))
@@ -120,10 +120,10 @@ public sealed class ResendVerificationOtpCommand
                     await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
                 }
 
-                return new BaseResult<ResendVerificationOtpResponseDto>(
+                return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.OK,
-                    "Verification OTP resent successfully.",  
-                    new ResendVerificationOtpResponseDto
+                    "If an account exists with this email or phone number, a reset OTP will be sent",  
+                    new ForgotPasswordResponseDto
                     {
                         UserId = userId.Value,
                         Data = "Data from payload here"
@@ -134,7 +134,6 @@ public sealed class ResendVerificationOtpCommand
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                 throw;
             }
-
         }
     }
 }

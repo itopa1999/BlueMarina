@@ -93,7 +93,7 @@ public sealed class VerifyAccountCommand
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try{
                 var otpVerification = await _unitOfWork.Query<OtpVerification>()
-                .Where(x =>  x.UserId == userId && x.Purpose == OtpPurpose.AccountVerification.ToString())
+                .Where(x =>  x.UserId == userId && x.Purpose == OtpPurpose.AccountVerification.ToString() && !x.IsUsed)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -144,7 +144,7 @@ public sealed class VerifyAccountCommand
 
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.OK,
-                    "Email verified successfully.",
+                    "Account verified successfully.",
                     new VerifyAccountResponseDto
                     {
                         UserId = userId.Value,

@@ -27,6 +27,8 @@ public class Startup(IConfiguration configuration)
             );
         });
 
+        // Model Behaviour setting
+
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -48,6 +50,25 @@ public class Startup(IConfiguration configuration)
             };
         });
 
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowSpecificOrigin",
+                policy =>
+                {
+                    policy.WithOrigins("https://localhost:3000", "https://yourdomain.com")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+
+            options.AddPolicy("AllowAllDev",
+                policy =>
+                {
+                    policy.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+        });
 
 
 
@@ -134,35 +155,43 @@ public class Startup(IConfiguration configuration)
     // Configure middleware pipeline
     public void Configure(WebApplication app)
     {
+        app.UseMiddleware<SwaggerAuthMiddleware>();
+
+        app.UseSwagger();
+
+        app.UseSwaggerUI(options =>
+        {
+            options.DisplayRequestDuration();
+
+            options.EnablePersistAuthorization();
+
+            options.SwaggerEndpoint(
+                "/swagger/v1/swagger.json",
+                "BlueMarina API v1");
+
+
+            options.SwaggerEndpoint(
+                "/swagger/v2/swagger.json",
+                "BlueMarina API v2");
+
+
+            options.SwaggerEndpoint(
+                "/swagger/v3/swagger.json",
+                "BlueMarina API v3");
+
+
+            options.DocumentTitle =
+                "BlueMarina API Documentation";
+        });
+
 
         if (app.Environment.IsDevelopment())
         {
-            app.UseSwagger();
-
-            app.UseSwaggerUI(options =>
-            {
-                options.DisplayRequestDuration();
-
-                options.EnablePersistAuthorization();
-
-                options.SwaggerEndpoint(
-                    "/swagger/v1/swagger.json",
-                    "BlueMarina API v1");
-
-
-                options.SwaggerEndpoint(
-                    "/swagger/v2/swagger.json",
-                    "BlueMarina API v2");
-
-
-                options.SwaggerEndpoint(
-                    "/swagger/v3/swagger.json",
-                    "BlueMarina API v3");
-
-
-                options.DocumentTitle =
-                    "BlueMarina API Documentation";
-            });
+            app.UseCors("AllowAllDev");
+        }
+        else
+        {
+            app.UseCors("AllowSpecificOrigin");
         }
 
 

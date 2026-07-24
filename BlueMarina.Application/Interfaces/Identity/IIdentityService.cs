@@ -6,6 +6,8 @@ public interface IIdentityService
 
     Task<bool> PhoneNumberExistsAsync(string phoneNumber);
 
+    Task<bool> IsUserExisting(Guid userId);
+
     Task<(bool Success, string ErrorMessage, Guid UserId)> CreateUserAsync(
         string email,
         string phoneNumber,
@@ -20,6 +22,13 @@ public interface IIdentityService
     Task<(bool Success, string ErrorMessage, Guid UserId)> GetUserIdByPhoneAsync(string phone);
 
     Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(Guid? userId);
+
+    Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(Guid userId, string newPassword);
+
+    Task<(bool Success, string ErrorMessage)> ChangePasswordAsync(
+        Guid userId,
+        string oldPassword,
+        string newPassword);
 
     Task<bool> CheckPasswordAsync(Guid userId, string password);
 

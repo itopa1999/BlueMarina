@@ -1,6 +1,5 @@
 using MediatR;
 using BlueMarina.Shared.Results;
-using FluentValidation;
 using BlueMarina.Application.Interfaces.Identity;
 using System.Net;
 using BlueMarina.Domain.Entities;

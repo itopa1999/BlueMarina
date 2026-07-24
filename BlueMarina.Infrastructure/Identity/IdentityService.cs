@@ -165,4 +165,69 @@ public sealed class IdentityService : IIdentityService
         return await _userManager.GetRolesAsync(
             existingUser);
     }
+
+    public async Task<bool> IsUserExisting(Guid userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+
+        if (existingUser is null)
+        {
+            return false;
+        }
+
+        return true;
+           
+    }
+
+    public async Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(Guid userId, string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return (false, "User not found.");
+
+        var validateResult = await _userManager.PasswordValidators
+            .FirstOrDefault()?.ValidateAsync(_userManager, user, newPassword);
+        if (validateResult is not null && !validateResult.Succeeded)
+        {
+            var errors = string.Join(", ", validateResult.Errors.Select(e => e.Description));
+            return (false, errors);
+        }
+
+        // Hash the new password directly
+        var hashedPassword = _userManager.PasswordHasher.HashPassword(user, newPassword);
+        user.PasswordHash = hashedPassword;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+            return (false, errors);
+        }
+
+        return (true, string.Empty);
+    }
+
+
+    public async Task<(bool Success, string ErrorMessage)> ChangePasswordAsync(
+        Guid userId,
+        string oldPassword,
+        string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return (false, "User not found.");
+
+        var result = await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
+
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return (false, errors);
+        }
+
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        await _userManager.UpdateAsync(user);
+
+        return (true, string.Empty);
+    }
 }
