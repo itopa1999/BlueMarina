@@ -1,13 +1,14 @@
-
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities;
 using BlueMarina.Shared.Constants;
+using BlueMarina.Shared.Logging;
 using BlueMarina.Shared.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
 
@@ -18,7 +19,7 @@ public sealed class VerifyAccountCommand
         [EmailAddress]
         public string? Email { get; init; }
 
-        public string? PhoneNumber {get; init;}
+        public string? PhoneNumber { get; init; }
 
         [MinLength(6), MaxLength(6)]
         public string OtpCode { get; init; } = string.Empty;
@@ -27,7 +28,6 @@ public sealed class VerifyAccountCommand
     public class VerifyAccountResponseDto
     {
         public Guid UserId { get; set; }
-
         public bool IsAccountVerified { get; set; }
     }
 
@@ -35,17 +35,25 @@ public sealed class VerifyAccountCommand
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IIdentityService _identityService;
+        private readonly ILogger<Handler> _logger;
 
-        public Handler(IUnitOfWork unitOfWork, IIdentityService identityService)
+        public Handler(IUnitOfWork unitOfWork, IIdentityService identityService, ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
+            _logger = logger;
         }
+
         public async Task<BaseResult<VerifyAccountResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
-          
+            var identifier = !string.IsNullOrWhiteSpace(request.Email) ? request.Email : request.PhoneNumber;
+            using var op = OperationLogger.Start(_logger, "VerifyAccount",
+                ("Identifier", identifier ?? "unknown")
+            );
+
             if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
+                op.Fail("Neither email nor phone number provided.");
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Either Email or Phone Number must be provided.");
@@ -58,56 +66,56 @@ public sealed class VerifyAccountCommand
                 var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
                 if (!success)
                 {
-                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return new BaseResult<VerifyAccountResponseDto>
-                    (
+                    op.Fail($"User not found by email: {request.Email}");
+                    return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
-                        errorMessage
-                    );
+                        errorMessage);
                 }
-
                 userId = id;
-            } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            }
+            else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
                 var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
                 if (!success)
                 {
-                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return new BaseResult<VerifyAccountResponseDto>
-                    (
+                    op.Fail($"User not found by phone: {request.PhoneNumber}");
+                    return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
-                        errorMessage
-                    );
+                        errorMessage);
                 }
-
                 userId = id;
             }
 
             if (!userId.HasValue)
             {
+                op.Fail("User not found.");
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.BadRequest,
                     "User not found.");
             }
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            try{
+
+            try
+            {
                 var otpVerification = await _unitOfWork.Query<OtpVerification>()
-                .Where(x =>  x.UserId == userId && x.Purpose == OtpPurpose.AccountVerification.ToString() && !x.IsUsed)
-                .OrderByDescending(x => x.CreatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
+                    .Where(x => x.UserId == userId
+                                && x.Purpose == OtpPurpose.AccountVerification.ToString()
+                                && !x.IsUsed)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
 
                 if (otpVerification is null)
                 {
-                    return new BaseResult<VerifyAccountResponseDto>
-                    (
+                    op.Fail($"No valid OTP found for user {userId}");
+                    return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
-                        "Invalid Otp"
-                    );
+                        "Invalid OTP. Please request a new one.");
                 }
 
                 if (otpVerification.OtpCode != request.OtpCode)
                 {
+                    op.Fail($"Invalid OTP code provided for user {userId}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "Invalid OTP code.");
@@ -115,13 +123,16 @@ public sealed class VerifyAccountCommand
 
                 if (otpVerification.ExpiresAt < DateTime.UtcNow)
                 {
+                    op.Fail($"OTP expired for user {userId}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "OTP has expired. Please request a new one.");
                 }
 
+                // This check is redundant because we already filtered !x.IsUsed, but keep it safe.
                 if (otpVerification.IsUsed)
                 {
+                    op.Fail($"OTP already used for user {userId}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "This OTP has already been used.");
@@ -130,6 +141,7 @@ public sealed class VerifyAccountCommand
                 var (markSuccess, markError) = await _identityService.MarkEmailAndPhoneAsVerifiedAsync(userId);
                 if (!markSuccess)
                 {
+                    op.Fail($"Failed to mark account as verified for user {userId}: {markError}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         markError);
@@ -142,6 +154,7 @@ public sealed class VerifyAccountCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
+                op.Success($"Account verified successfully for user {userId}");
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.OK,
                     "Account verified successfully.",
@@ -150,9 +163,11 @@ public sealed class VerifyAccountCommand
                         UserId = userId.Value,
                         IsAccountVerified = true
                     });
-            } catch
+            }
+            catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                op.Fail($"Account verification failed for user {userId}", ex);
                 throw;
             }
         }

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: bluemarina_db
+    environment:
+      POSTGRES_USER: bluemarina
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Sup3rS3cret!}
+      POSTGRES_DB: BlueMarina
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bluemarina -d BlueMarina"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: bluemarina_cache
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bluemarina_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=BlueMarina;Username=bluemarina;Password=${DB_PASSWORD:-Sup3rS3cret!}"
+      JwtSettings__SecretKey: "${JWT_SECRET:-your-strong-development-secret-key}"
+      JwtSettings__Issuer: "BlueMarina"
+      JwtSettings__Audience: "BlueMarinaUsers"
+      JwtSettings__AccessTokenExpiryMinutes: "15"
+      SwaggerCredentials__Username: "${SWAGGER_USER:-admin}"
+      SwaggerCredentials__Password: "${SWAGGER_PASS:-swagger123}"
+      # Add any other required settings
+    ports:
+      - "5014:8080"   # HTTP
+      # - "5015:8081" # HTTPS (if configured)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    # The entrypoint from Dockerfile is used; no command needed
+
+volumes:
+  postgres_data:

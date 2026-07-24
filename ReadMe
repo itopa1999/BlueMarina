@@ -40,3 +40,147 @@ Constants
 Exceptions
 Helpers
 Extensions
+
+
+
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Domain.Entities;
+using BlueMarina.Shared.Results;
+using BlueMarina.Shared.Logging;          // <-- Add this
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;       // <-- Add this
+
+namespace BlueMarina.Application.BBL.Commands.Authentication;
+
+public sealed class LoginUserCommand
+{
+    public class Command : IRequest<BaseResult<LoginResponseDto>>
+    {
+        [EmailAddress]
+        public string Email { get; init; } = string.Empty;
+
+        [MinLength(8)]
+        public string Password { get; init; } = string.Empty;
+    }
+
+    public class LoginResponseDto
+    {
+        public Guid UserId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTime AccessTokenExpiresAt { get; set; }
+    }
+
+    public class Handler : IRequestHandler<Command, BaseResult<LoginResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IRefreshTokenService _refreshTokenService;
+        private readonly ILogger<Handler> _logger;   // <-- Added
+
+        public Handler(
+            IIdentityService identityService,
+            IUnitOfWork unitOfWork,
+            IJwtTokenGenerator jwtTokenGenerator,
+            IRefreshTokenService refreshTokenService,
+            ILogger<Handler> logger)                 // <-- Added
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _jwtTokenGenerator = jwtTokenGenerator;
+            _refreshTokenService = refreshTokenService;
+            _logger = logger;
+        }
+
+        public async Task<BaseResult<LoginResponseDto>> Handle(Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "LoginUser",
+                ("Email", request.Email)
+                // Password is intentionally NOT logged
+            );
+
+            // 1. Get user ID by email
+            var (success, errorMessage, userId) =
+                await _identityService.GetUserIdByEmailAsync(request.Email);
+
+            if (!success)
+            {
+                op.Fail("User not found or email lookup failed");
+                return new BaseResult<LoginResponseDto>(
+                    HttpStatusCode.Unauthorized,
+                    errorMessage);
+            }
+
+            // 2. Check if account is verified
+            var isVerified =
+                await _identityService.IsAccountVerifiedAsync(userId);
+
+            if (!isVerified)
+            {
+                op.Fail("Account not verified");
+                return new BaseResult<LoginResponseDto>(
+                    HttpStatusCode.Forbidden,
+                    "Please verify your account before logging in.");
+            }
+
+            // 3. Validate password
+            var passwordIsValid =
+                await _identityService.CheckPasswordAsync(userId, request.Password);
+
+            if (!passwordIsValid)
+            {
+                op.Fail("Invalid password");
+                return new BaseResult<LoginResponseDto>(
+                    HttpStatusCode.Unauthorized,
+                    "Invalid email or password.");
+            }
+
+            // 4. Get user roles
+            var roles = await _identityService.GetRolesAsync(userId);
+
+            // 5. Get user profile (for full name)
+            var userProfile = await _unitOfWork.Query<UserProfile>().AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Select(x => new
+                {
+                    x.FirstName,
+                    x.LastName,
+                    x.FullName
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // 6. Generate tokens
+            var accessToken = _jwtTokenGenerator.GenerateToken(
+                userId,
+                request.Email,
+                roles);
+
+            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(userId);
+
+            // 7. Save refresh token
+            await _unitOfWork.AddAsync(refreshTokenEntity);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            op.Success($"User {userId} logged in successfully");
+
+            return new BaseResult<LoginResponseDto>(
+                HttpStatusCode.OK,
+                "Login successful.",
+                new LoginResponseDto
+                {
+                    UserId = userId,
+                    FullName = userProfile?.FullName ?? string.Empty,
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
+                });
+        }
+    }
+}

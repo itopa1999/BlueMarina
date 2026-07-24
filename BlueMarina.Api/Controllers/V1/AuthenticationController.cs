@@ -152,6 +152,7 @@ public class AuthenticationController(
     public async Task<IActionResult> ChangePassword(
         [FromBody] ChangePasswordCommand.Command command)
     {
+        command.UserId = CurrentUserId.Value;
         var result = await _mediator.Send(command);
         return StatusCode(
             (int)result.StatusCode,
