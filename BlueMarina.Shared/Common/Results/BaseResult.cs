@@ -23,10 +23,6 @@ public class BaseResult
     [JsonPropertyOrder(4)]
     public HttpStatusCode StatusCode { get; set; }
 
-    [JsonPropertyName("error_code")]
-    [JsonPropertyOrder(5)]
-    public string? ErrorCode { get; set; }
-
     [JsonPropertyName("timestamp")]
     [JsonPropertyOrder(6)]
     public DateTime Timestamp { get; set; }
@@ -42,13 +38,11 @@ public class BaseResult
     public BaseResult(
         HttpStatusCode statusCode = HttpStatusCode.InternalServerError,
         string message = "An error occurred; please try again later",
-        string? requestId = null,
-        string? errorCode = null)
+        string? requestId = null)
     {
         RequestId = requestId ?? Guid.NewGuid().ToString();
         Message = message;
         StatusCode = statusCode;
-        ErrorCode = errorCode;
         Timestamp = DateTime.UtcNow;
     }
 }
@@ -67,9 +61,8 @@ public class BaseResult<T> : BaseResult
         HttpStatusCode statusCode = HttpStatusCode.InternalServerError,
         string message = "An error occurred; please try again later",
         T? data = default,
-        string? requestId = null,
-        string? errorCode = null)
-        : base(statusCode, message, requestId, errorCode)
+        string? requestId = null)
+        : base(statusCode, message, requestId)
     {
         Data = data;
     }

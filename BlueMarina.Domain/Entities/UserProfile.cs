@@ -71,6 +71,9 @@ public class UserProfile : BaseEntity
 
     public Guid? ReferredByUserId { get; set; }
 
+    public string FullName => string.Join(" ", new[] { FirstName, LastName }
+        .Where(value => !string.IsNullOrWhiteSpace(value)));
+
     // Navigation collections
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();

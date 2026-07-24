@@ -1,3 +1,4 @@
+using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Domain.Entities;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

@@ -1,18 +1,16 @@
+using System.Net;
 using BlueMarina.Api.Middlewares;
+using BlueMarina.Application;
 using BlueMarina.Infrastructure;
+using BlueMarina.Shared.Results;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
 namespace BlueMarina.Api;
 
-public class Startup
+public class Startup(IConfiguration configuration)
 {
-    private readonly IConfiguration _configuration;
-
-
-    public Startup(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
 
     // Register services
@@ -20,6 +18,37 @@ public class Startup
     {
         // Controllers
         services.AddControllers();
+        
+        // CQRS (MediatR)
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(
+                typeof(AssemblyReference).Assembly
+            );
+        });
+
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var errors = context.ModelState.Values
+                    .SelectMany(x => x.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .Where(x => !string.IsNullOrWhiteSpace(x));
+
+                var result = new BaseResult(
+                    statusCode: HttpStatusCode.BadRequest,
+                    message: string.Join(" | ", errors)
+                );
+
+                return new ObjectResult(result)
+                {
+                    StatusCode = 400
+                };
+            };
+        });
+
+
 
 
         // Swagger
@@ -85,6 +114,14 @@ public class Startup
                 Version = "v3",
                 Description = "BlueMarina Fintech Platform API V3"
             });
+
+            options.CustomSchemaIds(type =>
+            {
+                if (type.IsNested)
+                    return $"{type.DeclaringType!.Name}.{type.Name}";
+                return type.Name;
+            });
+
         });
 
 

@@ -1,3 +1,4 @@
+using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddScoped<IIdentityService, IdentityService>();
+        
         services.AddDbContext<ApplicationDbContext>(options =>
         {
             var databaseProvider = configuration

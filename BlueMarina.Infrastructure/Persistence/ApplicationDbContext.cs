@@ -1,3 +1,4 @@
+using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Entities;
 using BlueMarina.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +22,7 @@ public sealed class ApplicationDbContext
     public DbSet<KycDocument> KycDocuments => Set<KycDocument>();
     public DbSet<KycVerification> KycVerifications => Set<KycVerification>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,5 +30,48 @@ public sealed class ApplicationDbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+    }
+
+    public override async Task<int> SaveChangesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker
+            .Entries<BaseEntity>();
+
+        foreach (var entry in entries)
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+
+                    entry.Entity.CreatedAt =
+                        DateTime.UtcNow;
+
+                    break;
+
+
+                case EntityState.Modified:
+
+                    entry.Entity.ModifiedAt =
+                        DateTime.UtcNow;
+
+                    break;
+
+
+                case EntityState.Deleted:
+
+                    entry.State = EntityState.Modified;
+
+                    entry.Entity.IsDeleted = true;
+
+                    entry.Entity.DeletedAt =
+                        DateTime.UtcNow;
+
+                    break;
+            }
+        }
+
+        return await base.SaveChangesAsync(
+            cancellationToken);
     }
 }

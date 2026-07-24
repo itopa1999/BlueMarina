@@ -1,6 +1,6 @@
 using BlueMarina.Domain.Entities;
 
-namespace BlueMarina.Infrastructure.Authentication.Jwt;
+namespace BlueMarina.Application.Interfaces.Security;
 
 public interface IRefreshTokenService
 {

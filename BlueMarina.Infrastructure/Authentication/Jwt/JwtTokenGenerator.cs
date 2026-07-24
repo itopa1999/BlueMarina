@@ -1,8 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using BlueMarina.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
+using BlueMarina.Application.Interfaces.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -12,40 +11,37 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 {
     private static readonly JwtSecurityTokenHandler TokenHandler = new();
 
-    private readonly UserManager<User> _userManager;
     private readonly JwtSettings _jwtSettings;
 
     public JwtTokenGenerator(
-        UserManager<User> userManager,
         IOptions<JwtSettings> jwtOptions)
     {
-        _userManager = userManager;
         _jwtSettings = jwtOptions.Value;
     }
 
-    public async Task<string> GenerateAccessTokenAsync(User user)
+    public string GenerateToken(
+        Guid userId,
+        string email,
+        IList<string> roles)
     {
-        var roles = await _userManager.GetRolesAsync(user);
-
         var claims = new List<Claim>
         {
-            // Standard JWT Claims
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(
                 JwtRegisteredClaimNames.Iat,
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
                 ClaimValueTypes.Integer64),
 
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.UserName ?? string.Empty)
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.Email, email)
         };
 
         foreach (var role in roles)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(
+                new Claim(ClaimTypes.Role, role));
         }
 
         var securityKey = new SymmetricSecurityKey(
@@ -60,7 +56,8 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             audience: _jwtSettings.Audience,
             claims: claims,
             notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            expires: DateTime.UtcNow.AddMinutes(
+                _jwtSettings.AccessTokenExpiryMinutes),
             signingCredentials: signingCredentials);
 
         return TokenHandler.WriteToken(token);

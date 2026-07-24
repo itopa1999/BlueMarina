@@ -1,0 +1,140 @@
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Domain.Entities;
+using BlueMarina.Shared.Constants;
+using BlueMarina.Shared.Results;
+using MediatR;
+
+namespace BlueMarina.Application.BBL.Commands.Authentication;
+
+public sealed class ResendVerificationOtpCommand
+{
+    public class Command: IRequest<BaseResult<ResendVerificationOtpResponseDto>>
+    {
+        [EmailAddress]
+        public string? Email { get; init; }
+
+        public string? PhoneNumber {get; init;}
+    }
+
+    public class ResendVerificationOtpResponseDto
+    {
+        public Guid UserId { get; set; }
+        public string Data { get; set; }
+    }
+
+    public class Handler : IRequestHandler<Command, BaseResult<ResendVerificationOtpResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOtpService _otpService;
+        private readonly IEmailService _emailService;
+        private readonly ISmsService _smsService;
+
+        public Handler(
+            IIdentityService identityService, IUnitOfWork unitOfWork,
+            IOtpService otpService, IEmailService emailService, ISmsService smsService )
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _otpService = otpService;
+            _emailService = emailService;
+            _smsService = smsService;
+        }
+
+        public async Task<BaseResult<ResendVerificationOtpResponseDto>> Handle(Command request, CancellationToken cancellationToken)
+        {
+            try{
+                if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
+                {
+                    return new BaseResult<ResendVerificationOtpResponseDto>(
+                        HttpStatusCode.BadRequest,
+                        "Either Email or Phone Number must be provided.");
+                }
+
+                Guid? userId = null;
+
+                if (!string.IsNullOrWhiteSpace(request.Email))
+                {
+                    var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
+                    if (!success)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                        return new BaseResult<ResendVerificationOtpResponseDto>
+                        (
+                            HttpStatusCode.BadRequest,
+                            errorMessage
+                        );
+                    }
+
+                    userId = id;
+                } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                {
+                    var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
+                    if (!success)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                        return new BaseResult<ResendVerificationOtpResponseDto>
+                        (
+                            HttpStatusCode.BadRequest,
+                            errorMessage
+                        );
+                    }
+
+                    userId = id;
+                }
+
+                if (!userId.HasValue)
+                {
+                    return new BaseResult<ResendVerificationOtpResponseDto>(
+                        HttpStatusCode.BadRequest,
+                        "User not found.");
+                }
+
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+                var otpCode = _otpService.GenerateOtp();
+
+                var otp = new OtpVerification
+                {
+                    UserId = userId.Value,
+                    OtpCode = otpCode,
+                    Purpose = OtpPurpose.AccountVerification,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(2)
+                };
+                await _unitOfWork.AddAsync(otp);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(request.Email))
+                {
+                    await _emailService.SendOtpAsync(request.Email, otpCode);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                {
+                    await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
+                }
+
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.Created,
+                    "Verification OTP resent successfully.",  
+                    new ResendVerificationOtpResponseDto
+                    {
+                        UserId = userId.Value,
+                        Data = "Data from payload here"
+                    });
+
+            }catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+
+        }
+    }
+}

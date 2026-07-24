@@ -1,3 +1,4 @@
+using BlueMarina.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
 
 namespace BlueMarina.Infrastructure.Identity;
