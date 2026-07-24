@@ -48,55 +48,55 @@ public sealed class ResendVerificationOtpCommand
 
         public async Task<BaseResult<ResendVerificationOtpResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
+            
+            if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Either Email or Phone Number must be provided.");
+            }
+
+            Guid? userId = null;
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
+                if (!success)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return new BaseResult<ResendVerificationOtpResponseDto>
+                    (
+                        HttpStatusCode.BadRequest,
+                        errorMessage
+                    );
+                }
+
+                userId = id;
+            } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
+                if (!success)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return new BaseResult<ResendVerificationOtpResponseDto>
+                    (
+                        HttpStatusCode.BadRequest,
+                        errorMessage
+                    );
+                }
+
+                userId = id;
+            }
+
+            if (!userId.HasValue)
+            {
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "User not found.");
+            }
+
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try{
-                if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    return new BaseResult<ResendVerificationOtpResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "Either Email or Phone Number must be provided.");
-                }
-
-                Guid? userId = null;
-
-                if (!string.IsNullOrWhiteSpace(request.Email))
-                {
-                    var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
-                    if (!success)
-                    {
-                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                        return new BaseResult<ResendVerificationOtpResponseDto>
-                        (
-                            HttpStatusCode.BadRequest,
-                            errorMessage
-                        );
-                    }
-
-                    userId = id;
-                } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
-                    if (!success)
-                    {
-                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                        return new BaseResult<ResendVerificationOtpResponseDto>
-                        (
-                            HttpStatusCode.BadRequest,
-                            errorMessage
-                        );
-                    }
-
-                    userId = id;
-                }
-
-                if (!userId.HasValue)
-                {
-                    return new BaseResult<ResendVerificationOtpResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "User not found.");
-                }
-
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
                 var otpCode = _otpService.GenerateOtp();
 
                 var otp = new OtpVerification

@@ -61,24 +61,24 @@ public sealed class RegisterCommand
         }
         public async Task<BaseResult<RegistrationResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
+            
+            if (await _identityService.EmailExistsAsync(request.Email))
+            {
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Email already exists.");
+            }
+
+            if (await _identityService.PhoneNumberExistsAsync(
+                request.PhoneNumber))
+            {
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Phone number already exists.");
+            }
+            
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try{
-                if (await _identityService.EmailExistsAsync(request.Email))
-                {
-                    return new BaseResult<RegistrationResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "Email already exists.");
-                }
-
-                if (await _identityService.PhoneNumberExistsAsync(
-                    request.PhoneNumber))
-                {
-                    return new BaseResult<RegistrationResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "Phone number already exists.");
-                }
-
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
                 var (success, errorMessage, userId) = await _identityService.CreateUserAsync(
                     request.Email,
                     request.PhoneNumber,

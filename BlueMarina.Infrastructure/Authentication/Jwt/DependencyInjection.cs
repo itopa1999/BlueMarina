@@ -1,4 +1,5 @@
 using System.Text;
+using BlueMarina.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

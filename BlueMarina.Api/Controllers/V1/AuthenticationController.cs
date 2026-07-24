@@ -1,5 +1,7 @@
+using BlueMarina.Api.Configurations;
 using BlueMarina.Application.BBL.Commands.Authentication;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlueMarina.Api.Controllers.V1;
@@ -7,7 +9,7 @@ namespace BlueMarina.Api.Controllers.V1;
 [ApiController]
 [Route("api/v1/auth")]
 public class AuthenticationController(
-    IMediator mediator) : ControllerBase
+    IMediator mediator) : BaseController
 {
     private readonly IMediator _mediator = mediator;
 
@@ -46,7 +48,7 @@ public class AuthenticationController(
 
     [HttpPost("login")]
     public async Task<IActionResult> LoginUser(
-        [FromBody] VerifyAccountCommand.Command command)
+        [FromBody] LoginUserCommand.Command command)
     {
         var result = await _mediator.Send(command);
 
@@ -55,4 +57,30 @@ public class AuthenticationController(
             result);
     }
 
+    [HttpPost("refresh-token")]
+    [Authorize]
+    public async Task<IActionResult> RefreshToken(
+        [FromBody] RefreshTokenCommand.Command command)
+    {
+        command.Email = UserEmail;
+        var result = await _mediator.Send(command);
+        return StatusCode(
+            (int)result.StatusCode,
+            result
+        );
+    }
+
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(
+        [FromBody] LogoutCommand.Command command)
+    {
+        command.UserId = CurrentUserId.Value;
+        var result = await _mediator.Send(command);
+        return StatusCode(
+            (int)result.StatusCode,
+            result
+        );
+    }
 }

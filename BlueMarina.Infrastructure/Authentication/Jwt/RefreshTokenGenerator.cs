@@ -6,7 +6,7 @@ public sealed class RefreshTokenGenerator : IRefreshTokenGenerator
 {
     public string Generate()
     {
-        Span<byte> bytes = stackalloc byte[64];
+        Span<byte> bytes = stackalloc byte[564];
 
         RandomNumberGenerator.Fill(bytes);
 

@@ -43,56 +43,55 @@ public sealed class VerifyAccountCommand
         }
         public async Task<BaseResult<VerifyAccountResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
+          
+            if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Either Email or Phone Number must be provided.");
+            }
+
+            Guid? userId = null;
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
+                if (!success)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return new BaseResult<VerifyAccountResponseDto>
+                    (
+                        HttpStatusCode.BadRequest,
+                        errorMessage
+                    );
+                }
+
+                userId = id;
+            } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
+                if (!success)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return new BaseResult<VerifyAccountResponseDto>
+                    (
+                        HttpStatusCode.BadRequest,
+                        errorMessage
+                    );
+                }
+
+                userId = id;
+            }
+
+            if (!userId.HasValue)
+            {
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "User not found.");
+            }
+
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try{
-                if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    return new BaseResult<VerifyAccountResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "Either Email or Phone Number must be provided.");
-                }
-
-                Guid? userId = null;
-
-                if (!string.IsNullOrWhiteSpace(request.Email))
-                {
-                    var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
-                    if (!success)
-                    {
-                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                        return new BaseResult<VerifyAccountResponseDto>
-                        (
-                            HttpStatusCode.BadRequest,
-                            errorMessage
-                        );
-                    }
-
-                    userId = id;
-                } else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
-                    if (!success)
-                    {
-                        await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                        return new BaseResult<VerifyAccountResponseDto>
-                        (
-                            HttpStatusCode.BadRequest,
-                            errorMessage
-                        );
-                    }
-
-                    userId = id;
-                }
-
-                if (!userId.HasValue)
-                {
-                    return new BaseResult<VerifyAccountResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        "User not found.");
-                }
-
-
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
                 var otpVerification = await _unitOfWork.Query<OtpVerification>()
                 .Where(x =>  x.UserId == userId && x.Purpose == OtpPurpose.AccountVerification.ToString())
                 .OrderByDescending(x => x.CreatedAt)

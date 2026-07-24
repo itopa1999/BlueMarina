@@ -35,7 +35,11 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
                 ClaimValueTypes.Integer64),
 
             new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Email, email)
+            new(ClaimTypes.Email, email),
+
+            new Claim("UserId", userId.ToString()),
+            new Claim("UserEmail", email ?? string.Empty),
+            new Claim("Platform", "web" ?? "swagger"),
         };
 
         foreach (var role in roles)
