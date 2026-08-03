@@ -144,7 +144,7 @@ public sealed class RegisterCommand
 
                 try
                 {
-                    await _emailService.SendOtpAsync(request.Email, otpCode);
+                    await _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode);
                     await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
                 }
                 catch (Exception sendEx)

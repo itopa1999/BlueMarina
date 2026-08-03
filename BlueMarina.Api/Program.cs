@@ -1,7 +1,18 @@
 using BlueMarina.Api;
 using BlueMarina.Infrastructure.Identity;
+using DotNetEnv;
+
+var envPath = Path.Combine(
+    Directory.GetCurrentDirectory(),
+    "..",
+    ".env"
+);
+
+Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddEnvironmentVariables();
 
 var startup = new Startup(builder.Configuration);
 

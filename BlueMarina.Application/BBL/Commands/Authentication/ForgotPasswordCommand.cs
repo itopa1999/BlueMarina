@@ -115,14 +115,14 @@ public sealed class ForgotPasswordCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                if (!string.IsNullOrWhiteSpace(request.Email))
-                {
-                    await _emailService.SendOtpAsync(request.Email, otpCode);
-                }
-                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
-                }
+                // if (!string.IsNullOrWhiteSpace(request.Email))
+                // {
+                //     await _emailService.SendForgotPasswordOtpAsync(request.Email, otpCode);
+                // }
+                // if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                // {
+                //     await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
+                // }
 
                 op.Success($"OTP sent to user {userId} via {(request.Email != null ? "email" : "SMS")}");
 

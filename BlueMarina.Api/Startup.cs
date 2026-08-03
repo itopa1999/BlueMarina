@@ -1,4 +1,5 @@
 using System.Net;
+using BlueMarina.Api.Configurations;
 using BlueMarina.Api.Middlewares;
 using BlueMarina.Application;
 using BlueMarina.Infrastructure;
@@ -156,6 +157,10 @@ public class Startup(IConfiguration configuration)
 
         // Later add:
         services.AddInfrastructure(_configuration);
+        services.Configure<SwaggerSettings>(
+            _configuration.GetSection(SwaggerSettings.SectionName));
+
+        services.AddDataProtection();
     }
 
 

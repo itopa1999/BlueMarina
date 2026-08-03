@@ -65,7 +65,7 @@ public sealed class LoginUserCommand
             {
                 op.Fail($"User lookup failed: {errorMessage}");
                 return new BaseResult<LoginResponseDto>(
-                    HttpStatusCode.Unauthorized,
+                    HttpStatusCode.BadRequest,
                     "Invalid email or password."
                 );
             }
@@ -75,7 +75,7 @@ public sealed class LoginUserCommand
             {
                 op.Fail($"Account not verified for user {userId}");
                 return new BaseResult<LoginResponseDto>(
-                    HttpStatusCode.Forbidden,
+                    HttpStatusCode.BadRequest,
                     "Please verify your account before logging in."
                 );
             }
@@ -85,7 +85,7 @@ public sealed class LoginUserCommand
             {
                 op.Fail($"Invalid password for user {userId}");
                 return new BaseResult<LoginResponseDto>(
-                    HttpStatusCode.Unauthorized,
+                    HttpStatusCode.BadRequest,
                     "Invalid email or password."
                 );
             }
@@ -100,7 +100,7 @@ public sealed class LoginUserCommand
             {
                 op.Fail($"User profile missing for user {userId}");
                 return new BaseResult<LoginResponseDto>(
-                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadRequest,
                     "User profile not found. Please contact support."
                 );
             }

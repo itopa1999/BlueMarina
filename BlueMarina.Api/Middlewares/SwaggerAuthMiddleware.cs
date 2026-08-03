@@ -1,64 +1,161 @@
+using System.Security.Cryptography;
 using System.Text;
-using System.Text.Encodings.Web;
+using BlueMarina.Api.Configurations;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Options;
 
 namespace BlueMarina.Api.Middlewares;
 
 public class SwaggerAuthMiddleware
 {
-    private readonly RequestDelegate _next;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<SwaggerAuthMiddleware> _logger;
+    private const string CookieName = "SwaggerAuth";
 
-    public SwaggerAuthMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<SwaggerAuthMiddleware> logger)
+    private readonly RequestDelegate _next;
+    private readonly SwaggerSettings _settings;
+    private readonly ILogger<SwaggerAuthMiddleware> _logger;
+    private readonly IDataProtector _protector;
+
+    public SwaggerAuthMiddleware(
+        RequestDelegate next,
+        IOptions<SwaggerSettings> options,
+        IDataProtectionProvider protectionProvider,
+        ILogger<SwaggerAuthMiddleware> logger)
     {
         _next = next;
-        _configuration = configuration;
+        _settings = options.Value;
         _logger = logger;
+
+        _protector = protectionProvider.CreateProtector("SwaggerAuthenticationCookie");
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.StartsWithSegments("/swagger"))
+        if (!context.Request.Path.StartsWithSegments("/swagger"))
         {
-            if (context.Request.Cookies.TryGetValue("SwaggerAuth", out var cookie) 
-                && cookie == "authenticated")
-            {
-                await _next(context);
-                return;
-            }
-
-            if (context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
-                authHeader.ToString().StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
-            {
-                var encodedCredentials = authHeader.ToString().Substring("Basic ".Length).Trim();
-                var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(encodedCredentials)).Split(':', 2);
-                var username = credentials[0];
-                var password = credentials.Length > 1 ? credentials[1] : string.Empty;
-
-                var configUsername = _configuration["SwaggerCredentials:Username"];
-                var configPassword = _configuration["SwaggerCredentials:Password"];
-
-                if (username == configUsername && password == configPassword)
-                {
-                    context.Response.Cookies.Append("SwaggerAuth", "authenticated", new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = context.Request.IsHttps,
-                        SameSite = SameSiteMode.Strict,
-                        MaxAge = TimeSpan.FromHours(1)
-                    });
-
-                    await _next(context);
-                    return;
-                }
-            }
-
-            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"Swagger\"";
-            context.Response.StatusCode = 401;
-            await context.Response.WriteAsync("Authentication required to access Swagger UI.");
+            await _next(context);
             return;
         }
 
-        await _next(context);
+        if (IsAuthenticated(context))
+        {
+            await _next(context);
+            return;
+        }
+
+        if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+        {
+            await Challenge(context);
+            return;
+        }
+
+        var header = authHeader.ToString();
+
+        if (!header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        {
+            await Challenge(context);
+            return;
+        }
+
+        try
+        {
+            var encoded = header["Basic ".Length..].Trim();
+
+            var decoded = Encoding.UTF8.GetString(
+                Convert.FromBase64String(encoded));
+
+            var credentials = decoded.Split(':', 2);
+
+            if (credentials.Length != 2)
+            {
+                await Challenge(context);
+                return;
+            }
+
+            var username = credentials[0];
+            var password = credentials[1];
+
+            if (!SecureEquals(username, _settings.Username) ||
+                !SecureEquals(password, _settings.Password))
+            {
+                _logger.LogWarning(
+                    "Failed Swagger login from {IP}",
+                    context.Connection.RemoteIpAddress);
+
+                await Challenge(context);
+                return;
+            }
+
+            SetAuthenticationCookie(context);
+
+            _logger.LogInformation(
+                "Swagger login successful from {IP}",
+                context.Connection.RemoteIpAddress);
+
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invalid Swagger Authorization header.");
+
+            await Challenge(context);
+        }
+    }
+
+    private bool IsAuthenticated(HttpContext context)
+    {
+        if (!context.Request.Cookies.TryGetValue(CookieName, out var cookie))
+            return false;
+
+        try
+        {
+            var value = _protector.Unprotect(cookie);
+
+            return value == "Authenticated";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void SetAuthenticationCookie(HttpContext context)
+    {
+        var protectedValue = _protector.Protect("Authenticated");
+
+        context.Response.Cookies.Append(
+            CookieName,
+            protectedValue,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = context.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
+    }
+
+    private static async Task Challenge(HttpContext context)
+    {
+        context.Response.Headers["WWW-Authenticate"] =
+            "Basic realm=\"BlueMarina Swagger\"";
+
+        context.Response.StatusCode =
+            StatusCodes.Status401Unauthorized;
+
+        await context.Response.WriteAsync(
+            "Authentication required.");
+    }
+
+    private static bool SecureEquals(string left, string right)
+    {
+        var leftBytes = Encoding.UTF8.GetBytes(left);
+        var rightBytes = Encoding.UTF8.GetBytes(right);
+
+        if (leftBytes.Length != rightBytes.Length)
+            return false;
+
+        return CryptographicOperations.FixedTimeEquals(
+            leftBytes,
+            rightBytes);
     }
 }

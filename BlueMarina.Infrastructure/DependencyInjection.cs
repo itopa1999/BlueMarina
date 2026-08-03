@@ -1,12 +1,11 @@
-using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Infrastructure.Notification;
+using BlueMarina.Infrastructure.Notification.Email;
 using BlueMarina.Infrastructure.Persistence;
 using BlueMarina.Infrastructure.Security;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,8 +21,9 @@ public static class DependencyInjection
         services.AddJwtAuthentication(configuration);
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IOtpService, OtpService>();
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<ISmsService, SmsService>();
+        services.AddNotificationServices(configuration);
+        services.AddSingleton<TemplateRenderer>();
+
 
         return services;
     }
