@@ -8,19 +8,22 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
 {
     public void Configure(EntityTypeBuilder<UserProfile> builder)
     {
-        builder.HasKey(x => x.Id);
+       builder.HasKey(x => x.Id);
 
-        builder.HasIndex(x => x.Bvn)
+       builder.HasIndex(x => x.Bvn)
+              .IsUnique();
+
+       builder.HasIndex(x => x.Nin)
+              .IsUnique();
+
+       builder.HasIndex(x => x.Nin)
                .IsUnique();
 
-        builder.HasIndex(x => x.Nin)
-               .IsUnique();
+       builder.HasIndex(x => x.ReferralCode)
+              .IsUnique();
 
-        builder.HasIndex(x => x.ReferralCode)
-               .IsUnique();
+       builder.HasIndex(x => x.KycLevel);
 
-        builder.HasIndex(x => x.KycLevel);
-
-        builder.HasQueryFilter(x => !x.IsDeleted);
+       builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

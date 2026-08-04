@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
@@ -71,16 +72,19 @@ public sealed class ForgotPasswordCommand
             }
 
             Guid? userId = null;
+            IdentityDto? user = null;
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
-                var (success, _, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
-                if (success) userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
             else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
-                var (success, _, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
-                if (success) userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
 
             if (!userId.HasValue)
@@ -94,6 +98,14 @@ public sealed class ForgotPasswordCommand
                         UserId = Guid.Empty,
                         Data = "If an account exists, OTP has been sent."
                     });
+            }
+
+            if (!user.IsEmailVerified && !user.IsPhoneNumberVerified)
+            {
+                op.Fail("User account is not verified.");
+                return new BaseResult<ForgotPasswordResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "User account is not verified. Please verify your account first.");
             }
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -115,16 +127,10 @@ public sealed class ForgotPasswordCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                // if (!string.IsNullOrWhiteSpace(request.Email))
-                // {
-                //     await _emailService.SendForgotPasswordOtpAsync(request.Email, otpCode);
-                // }
-                // if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                // {
-                //     await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
-                // }
+                await _emailService.SendForgotPasswordOtpAsync(user.Email, otpCode);
+                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode);
 
-                op.Success($"OTP sent to user {userId} via {(request.Email != null ? "email" : "SMS")}");
+                op.Success($"OTP sent to user {userId} for password reset.");
 
                 return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.OK,

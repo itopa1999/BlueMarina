@@ -1,3 +1,4 @@
+using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -75,30 +76,47 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
-    public async Task<(bool Success, string ErrorMessage, Guid UserId)> GetUserIdByEmailAsync(string email)
+    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByEmailAsync(string email)
     {
         var existingUser = await _userManager.FindByEmailAsync(email);
         if (existingUser is null)
         {
-            return (false, "User not Found", Guid.Empty);
+            return (false, "User not Found", new IdentityDto());
         }
 
-        return (true, string.Empty, existingUser.Id);
+        var userDto = new IdentityDto
+        {
+            UserId = existingUser.Id,
+            Email = existingUser.Email,
+            PhoneNumber = existingUser.PhoneNumber,
+            IsEmailVerified = existingUser.EmailConfirmed,
+            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
+        };
 
+        return (true, string.Empty, userDto);
     }
 
 
-    public async Task<(bool Success, string ErrorMessage, Guid UserId)> GetUserIdByPhoneAsync(string phone)
+    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByPhoneAsync(string phone)
     {
         var existingUser = await _userManager.Users
             .FirstOrDefaultAsync(x => x.PhoneNumber == phone);
 
         if (existingUser is null)
         {
-            return (false, "User not found.", Guid.Empty);
+            return (false, "User not found.", new IdentityDto());
         }
 
-        return (true, string.Empty, existingUser.Id);
+        var userDto = new IdentityDto
+        {
+            UserId = existingUser.Id,
+            Email = existingUser.Email,
+            PhoneNumber = existingUser.PhoneNumber,
+            IsEmailVerified = existingUser.EmailConfirmed,
+            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
+        };
+
+        return (true, string.Empty, userDto);
     }
 
     public async Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(Guid? userId)
@@ -229,5 +247,25 @@ public sealed class IdentityService : IIdentityService
         await _userManager.UpdateAsync(user);
 
         return (true, string.Empty);
+    }
+
+    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByUserIDAsync(Guid userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+
+        if (existingUser is null)
+        {
+            return (false, "User not found.", new IdentityDto());
+        }
+
+        var userDto = new IdentityDto
+        {
+            UserId = existingUser.Id,
+            Email = existingUser.Email,
+            PhoneNumber = existingUser.PhoneNumber,
+            IsEmailVerified = existingUser.EmailConfirmed,
+            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
+        };
+        return (true, string.Empty, userDto);
     }
 }

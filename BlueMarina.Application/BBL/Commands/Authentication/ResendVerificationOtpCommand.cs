@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
@@ -9,6 +10,7 @@ using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using BlueMarina.Shared.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
@@ -70,30 +72,19 @@ public sealed class ResendVerificationOtpCommand
             }
 
             Guid? userId = null;
+            IdentityDto? user = null;
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
-                var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
-                if (!success)
-                {
-                    op.Fail($"User not found by email: {request.Email}");
-                    return new BaseResult<ResendVerificationOtpResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        errorMessage);
-                }
-                userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
             else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
-                var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
-                if (!success)
-                {
-                    op.Fail($"User not found by phone: {request.PhoneNumber}");
-                    return new BaseResult<ResendVerificationOtpResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        errorMessage);
-                }
-                userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
 
             if (!userId.HasValue)
@@ -123,15 +114,14 @@ public sealed class ResendVerificationOtpCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                // if (!string.IsNullOrWhiteSpace(request.Email))
-                // {
-                //     await _emailService.SendOtpAsync(request.Email, otpCode);
-                // }
+                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                    .AsNoTracking()
+                    .Where(up => up.UserId == userId.Value)
+                    .Select(up => new { up.FirstName})
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                // if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                // {
-                //     await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
-                // }
+                await _emailService.SendOtpAsync(UserProfile.FirstName, user.Email, otpCode);
+                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode);
 
                 op.Success($"OTP resent successfully for user {userId}");
 

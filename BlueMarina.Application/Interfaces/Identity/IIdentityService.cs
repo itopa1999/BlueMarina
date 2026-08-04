@@ -1,3 +1,5 @@
+using BlueMarina.Application.Common.Dtos;
+
 namespace BlueMarina.Application.Interfaces.Identity;
 
 public interface IIdentityService
@@ -17,9 +19,11 @@ public interface IIdentityService
         Guid userId,
         string role);
 
-    Task<(bool Success, string ErrorMessage, Guid UserId)> GetUserIdByEmailAsync(string email);
+    Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByEmailAsync(string email);
 
-    Task<(bool Success, string ErrorMessage, Guid UserId)> GetUserIdByPhoneAsync(string phone);
+    Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByPhoneAsync(string phone);
+
+    Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByUserIDAsync(Guid userId);
 
     Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(Guid? userId);
 

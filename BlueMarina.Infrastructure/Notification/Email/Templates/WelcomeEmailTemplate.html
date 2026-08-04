@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to BlueMarina</title>
+    <style>
+        /* Reset and base styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #f0f4f9;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 560px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(30, 60, 114, 0.10), 0 8px 20px rgba(0,0,0,0.04);
+            overflow: hidden;
+            border: 1px solid #e9edf4;
+        }
+        /* Header – Blue Marina gradient */
+        .header {
+            background: linear-gradient(145deg, #1A3A6B 0%, #2B5BAE 100%);
+            padding: 32px 30px;
+            text-align: center;
+            border-bottom: 4px solid #D4E2FC;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .header h1 span {
+            opacity: 0.85;
+            font-weight: 300;
+        }
+        .header .brand-icon {
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            line-height: 56px;
+            font-size: 26px;
+            margin-right: 12px;
+            vertical-align: middle;
+            color: #fff;
+        }
+        .header .welcome-badge {
+            display: block;
+            color: rgba(255,255,255,0.90);
+            font-size: 14px;
+            font-weight: 400;
+            margin-top: 6px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        /* Body */
+        .body {
+            padding: 35px 30px 30px;
+        }
+        .greeting {
+            font-size: 20px;
+            color: #1E2F4A;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .greeting span {
+            color: #2B5BAE;
+        }
+        .message {
+            color: #3E4F66;
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 25px 0;
+        }
+        .feature-item {
+            background: #F5F9FF;
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            border: 1px solid #E2EAF5;
+        }
+        .feature-item .icon {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .feature-item .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1A3A6B;
+        }
+        .feature-item .desc {
+            font-size: 12px;
+            color: #5D738C;
+            margin-top: 2px;
+        }
+        /* CTA Button */
+        .cta-container {
+            text-align: center;
+            margin: 30px 0 25px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(145deg, #1A3A6B 0%, #2B5BAE 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(43, 91, 174, 0.30);
+            transition: all 0.2s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(43, 91, 174, 0.40);
+        }
+        .divider {
+            height: 1px;
+            background: #E2E9F2;
+            margin: 30px 0 25px;
+        }
+        .closing {
+            color: #3E4F66;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .signature {
+            margin-top: 20px;
+            color: #3E4F66;
+            font-size: 15px;
+        }
+        .signature strong {
+            color: #1A3A6B;
+        }
+        .support-note {
+            margin-top: 12px;
+            color: #5D738C;
+            font-size: 14px;
+        }
+        .support-note a {
+            color: #2B5BAE;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .support-note a:hover {
+            text-decoration: underline;
+        }
+        /* Footer bottom */
+        .footer-bottom {
+            background: #F8FAFE;
+            padding: 18px 30px;
+            text-align: center;
+            border-top: 1px solid #E9EDF4;
+            font-size: 13px;
+            color: #7087A0;
+        }
+        .footer-bottom a {
+            color: #2B5BAE;
+            text-decoration: none;
+            margin: 0 8px;
+        }
+        .footer-bottom a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 480px) {
+            body { padding: 20px 10px; }
+            .features { grid-template-columns: 1fr; }
+            .header h1 { font-size: 22px; }
+            .cta-button { padding: 12px 28px; font-size: 15px; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>
+            <span class="brand-icon">⚓</span>
+            Blue<span style="font-weight:300;">Marina</span>
+        </h1>
+        <div class="welcome-badge">✦ Welcome Aboard ✦</div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+
+        <p class="greeting">
+            Contratulation, <span>{{FirstName}}</span>! 👋
+        </p>
+
+        <p class="message">
+            Welcome to <strong>BlueMarina</strong> your trusted financial companion. 
+            We're thrilled to have you on board and look forward to helping you 
+            navigate your financial journey with confidence.
+        </p>
+
+        <!-- Features Grid -->
+        <div class="features">
+            <div class="feature-item">
+                <span class="icon">🔒</span>
+                <div class="label">Secure Banking</div>
+                <div class="desc">Bank-grade security for peace of mind</div>
+            </div>
+            <div class="feature-item">
+                <span class="icon">⚡</span>
+                <div class="label">Fast Transactions</div>
+                <div class="desc">Instant transfers & real-time updates</div>
+            </div>
+            <div class="feature-item">
+                <span class="icon">📊</span>
+                <div class="label">Smart Insights</div>
+                <div class="desc">Track spending and grow savings</div>
+            </div>
+            <div class="feature-item">
+                <span class="icon">📱</span>
+                <div class="label">Mobile Access</div>
+                <div class="desc">Bank on the go with our mobile app</div>
+            </div>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="cta-container">
+            <a href="https://your-frontend-url.com/dashboard" class="cta-button">
+                Get Started Now →
+            </a>
+        </div>
+
+        <p class="closing">
+            We've sent this email to confirm your account setup. 
+            Here are a few things you can do next:
+        </p>
+        <ul style="color:#3E4F66; font-size:15px; line-height:1.8; padding-left:20px; margin:10px 0 20px;">
+            <li>Complete your profile with additional details</li>
+            <li>Set up your security preferences (2FA)</li>
+            <li>Connect your bank account or card</li>
+            <li>Explore our financial tools and resources</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <div class="signature">
+            Smooth sailing ahead,<br>
+            <strong>Your BlueMarina Team</strong>
+        </div>
+
+        <div class="support-note">
+            📧 Need help? <a href="mailto:support@bluemarina.com">support@bluemarina.com</a> &nbsp;·&nbsp; 
+            💬 <a href="#">Live Chat</a>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer-bottom">
+        &copy; 2026 BlueMarina. All rights reserved. &nbsp;·&nbsp;
+        <a href="#">Privacy</a> &nbsp;·&nbsp;
+        <a href="#">Terms</a> &nbsp;·&nbsp;
+        <a href="#">Help</a>
+    </div>
+
+</div>
+
+</body>
+</html>

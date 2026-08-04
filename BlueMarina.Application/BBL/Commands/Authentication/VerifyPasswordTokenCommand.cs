@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities;
@@ -33,8 +34,11 @@ public sealed class VerifyPasswordTokenCommand
         private readonly IUnitOfWork _unitOfWork;
         private readonly IIdentityService _identityService;
         private readonly ILogger<Handler> _logger;
+        
 
-        public Handler(IUnitOfWork unitOfWork, IIdentityService identityService, ILogger<Handler> logger)
+        public Handler(IUnitOfWork unitOfWork, 
+        IIdentityService identityService, 
+        ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
@@ -47,7 +51,9 @@ public sealed class VerifyPasswordTokenCommand
                 ("UserId", request.UserId.ToString())
             );
 
-            var userExists = await _identityService.IsUserExisting(request.UserId);
+            IdentityDto? user = null;
+
+            var (userExists, _, userDetails) = await _identityService.GetUserDetailsByUserIDAsync(request.UserId);
             if (!userExists)
             {
                 op.Fail($"User not found: {request.UserId}");
@@ -55,6 +61,8 @@ public sealed class VerifyPasswordTokenCommand
                     HttpStatusCode.BadRequest,
                     "User not Found");
             }
+
+            user = userDetails;
 
             var otpVerification = await _unitOfWork.Query<OtpVerification>()
                 .Where(x => x.UserId == request.UserId

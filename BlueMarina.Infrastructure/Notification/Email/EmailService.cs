@@ -46,6 +46,41 @@ public sealed class EmailService : IEmailService
             body);
     }
 
+    public async Task SendForgotPasswordOtpAsync(
+        string email,
+        string otp)
+    {
+        var body = await _renderer.RenderAsync(
+            "ForgotPasswordOtpEmailTemplate.html",
+            new Dictionary<string, string>
+            {
+                ["OTP"] = otp,
+                ["Expiry"] = "2 Minutes"
+            });
+
+        await SendEmailAsync(
+            email,
+            "BlueMarina Forgot Password Verification Code",
+            body);
+    }
+
+    public async Task SendWelcomeEmailAsync(
+        string firstName,
+        string email)
+    {
+        var body = await _renderer.RenderAsync(
+            "WelcomeEmailTemplate.html",
+            new Dictionary<string, string>
+            {
+                ["FirstName"] = firstName
+            });
+
+        await SendEmailAsync(
+            email,
+            "Welcome to BlueMarina",
+            body);
+    }
+
     public async Task SendEmailAsync(
         string toEmail,
         string subject,

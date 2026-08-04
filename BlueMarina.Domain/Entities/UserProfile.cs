@@ -19,6 +19,14 @@ public class UserProfile : BaseEntity
     [MaxLength(100)]
     public string? OtherNames { get; set; }
 
+    [MaxLength(256)]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    [Phone]
+    public string? PhoneNumber { get; set; }
+
     public DateTime? DateOfBirth { get; set; }
 
     public Gender Gender { get; set; }

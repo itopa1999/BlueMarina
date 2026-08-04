@@ -3,10 +3,14 @@ using System.Text.Json.Serialization;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using BlueMarina.Shared.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using BlueMarina.Domain.Entities;
+
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
 
@@ -14,15 +18,15 @@ public sealed class RefreshTokenCommand
 {
     public class Command : IRequest<BaseResult<RefreshTokenResponseDto>>
     {
-        [JsonIgnore]
-        public string Email { get; set; } = string.Empty;
-        public string RefreshToken { get; init; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public string Platform { get; init; } = Platforms.Web;
     }
 
     public class RefreshTokenResponseDto
     {
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
+        public string Platform { get; set; } = Platforms.Web;
         public DateTime AccessTokenExpiresAt { get; set; }
     }
 
@@ -33,6 +37,13 @@ public sealed class RefreshTokenCommand
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly ILogger<Handler> _logger;
+        private static readonly HashSet<string> ValidPlatforms =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            Platforms.Web,
+            Platforms.Mobile,
+            Platforms.Swagger
+        };
 
         public Handler(
             IIdentityService identityService,
@@ -51,8 +62,19 @@ public sealed class RefreshTokenCommand
         public async Task<BaseResult<RefreshTokenResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
             using var op = OperationLogger.Start(_logger, "RefreshToken",
-                ("Email", request.Email)
+                ("RefreshToken", request.RefreshToken),
+                ("Platform", request.Platform)
             );
+
+            if (!ValidPlatforms.Contains(request.Platform))
+            {
+                op.Fail($"Invalid platform: {request.Platform}");
+
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Invalid platform specified."
+                );
+            }
 
             var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken);
 
@@ -60,7 +82,7 @@ public sealed class RefreshTokenCommand
             {
                 op.Fail("Invalid refresh token provided.");
                 return new BaseResult<RefreshTokenResponseDto>(
-                    HttpStatusCode.Unauthorized,
+                    HttpStatusCode.BadRequest,
                     "Invalid refresh token.");
             }
 
@@ -68,7 +90,7 @@ public sealed class RefreshTokenCommand
             {
                 op.Fail($"Refresh token expired (UserId: {refreshToken.UserId})");
                 return new BaseResult<RefreshTokenResponseDto>(
-                    HttpStatusCode.Unauthorized,
+                    HttpStatusCode.BadRequest,
                     "Refresh token has expired.");
             }
 
@@ -76,7 +98,7 @@ public sealed class RefreshTokenCommand
             {
                 op.Fail($"Refresh token already revoked (UserId: {refreshToken.UserId})");
                 return new BaseResult<RefreshTokenResponseDto>(
-                    HttpStatusCode.Unauthorized,
+                    HttpStatusCode.BadRequest,
                     "Refresh token has been revoked.");
             }
 
@@ -84,16 +106,24 @@ public sealed class RefreshTokenCommand
 
             try
             {
+                refreshToken.RevokedAt = DateTime.UtcNow;
+                refreshToken.RevocationReason = "Token refreshed";
+                _unitOfWork.Update(refreshToken);
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
                 var roles = await _identityService.GetRolesAsync(refreshToken.UserId);
+
+                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                    .AsNoTracking()
+                    .Where(up => up.UserId == refreshToken.UserId)
+                    .Select(up => new { up.Email})
+                    .FirstOrDefaultAsync(cancellationToken);
 
                 var accessToken = _jwtTokenGenerator.GenerateToken(
                     refreshToken.UserId,
-                    request.Email,
+                    UserProfile.Email,
                     roles);
-
-                // Revoke old refresh token
-                refreshToken.RevokedAt = DateTime.UtcNow;
-                _unitOfWork.Update(refreshToken);
 
                 // Generate a new refresh token
                 var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserId);
@@ -111,6 +141,7 @@ public sealed class RefreshTokenCommand
                     {
                         AccessToken = accessToken,
                         RefreshToken = newToken,
+                        Platform = request.Platform,
                         AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
                     });
             }

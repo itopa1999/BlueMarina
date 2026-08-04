@@ -461,6 +461,11 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Employer")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -527,6 +532,10 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<string>("OtherNames")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("ReferralCode")
                         .HasColumnType("text");

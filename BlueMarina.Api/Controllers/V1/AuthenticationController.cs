@@ -1,10 +1,13 @@
 using System.Net;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Application.BBL.Commands.Authentication;
+using BlueMarina.Infrastructure.Authentication.Jwt;
+using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using static BlueMarina.Application.BBL.Commands.Authentication.ForgotPasswordCommand;
 using static BlueMarina.Application.BBL.Commands.Authentication.LoginUserCommand;
 using static BlueMarina.Application.BBL.Commands.Authentication.RefreshTokenCommand;
@@ -19,9 +22,11 @@ namespace BlueMarina.Api.Controllers.V1;
 [Route("api/v1/auth")]
 [ApiExplorerSettings(GroupName = "v1")]
 public class AuthenticationController(
-    IMediator mediator) : BaseController
+    IMediator mediator,
+    IOptions<JwtSettings> jwtOptions) : BaseController
 {
     private readonly IMediator _mediator = mediator;
+    private readonly JwtSettings _jwt = jwtOptions.Value;
 
     [HttpPost("register")]
     [ProducesResponseType(typeof(BaseResult<RegistrationResponseDto>), (int)HttpStatusCode.OK)]
@@ -70,20 +75,51 @@ public class AuthenticationController(
     {
         var result = await _mediator.Send(command);
 
+        if (result.IsSuccess &&
+            result.Data is not null &&
+            // !result.Data.Requires2Fa &&
+            string.Equals(result.Data.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
+        {
+            SetAuthenticationCookies(
+                result.Data.AccessToken,
+                result.Data.RefreshToken);
+        }
+
         return StatusCode(
             (int)result.StatusCode,
             result);
     }
 
     [HttpPost("refresh-token")]
-    [Authorize]
     [ProducesResponseType(typeof(BaseResult<RefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> RefreshToken(
         [FromBody] RefreshTokenCommand.Command command)
     {
-        command.Email = UserEmail;
+        if (string.Equals(command.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
+        {
+            var refreshTokenFromCookie = Request.Cookies["refresh_token"];
+            if (!string.IsNullOrEmpty(refreshTokenFromCookie))
+            {
+                command.RefreshToken = refreshTokenFromCookie;
+            }
+        }
         var result = await _mediator.Send(command);
+
+        var isWebPlatform = string.Equals(command.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase);
+        if (isWebPlatform)
+        {
+            if (result.IsSuccess && result.Data is not null)
+            {
+                SetAuthenticationCookies(
+                    result.Data.AccessToken,
+                    result.Data.RefreshToken);
+            }
+            else
+            {
+                ClearAuthenticationCookies();
+            }
+        }
         return StatusCode(
             (int)result.StatusCode,
             result
@@ -159,4 +195,53 @@ public class AuthenticationController(
             result
         );
     }
+
+    private void SetAuthenticationCookies(
+        string accessToken,
+        string refreshToken)
+    {
+
+        var accessTokenOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = HttpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddMinutes(
+                _jwt.AccessTokenExpiryMinutes),
+            MaxAge = TimeSpan.FromMinutes(_jwt.AccessTokenExpiryMinutes)
+        };
+
+        Response.Cookies.Append("access_token", accessToken, accessTokenOptions);
+
+        var refreshTokenOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = HttpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(
+                _jwt.RefreshTokenExpiryDays),
+            MaxAge = TimeSpan.FromDays(_jwt.RefreshTokenExpiryDays)
+        };
+
+        Response.Cookies.Append("refresh_token", refreshToken, refreshTokenOptions);
+
+    }
+    private void ClearAuthenticationCookies()
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = HttpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddYears(-1),
+            MaxAge = TimeSpan.Zero
+        };
+
+        Response.Cookies.Append("access_token", string.Empty, cookieOptions);
+        Response.Cookies.Append("refresh_token", string.Empty, cookieOptions);
+    }
+
 }

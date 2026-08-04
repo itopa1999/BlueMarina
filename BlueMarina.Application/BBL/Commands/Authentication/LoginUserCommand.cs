@@ -4,6 +4,7 @@ using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Domain.Entities;
+using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using BlueMarina.Shared.Results;
 using MediatR;
@@ -21,12 +22,14 @@ public sealed class LoginUserCommand
 
         [MinLength(8)]
         public string Password { get; init; } = string.Empty;
+        public string Platform { get; init; } = Platforms.Web;
     }
 
     public class LoginResponseDto
     {
         public Guid UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
+        public string Platform { get; set; } = Platforms.Web;
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime AccessTokenExpiresAt { get; set; }
@@ -39,6 +42,13 @@ public sealed class LoginUserCommand
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly ILogger<Handler> _logger;
+        private static readonly HashSet<string> ValidPlatforms =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            Platforms.Web,
+            Platforms.Mobile,
+            Platforms.Swagger
+        };
 
         public Handler(
             IIdentityService identityService,
@@ -60,7 +70,17 @@ public sealed class LoginUserCommand
                 ("Email", request.Email)
             );
 
-            var (success, errorMessage, userId) = await _identityService.GetUserIdByEmailAsync(request.Email);
+            if (!ValidPlatforms.Contains(request.Platform))
+            {
+                op.Fail($"Invalid platform: {request.Platform}");
+
+                return new BaseResult<LoginResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Invalid platform specified."
+                );
+            }
+
+            var (success, errorMessage, user) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
             if (!success)
             {
                 op.Fail($"User lookup failed: {errorMessage}");
@@ -70,20 +90,19 @@ public sealed class LoginUserCommand
                 );
             }
 
-            var isVerified = await _identityService.IsAccountVerifiedAsync(userId);
-            if (!isVerified)
+            if (!user.IsEmailVerified || !user.IsPhoneNumberVerified)
             {
-                op.Fail($"Account not verified for user {userId}");
+                op.Fail($"Account not verified for user {user.UserId}");
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Please verify your account before logging in."
                 );
             }
 
-            var passwordIsValid = await _identityService.CheckPasswordAsync(userId, request.Password);
+            var passwordIsValid = await _identityService.CheckPasswordAsync(user.UserId, request.Password);
             if (!passwordIsValid)
             {
-                op.Fail($"Invalid password for user {userId}");
+                op.Fail($"Invalid password for user {user.UserId}");
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Invalid email or password."
@@ -92,40 +111,41 @@ public sealed class LoginUserCommand
 
             var userProfile = await _unitOfWork.Query<UserProfile>()
                 .AsNoTracking()
-                .Where(x => x.UserId == userId)
+                .Where(x => x.UserId == user.UserId)
                 .Select(x => new { x.FullName })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (userProfile is null)
             {
-                op.Fail($"User profile missing for user {userId}");
+                op.Fail($"User profile missing for user {user.UserId}");
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.BadRequest,
                     "User profile not found. Please contact support."
                 );
             }
 
-            var roles = await _identityService.GetRolesAsync(userId);
+            var roles = await _identityService.GetRolesAsync(user.UserId);
 
             var accessToken = _jwtTokenGenerator.GenerateToken(
-                userId,
+                user.UserId,
                 request.Email,
                 roles);
 
-            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(userId);
+            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.UserId);
 
             await _unitOfWork.AddAsync(refreshTokenEntity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            op.Success($"User {userId} logged in successfully (Email: {request.Email})");
+            op.Success($"User {user.UserId} logged in successfully (Email: {request.Email})");
 
             return new BaseResult<LoginResponseDto>(
                 HttpStatusCode.OK,
                 "Login successful.",
                 new LoginResponseDto
                 {
-                    UserId = userId,
+                    UserId = user.UserId,
                     FullName = userProfile.FullName,
+                    Platform = request.Platform,
                     AccessToken = accessToken,
                     RefreshToken = refreshToken,
                     AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)

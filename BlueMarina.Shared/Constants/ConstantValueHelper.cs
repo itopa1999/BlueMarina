@@ -15,11 +15,6 @@ public static class Roles
 public static class OtpPurpose
 {
     public const string AccountVerification = "ACCOUNT_VERIF-CATION";
-    public const string EmailVerification =
-        "EMAIL_VERIFICATION";
-
-    public const string PhoneVerification =
-        "PHONE_VERIFICATION";
 
     public const string PasswordReset =
         "PASSWORD_RESET";
@@ -29,4 +24,12 @@ public static class OtpPurpose
 
     public const string TransactionPin =
         "TRANSACTION_PIN";
+}
+
+
+public static class Platforms
+{
+    public const string Web = "Web";
+    public const string Mobile = "Mobile";
+    public const string Swagger = "Swagger";
 }

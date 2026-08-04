@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities;
 using BlueMarina.Shared.Constants;
@@ -36,12 +38,17 @@ public sealed class VerifyAccountCommand
         private readonly IUnitOfWork _unitOfWork;
         private readonly IIdentityService _identityService;
         private readonly ILogger<Handler> _logger;
+        private readonly IEmailService _emailService;
 
-        public Handler(IUnitOfWork unitOfWork, IIdentityService identityService, ILogger<Handler> logger)
+        public Handler(IUnitOfWork unitOfWork, 
+        IIdentityService identityService, 
+        ILogger<Handler> logger,
+        IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
             _logger = logger;
+            _emailService = emailService;
         }
 
         public async Task<BaseResult<VerifyAccountResponseDto>> Handle(Command request, CancellationToken cancellationToken)
@@ -60,30 +67,19 @@ public sealed class VerifyAccountCommand
             }
 
             Guid? userId = null;
+            IdentityDto? user = null;
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
-                var (success, errorMessage, id) = await _identityService.GetUserIdByEmailAsync(request.Email);
-                if (!success)
-                {
-                    op.Fail($"User not found by email: {request.Email}");
-                    return new BaseResult<VerifyAccountResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        errorMessage);
-                }
-                userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
             else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
-                var (success, errorMessage, id) = await _identityService.GetUserIdByPhoneAsync(request.PhoneNumber);
-                if (!success)
-                {
-                    op.Fail($"User not found by phone: {request.PhoneNumber}");
-                    return new BaseResult<VerifyAccountResponseDto>(
-                        HttpStatusCode.BadRequest,
-                        errorMessage);
-                }
-                userId = id;
+                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
+                if (success) userId = userDetails.UserId;
+                user = userDetails;
             }
 
             if (!userId.HasValue)
@@ -153,6 +149,14 @@ public sealed class VerifyAccountCommand
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                    .AsNoTracking()
+                    .Where(up => up.UserId == userId)
+                    .Select(up => new { up.FirstName})
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                await _emailService.SendWelcomeEmailAsync(UserProfile.FirstName, user.Email);
 
                 op.Success($"Account verified successfully for user {userId}");
                 return new BaseResult<VerifyAccountResponseDto>(

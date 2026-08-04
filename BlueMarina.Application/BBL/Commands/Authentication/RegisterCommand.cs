@@ -134,6 +134,8 @@ public sealed class RegisterCommand
                     UserId = userId,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber,
                 };
 
                 await _unitOfWork.AddAsync(userProfile);
