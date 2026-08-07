@@ -5,16 +5,20 @@ namespace BlueMarina.Application.Interfaces.Security;
 public interface IRefreshTokenService
 {
     Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        Guid userId);
+        Guid userId,
+        CancellationToken cancellationToken = default);
 
     Task<RefreshToken?> ValidateAsync(
-        string refreshToken);
+        string refreshToken,
+        CancellationToken cancellationToken = default);
 
     Task RevokeAsync(
         RefreshToken refreshToken,
         string? revokedByIp = null,
-        string? reason = null);
+        string? reason = null,
+        CancellationToken cancellationToken = default);
 
     Task<(string Token, RefreshToken RefreshToken)> RotateAsync(
-        RefreshToken refreshToken);
+        RefreshToken refreshToken,
+        CancellationToken cancellationToken = default);
 }

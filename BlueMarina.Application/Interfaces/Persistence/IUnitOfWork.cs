@@ -3,7 +3,7 @@ namespace BlueMarina.Application.Interfaces.Persistence;
 public interface IUnitOfWork
 {
     IQueryable<T> Query<T>() where T : class;
-    Task AddAsync<T>(T entity)
+    Task AddAsync<T>(T entity, CancellationToken cancellationToken = default)
         where T : class;
 
     void Update<T>(T entity)

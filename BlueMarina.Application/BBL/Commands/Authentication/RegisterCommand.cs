@@ -138,8 +138,8 @@ public sealed class RegisterCommand
                     PhoneNumber = request.PhoneNumber,
                 };
 
-                await _unitOfWork.AddAsync(userProfile);
-                await _unitOfWork.AddAsync(otp);
+                await _unitOfWork.AddAsync(userProfile, cancellationToken);
+                await _unitOfWork.AddAsync(otp, cancellationToken);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
@@ -147,8 +147,8 @@ public sealed class RegisterCommand
                 try
                 {
                     await Task.WhenAll(
-                        _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode),
-                        _smsService.SendOtpAsync(request.PhoneNumber, otpCode));
+                        _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode, cancellationToken),
+                        _smsService.SendOtpAsync(request.PhoneNumber, otpCode, cancellationToken));
                 }
                 catch (Exception sendEx)
                 {

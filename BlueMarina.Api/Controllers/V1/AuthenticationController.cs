@@ -32,9 +32,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<RegistrationResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> Register(
-        [FromBody] RegisterCommand.Command command)
+        [FromBody] RegisterCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
 
         return StatusCode(
             (int)result.StatusCode,
@@ -45,9 +45,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> VerifyEmailToken(
-        [FromBody] VerifyAccountCommand.Command command)
+        [FromBody] VerifyAccountCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
 
         return StatusCode(
             (int)result.StatusCode,
@@ -58,9 +58,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ResendVerificationToken(
-        [FromBody] ResendVerificationOtpCommand.Command command)
+        [FromBody] ResendVerificationOtpCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
 
         return StatusCode(
             (int)result.StatusCode,
@@ -71,9 +71,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<LoginResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> LoginUser(
-        [FromBody] LoginUserCommand.Command command)
+        [FromBody] LoginUserCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
 
         if (result.IsSuccess &&
             result.Data is not null &&
@@ -94,7 +94,7 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<RefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> RefreshToken(
-        [FromBody] RefreshTokenCommand.Command command)
+        [FromBody] RefreshTokenCommand.Command command, CancellationToken cancellationToken)
     {
         if (string.Equals(command.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
         {
@@ -104,7 +104,7 @@ public class AuthenticationController(
                 command.RefreshToken = refreshTokenFromCookie;
             }
         }
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
 
         var isWebPlatform = string.Equals(command.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase);
         if (isWebPlatform)
@@ -132,10 +132,10 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> Logout(
-        [FromBody] LogoutCommand.Command command)
+        [FromBody] LogoutCommand.Command command, CancellationToken cancellationToken)
     {
         command.UserId = CurrentUserId.Value;
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
         return StatusCode(
             (int)result.StatusCode,
             result
@@ -147,9 +147,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<ForgotPasswordResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ForgetPassword(
-        [FromBody] ForgotPasswordCommand.Command command)
+        [FromBody] ForgotPasswordCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
         return StatusCode(
             (int)result.StatusCode,
             result
@@ -161,9 +161,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult<VerifyPasswordTokenResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> VerifyForgetPasswordToken(
-        [FromBody] VerifyPasswordTokenCommand.Command command)
+        [FromBody] VerifyPasswordTokenCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
         return StatusCode((int)result.StatusCode, result);
     }
 
@@ -172,9 +172,9 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ResetForgetPassword(
-        [FromBody] ResetPasswordCommand.Command command)
+        [FromBody] ResetPasswordCommand.Command command, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
         return StatusCode(
             (int)result.StatusCode,
             result
@@ -186,10 +186,10 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ChangePassword(
-        [FromBody] ChangePasswordCommand.Command command)
+        [FromBody] ChangePasswordCommand.Command command, CancellationToken cancellationToken)
     {
         command.UserId = CurrentUserId.Value;
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, cancellationToken);
         return StatusCode(
             (int)result.StatusCode,
             result

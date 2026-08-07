@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
+using BlueMarina.Application.Interfaces.Caching;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities;
+using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -31,26 +33,41 @@ public sealed class GetProfileQuery
     public class Handler : IRequestHandler<Query, BaseResult<GetProfileQueryDto>>
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICacheService _cacheService;
 
-        public Handler(IUnitOfWork unitOfWork)
+        public Handler(
+            IUnitOfWork unitOfWork,
+            ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
+            _cacheService = cacheService;
         }
 
         public async Task<BaseResult<GetProfileQueryDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            var userProfile = await _unitOfWork.Query<UserProfile>()
-                .AsNoTracking()
-                .Where(x => x.UserId == request.UserId && !x.IsDeleted)
-                .Select(x => new GetProfileQueryDto
-                {
-                    UserId = x.UserId,
-                    FirstName = x.FirstName,
-                    LastName = x.LastName,
-                    Email = x.Email,
-                    PhoneNumber = x.PhoneNumber ?? string.Empty,
-                })
-                .FirstOrDefaultAsync(cancellationToken);
+            var cacheKey = CacheKeys.Profile(request.UserId);
+
+            async Task<GetProfileQueryDto?> BuildProfileAsync(CancellationToken ct)
+            {
+                return await _unitOfWork.Query<UserProfile>()
+                    .AsNoTracking()
+                    .Where(x => x.UserId == request.UserId && !x.IsDeleted)
+                    .Select(x => new GetProfileQueryDto
+                    {
+                        UserId = x.UserId,
+                        FirstName = x.FirstName,
+                        LastName = x.LastName,
+                        Email = "x.Email",
+                        PhoneNumber = x.PhoneNumber ?? string.Empty,
+                    })
+                    .FirstOrDefaultAsync(ct);
+            }
+
+            var userProfile = await _cacheService.GetOrSetAsync(
+                cacheKey,
+                BuildProfileAsync,
+                timeout: TimeSpan.FromMinutes(10),
+                cancellationToken: cancellationToken);
 
             if (userProfile is null)
             {

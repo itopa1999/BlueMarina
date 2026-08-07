@@ -110,7 +110,7 @@ public sealed class ResendVerificationOtpCommand
                     IsUsed = false
                 };
 
-                await _unitOfWork.AddAsync(otp);
+                await _unitOfWork.AddAsync(otp, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
@@ -120,8 +120,8 @@ public sealed class ResendVerificationOtpCommand
                     .Select(up => new { up.FirstName })
                     .FirstOrDefaultAsync(cancellationToken);
 
-                await _emailService.SendOtpAsync(userProfile?.FirstName ?? "Customer", user.Email, otpCode);
-                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode);
+                await _emailService.SendOtpAsync(userProfile?.FirstName ?? "Customer", user.Email, otpCode, cancellationToken);
+                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode, cancellationToken);
 
                 op.Success($"OTP resent successfully for user {userId}");
 

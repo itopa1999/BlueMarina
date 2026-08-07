@@ -123,12 +123,12 @@ public sealed class ForgotPasswordCommand
                     IsUsed = false
                 };
 
-                await _unitOfWork.AddAsync(otp);
+                await _unitOfWork.AddAsync(otp, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                await _emailService.SendForgotPasswordOtpAsync(user.Email, otpCode);
-                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode);
+                await _emailService.SendForgotPasswordOtpAsync(user.Email, otpCode, cancellationToken);
+                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode, cancellationToken);
 
                 op.Success($"OTP sent to user {userId} for password reset.");
 

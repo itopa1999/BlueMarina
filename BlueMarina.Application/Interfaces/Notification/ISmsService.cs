@@ -4,5 +4,6 @@ public interface ISmsService
 {
     Task SendOtpAsync(
         string phoneNumber,
-        string otp);
+        string otp,
+        CancellationToken cancellationToken = default);
 }

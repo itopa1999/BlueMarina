@@ -37,7 +37,7 @@ public sealed class LogoutCommand
                 ("UserId", request.UserId.ToString())
             );
 
-            var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken);
+            var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken, cancellationToken);
 
             if (refreshToken is null)
             {

@@ -29,7 +29,8 @@ public sealed class EmailService : IEmailService
     public async Task SendOtpAsync(
         string name,
         string email,
-        string otp)
+        string otp,
+        CancellationToken cancellationToken = default)
     {
         var body = await _renderer.RenderAsync(
             "OtpEmailTemplate.html",
@@ -38,17 +39,19 @@ public sealed class EmailService : IEmailService
                 ["Name"] = name,
                 ["OTP"] = otp,
                 ["Expiry"] = "2 Minutes"
-            });
+            }, cancellationToken);
 
         await SendEmailAsync(
             email,
             "BlueMarina Verification Code",
-            body);
+            body,
+            cancellationToken);
     }
 
     public async Task SendForgotPasswordOtpAsync(
         string email,
-        string otp)
+        string otp,
+        CancellationToken cancellationToken = default)
     {
         var body = await _renderer.RenderAsync(
             "ForgotPasswordOtpEmailTemplate.html",
@@ -56,29 +59,32 @@ public sealed class EmailService : IEmailService
             {
                 ["OTP"] = otp,
                 ["Expiry"] = "2 Minutes"
-            });
+            }, cancellationToken);
 
         await SendEmailAsync(
             email,
             "BlueMarina Forgot Password Verification Code",
-            body);
+            body,
+            cancellationToken);
     }
 
     public async Task SendWelcomeEmailAsync(
         string firstName,
-        string email)
+        string email,
+        CancellationToken cancellationToken = default)
     {
         var body = await _renderer.RenderAsync(
             "WelcomeEmailTemplate.html",
             new Dictionary<string, string>
             {
                 ["FirstName"] = firstName
-            });
+            }, cancellationToken);
 
         await SendEmailAsync(
             email,
             "Welcome to BlueMarina",
-            body);
+            body,
+            cancellationToken);
     }
 
     public async Task SendEmailAsync(

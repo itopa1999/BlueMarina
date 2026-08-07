@@ -131,9 +131,9 @@ public sealed class LoginUserCommand
                 request.Email,
                 roles);
 
-            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.UserId);
+            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.UserId, cancellationToken);
 
-            await _unitOfWork.AddAsync(refreshTokenEntity);
+            await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             op.Success($"User {user.UserId} logged in successfully (Email: {request.Email})");

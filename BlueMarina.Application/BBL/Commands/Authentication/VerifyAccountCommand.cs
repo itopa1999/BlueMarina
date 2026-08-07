@@ -156,7 +156,7 @@ public sealed class VerifyAccountCommand
                     .Select(up => new { up.FirstName })
                     .FirstOrDefaultAsync(cancellationToken);
 
-                await _emailService.SendWelcomeEmailAsync(userProfile?.FirstName ?? "Customer", user.Email);
+                await _emailService.SendWelcomeEmailAsync(userProfile?.FirstName ?? "Customer", user.Email, cancellationToken);
 
                 op.Success($"Account verified successfully for user {userId}");
                 return new BaseResult<VerifyAccountResponseDto>(

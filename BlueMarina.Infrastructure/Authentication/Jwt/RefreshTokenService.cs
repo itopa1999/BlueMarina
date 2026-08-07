@@ -26,8 +26,10 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        Guid userId)
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var token = _refreshTokenGenerator.Generate();
 
         var tokenHash = _tokenHasher.HashToken(token);
@@ -44,12 +46,13 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public async Task<RefreshToken?> ValidateAsync(
-        string refreshToken)
+        string refreshToken,
+        CancellationToken cancellationToken = default)
     {
         var tokenHash = _tokenHasher.HashToken(refreshToken);
 
         var token = await _context.RefreshTokens
-            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
 
         if (token is null)
         {
@@ -67,8 +70,10 @@ public sealed class RefreshTokenService : IRefreshTokenService
     public Task RevokeAsync(
         RefreshToken refreshToken,
         string? revokedByIp = null,
-        string? reason = null)
+        string? reason = null,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         refreshToken.RevokedAt = DateTime.UtcNow;
         refreshToken.RevokedByIp = revokedByIp;
 
@@ -78,14 +83,17 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public async Task<(string Token, RefreshToken RefreshToken)> RotateAsync(
-        RefreshToken refreshToken)
+        RefreshToken refreshToken,
+        CancellationToken cancellationToken = default)
     {
         await RevokeAsync(
             refreshToken,
-            reason: "Refresh token rotation");
+            reason: "Refresh token rotation",
+            cancellationToken: cancellationToken);
 
         var newRefreshToken = await CreateAsync(
-            refreshToken.UserId);
+            refreshToken.UserId,
+            cancellationToken);
 
         refreshToken.ReplacedByTokenHash =
             newRefreshToken.RefreshToken.TokenHash;

@@ -7,17 +7,20 @@ public interface IEmailService
     Task SendOtpAsync(
         string firstName,
         string email,
-        string otp
+        string otp,
+        CancellationToken cancellationToken = default
     );
 
     Task SendForgotPasswordOtpAsync(
         string email,
-        string otp
+        string otp,
+        CancellationToken cancellationToken = default
     );
 
     Task SendWelcomeEmailAsync(
         string firstName,
-        string email
+        string email,
+        CancellationToken cancellationToken = default
     );
 
     Task SendAsync(

@@ -76,7 +76,7 @@ public sealed class RefreshTokenCommand
                 );
             }
 
-            var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken);
+            var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken, cancellationToken);
 
             if (refreshToken is null)
             {
@@ -123,9 +123,9 @@ public sealed class RefreshTokenCommand
                     userProfile.Email,
                     roles);
 
-                var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserId);
+                var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserId, cancellationToken);
 
-                await _unitOfWork.AddAsync(newRefreshToken);
+                await _unitOfWork.AddAsync(newRefreshToken, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 

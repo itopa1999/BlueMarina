@@ -22,13 +22,13 @@ public class UserProfileController(
     [Authorize]
     [ProducesResponseType(typeof(BaseResult<GetProfileQueryDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-    public async Task<IActionResult> GetProfile()
+    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var query = new GetProfileQuery.Query
         {
             UserId = CurrentUserId.Value
         };
-        var result = await _mediator.Send(query);
+        var result = await _mediator.Send(query, cancellationToken);
         return StatusCode(
             (int)result.StatusCode,
             result

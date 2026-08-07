@@ -18,10 +18,10 @@ public sealed class UnitOfWork : IUnitOfWork
         return _context.Set<T>();
     }
 
-    public async Task AddAsync<T>(T entity)
+    public async Task AddAsync<T>(T entity, CancellationToken cancellationToken = default)
         where T : class
     {
-        await _context.Set<T>().AddAsync(entity);
+        await _context.Set<T>().AddAsync(entity, cancellationToken);
     }
 
     public void Update<T>(T entity)
