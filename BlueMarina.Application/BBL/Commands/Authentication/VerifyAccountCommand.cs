@@ -4,6 +4,7 @@ using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Domain.Entities;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
@@ -25,12 +26,18 @@ public sealed class VerifyAccountCommand
 
         [MinLength(6), MaxLength(6)]
         public string OtpCode { get; init; } = string.Empty;
+        public string Platform { get; init; } = Platforms.Mobile;
     }
 
     public class VerifyAccountResponseDto
     {
         public Guid UserId { get; set; }
         public bool IsAccountVerified { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Platform { get; set; } = Platforms.Mobile;
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTime AccessTokenExpiresAt { get; set; }
     }
 
     public class Handler : IRequestHandler<Command, BaseResult<VerifyAccountResponseDto>>
@@ -39,16 +46,29 @@ public sealed class VerifyAccountCommand
         private readonly IIdentityService _identityService;
         private readonly ILogger<Handler> _logger;
         private readonly IEmailService _emailService;
+        private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IRefreshTokenService _refreshTokenService;
+        private static readonly HashSet<string> ValidPlatforms =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            Platforms.Web,
+            Platforms.Mobile,
+            Platforms.Swagger
+        };
 
         public Handler(IUnitOfWork unitOfWork, 
         IIdentityService identityService, 
         ILogger<Handler> logger,
-        IEmailService emailService)
+        IEmailService emailService,
+        IJwtTokenGenerator jwtTokenGenerator,
+        IRefreshTokenService refreshTokenService)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
             _logger = logger;
             _emailService = emailService;
+            _jwtTokenGenerator = jwtTokenGenerator;
+            _refreshTokenService = refreshTokenService;
         }
 
         public async Task<BaseResult<VerifyAccountResponseDto>> Handle(Command request, CancellationToken cancellationToken)
@@ -57,6 +77,16 @@ public sealed class VerifyAccountCommand
             using var op = OperationLogger.Start(_logger, "VerifyAccount",
                 ("Identifier", identifier ?? "unknown")
             );
+
+            if (!ValidPlatforms.Contains(request.Platform))
+            {
+                op.Fail($"Invalid platform: {request.Platform}");
+
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Invalid platform specified."
+                );
+            }
 
             if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
@@ -125,7 +155,6 @@ public sealed class VerifyAccountCommand
                         "OTP has expired. Please request a new one.");
                 }
 
-                // This check is redundant because we already filtered !x.IsUsed, but keep it safe.
                 if (otpVerification.IsUsed)
                 {
                     op.Fail($"OTP already used for user {userId}");
@@ -153,10 +182,23 @@ public sealed class VerifyAccountCommand
                 var userProfile = await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
                     .Where(up => up.UserId == userId)
-                    .Select(up => new { up.FirstName })
+                    .Select(up => new { up.FirstName, })
                     .FirstOrDefaultAsync(cancellationToken);
 
                 await _emailService.SendWelcomeEmailAsync(userProfile?.FirstName ?? "Customer", user.Email, cancellationToken);
+
+
+                var roles = await _identityService.GetRolesAsync(user.UserId);
+
+                var accessToken = _jwtTokenGenerator.GenerateToken(
+                    user.UserId,
+                    user.Email,
+                    roles);
+
+                var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.UserId, cancellationToken);
+
+                await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 op.Success($"Account verified successfully for user {userId}");
                 return new BaseResult<VerifyAccountResponseDto>(
@@ -165,7 +207,12 @@ public sealed class VerifyAccountCommand
                     new VerifyAccountResponseDto
                     {
                         UserId = userId.Value,
-                        IsAccountVerified = true
+                        IsAccountVerified = true,
+                        FullName = userProfile?.FirstName ?? string.Empty,
+                        Platform = request.Platform,
+                        AccessToken = accessToken,
+                        RefreshToken = refreshToken,
+                        AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
                     });
             }
             catch (Exception ex)

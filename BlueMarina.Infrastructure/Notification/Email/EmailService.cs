@@ -1,6 +1,7 @@
 using BlueMarina.Application.Common.Models;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Infrastructure.Notification.Email;
+using BlueMarina.Shared.Logging;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
@@ -108,6 +109,12 @@ public sealed class EmailService : IEmailService
         EmailMessage email,
         CancellationToken cancellationToken = default)
     {
+        using var op = OperationLogger.Start(
+            _logger,
+            "SendEmail",
+            ("Recipient", email.To),
+            ("Subject", email.Subject));
+
         try
         {
             var message = new MimeMessage();
@@ -210,16 +217,11 @@ public sealed class EmailService : IEmailService
                 true,
                 cancellationToken);
 
-            _logger.LogInformation(
-                "Email sent successfully to {Email}",
-                email.To);
+            op.Success($"Email sent successfully to {email.To}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to send email to {Email}",
-                email.To);
+            op.Fail($"Failed to send email to {email.To}", ex);
 
             throw;
         }

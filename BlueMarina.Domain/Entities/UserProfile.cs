@@ -36,7 +36,9 @@ public class UserProfile : BaseEntity
     public string? ReferralCode { get; set; }
     public Guid? ReferredByUserId { get; set; }
 
-    public string FullName => string.Join(" ", new[] { FirstName, LastName }
+    public string SignUpMethod { get; set; } = string.Empty;
+
+    public string FullName => string.Join(" ", new[] { FirstName, OtherNames, LastName }
         .Where(value => !string.IsNullOrWhiteSpace(value)));
 
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();

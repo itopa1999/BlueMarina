@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using BlueMarina.Api.Configurations;
+using BlueMarina.Shared.Logging;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 
@@ -30,6 +31,13 @@ public class SwaggerAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        using var op = OperationLogger.Start(
+            _logger,
+            "SwaggerAuth",
+            ("Path", context.Request.Path.ToString()),
+            ("Method", context.Request.Method),
+            ("IP", context.Connection.RemoteIpAddress?.ToString() ?? "unknown"));
+
         if (!context.Request.Path.StartsWithSegments("/swagger"))
         {
             await _next(context);
@@ -77,9 +85,7 @@ public class SwaggerAuthMiddleware
             if (!SecureEquals(username, _settings.Username) ||
                 !SecureEquals(password, _settings.Password))
             {
-                _logger.LogWarning(
-                    "Failed Swagger login from {IP}",
-                    context.Connection.RemoteIpAddress);
+                op.Fail("Failed Swagger login attempt.");
 
                 await Challenge(context);
                 return;
@@ -87,15 +93,13 @@ public class SwaggerAuthMiddleware
 
             SetAuthenticationCookie(context);
 
-            _logger.LogInformation(
-                "Swagger login successful from {IP}",
-                context.Connection.RemoteIpAddress);
+            op.Success("Swagger login successful.");
 
             await _next(context);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Invalid Swagger Authorization header.");
+            op.Fail("Invalid Swagger Authorization header.", ex);
 
             await Challenge(context);
         }

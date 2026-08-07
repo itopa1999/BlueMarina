@@ -1,5 +1,6 @@
 using System.Net;
 using BlueMarina.Shared.Constants;
+using BlueMarina.Shared.Logging;
 using BlueMarina.Shared.Results;
 using Microsoft.AspNetCore.Http;
 
@@ -36,20 +37,20 @@ public class ExceptionHandlingMiddleware
         Exception exception,
         string requestId)
     {
+        using var op = OperationLogger.Start(
+            _logger,
+            "ExceptionHandling",
+            ("RequestId", requestId),
+            ("Path", context.Request.Path.ToString()),
+            ("Method", context.Request.Method));
+
         if (context.Response.HasStarted)
         {
-            _logger.LogError(exception,
-                "Response already started | RequestId: {RequestId}",
-                requestId);
-
+            op.Fail("Response already started", exception);
             return;
         }
 
-        _logger.LogError(exception,
-            "Unhandled Exception | RequestId: {RequestId} | Path: {Path} | Method: {Method}",
-            requestId,
-            context.Request.Path,
-            context.Request.Method);
+        op.Fail("Unhandled exception", exception);
 
         context.Response.Clear();
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;

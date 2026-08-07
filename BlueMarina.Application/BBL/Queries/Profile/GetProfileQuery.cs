@@ -66,7 +66,7 @@ public sealed class GetProfileQuery
             var userProfile = await _cacheService.GetOrSetAsync(
                 cacheKey,
                 BuildProfileAsync,
-                timeout: TimeSpan.FromMinutes(10),
+                timeout: TimeSpan.FromSeconds(10),
                 cancellationToken: cancellationToken);
 
             if (userProfile is null)

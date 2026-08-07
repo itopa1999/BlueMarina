@@ -33,3 +33,10 @@ public static class Platforms
     public const string Mobile = "Mobile";
     public const string Swagger = "Swagger";
 }
+
+public static class SignUpMethods
+{
+    public const string Email = "Email";
+    public const string PhoneNumber = "PhoneNumber";
+
+}

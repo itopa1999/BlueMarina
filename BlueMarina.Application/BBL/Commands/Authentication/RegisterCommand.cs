@@ -10,6 +10,7 @@ using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
+using BlueMarina.Application.Common.Extensions;
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
 
@@ -17,11 +18,8 @@ public sealed class RegisterCommand
 {
     public class Command : IRequest<BaseResult<RegistrationResponseDto>>
     {
-        [MinLength(2), MaxLength(50)]
-        public string FirstName { get; init; } = string.Empty;
-
-        [MinLength(2), MaxLength(50)]
-        public string LastName { get; init; } = string.Empty;
+        [MinLength(3), MaxLength(150)]
+        public string FullName { get; init; } = string.Empty;
 
         [EmailAddress, MaxLength(100)]
         public string Email { get; init; } = string.Empty;
@@ -30,6 +28,9 @@ public sealed class RegisterCommand
 
         [MinLength(8)]
         public string Password { get; init; } = string.Empty;
+        
+        [Required]
+        public string SignUpMethod { get; init; } = string.Empty;
     }
 
     public class RegistrationResponseDto
@@ -38,6 +39,7 @@ public sealed class RegisterCommand
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string ReferralCode { get; set; } = string.Empty;
         public string Data { get; set; } = string.Empty;
     }
 
@@ -49,6 +51,13 @@ public sealed class RegisterCommand
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
         private readonly ILogger<Handler> _logger;
+
+        private static readonly HashSet<string> ValidSignUpMethods =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            SignUpMethods.Email,
+            SignUpMethods.PhoneNumber
+        };
 
         public Handler(
             IIdentityService identityService,
@@ -72,6 +81,35 @@ public sealed class RegisterCommand
                 ("Email", request.Email),
                 ("Phone", request.PhoneNumber)
             );
+
+            if (!ValidSignUpMethods.Contains(request.SignUpMethod))
+            {
+                op.Fail($"Invalid sign-up method: {request.SignUpMethod}");
+
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Invalid sign-up method specified."
+                );
+            }
+
+            var nameParts = request.FullName.Split(
+                (char[]?)null,
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (nameParts.Length < 2)
+            {
+                op.Fail("A first and last name are required.");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Please provide both a first name and a last name.");
+            }
+            
+            var textInfo = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
+            var firstName = textInfo.ToTitleCase(nameParts[0]);
+            var lastName = textInfo.ToTitleCase(nameParts[^1]);
+            var otherNames = nameParts.Length > 2
+                ? string.Join(" ", nameParts[1..^1].Select(textInfo.ToTitleCase))
+                : null;
 
             if (await _identityService.EmailExistsAsync(request.Email))
             {
@@ -132,10 +170,13 @@ public sealed class RegisterCommand
                 var userProfile = new UserProfile
                 {
                     UserId = userId,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    OtherNames = otherNames,
                     Email = request.Email,
                     PhoneNumber = request.PhoneNumber,
+                    SignUpMethod = request.SignUpMethod,
+                    ReferralCode = $"BM-{Helper.GenerateReferralCode(8)}",
                 };
 
                 await _unitOfWork.AddAsync(userProfile, cancellationToken);
@@ -166,6 +207,7 @@ public sealed class RegisterCommand
                         Email = request.Email,
                         Phone = request.PhoneNumber,
                         FullName = userProfile.FullName,
+                        ReferralCode = userProfile.ReferralCode,
                         Data = "Account created. Please verify your email/phone with the OTP sent."
                     });
             }

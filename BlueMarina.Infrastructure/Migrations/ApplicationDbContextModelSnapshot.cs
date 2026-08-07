@@ -721,6 +721,10 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<Guid?>("ReferredByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SignUpMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 

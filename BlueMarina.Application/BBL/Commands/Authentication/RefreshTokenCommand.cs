@@ -19,14 +19,14 @@ public sealed class RefreshTokenCommand
     public class Command : IRequest<BaseResult<RefreshTokenResponseDto>>
     {
         public string RefreshToken { get; set; } = string.Empty;
-        public string Platform { get; init; } = Platforms.Web;
+        public string Platform { get; init; } = Platforms.Mobile;
     }
 
     public class RefreshTokenResponseDto
     {
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
-        public string Platform { get; set; } = Platforms.Web;
+        public string Platform { get; set; } = Platforms.Mobile;
         public DateTime AccessTokenExpiresAt { get; set; }
     }
 
