@@ -114,13 +114,13 @@ public sealed class ResendVerificationOtpCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                var userProfile = await _unitOfWork.Query<BlueMarina.Domain.Entities.UserProfile>()
                     .AsNoTracking()
                     .Where(up => up.UserId == userId.Value)
-                    .Select(up => new { up.FirstName})
+                    .Select(up => new { up.FirstName })
                     .FirstOrDefaultAsync(cancellationToken);
 
-                await _emailService.SendOtpAsync(UserProfile.FirstName, user.Email, otpCode);
+                await _emailService.SendOtpAsync(userProfile.FirstName, user.Email, otpCode);
                 await _smsService.SendOtpAsync(user.PhoneNumber, otpCode);
 
                 op.Success($"OTP resent successfully for user {userId}");

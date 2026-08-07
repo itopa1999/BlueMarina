@@ -129,7 +129,7 @@ public sealed class RegisterCommand
                     IsUsed = false
                 };
 
-                var userProfile = new UserProfile
+                var userProfile = new BlueMarina.Domain.Entities.UserProfile
                 {
                     UserId = userId,
                     FirstName = request.FirstName,
@@ -146,8 +146,9 @@ public sealed class RegisterCommand
 
                 try
                 {
-                    await _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode);
-                    await _smsService.SendOtpAsync(request.PhoneNumber, otpCode);
+                    await Task.WhenAll(
+                        _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode),
+                        _smsService.SendOtpAsync(request.PhoneNumber, otpCode));
                 }
                 catch (Exception sendEx)
                 {

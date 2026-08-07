@@ -150,13 +150,13 @@ public sealed class VerifyAccountCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                var userProfile = await _unitOfWork.Query<BlueMarina.Domain.Entities.UserProfile>()
                     .AsNoTracking()
                     .Where(up => up.UserId == userId)
-                    .Select(up => new { up.FirstName})
+                    .Select(up => new { up.FirstName })
                     .FirstOrDefaultAsync(cancellationToken);
 
-                await _emailService.SendWelcomeEmailAsync(UserProfile.FirstName, user.Email);
+                await _emailService.SendWelcomeEmailAsync(userProfile.FirstName, user.Email);
 
                 op.Success($"Account verified successfully for user {userId}");
                 return new BaseResult<VerifyAccountResponseDto>(

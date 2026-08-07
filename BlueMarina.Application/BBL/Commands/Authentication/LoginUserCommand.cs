@@ -109,7 +109,7 @@ public sealed class LoginUserCommand
                 );
             }
 
-            var userProfile = await _unitOfWork.Query<UserProfile>()
+            var userProfile = await _unitOfWork.Query<BlueMarina.Domain.Entities.UserProfile>()
                 .AsNoTracking()
                 .Where(x => x.UserId == user.UserId)
                 .Select(x => new { x.FullName })

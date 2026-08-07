@@ -110,22 +110,19 @@ public sealed class RefreshTokenCommand
                 refreshToken.RevocationReason = "Token refreshed";
                 _unitOfWork.Update(refreshToken);
 
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
                 var roles = await _identityService.GetRolesAsync(refreshToken.UserId);
 
-                var UserProfile = await _unitOfWork.Query<UserProfile>()
+                var userProfile = await _unitOfWork.Query<BlueMarina.Domain.Entities.UserProfile>()
                     .AsNoTracking()
                     .Where(up => up.UserId == refreshToken.UserId)
-                    .Select(up => new { up.Email})
+                    .Select(up => new { up.Email })
                     .FirstOrDefaultAsync(cancellationToken);
 
                 var accessToken = _jwtTokenGenerator.GenerateToken(
                     refreshToken.UserId,
-                    UserProfile.Email,
+                    userProfile.Email,
                     roles);
 
-                // Generate a new refresh token
                 var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserId);
 
                 await _unitOfWork.AddAsync(newRefreshToken);
