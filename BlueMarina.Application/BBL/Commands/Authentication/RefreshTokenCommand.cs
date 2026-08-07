@@ -112,7 +112,7 @@ public sealed class RefreshTokenCommand
 
                 var roles = await _identityService.GetRolesAsync(refreshToken.UserId);
 
-                var userProfile = await _unitOfWork.Query<BlueMarina.Domain.Entities.UserProfile>()
+                var userProfile = await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
                     .Where(up => up.UserId == refreshToken.UserId)
                     .Select(up => new { up.Email })

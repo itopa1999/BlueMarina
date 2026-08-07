@@ -87,7 +87,7 @@ public sealed class ForgotPasswordCommand
                 user = userDetails;
             }
 
-            if (!userId.HasValue)
+            if (!userId.HasValue || user is null)
             {
                 op.Fail("User not found (identifier provided but not in system).");
                 return new BaseResult<ForgotPasswordResponseDto>(

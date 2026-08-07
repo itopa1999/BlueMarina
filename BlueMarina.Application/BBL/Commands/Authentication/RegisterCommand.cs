@@ -129,7 +129,7 @@ public sealed class RegisterCommand
                     IsUsed = false
                 };
 
-                var userProfile = new BlueMarina.Domain.Entities.UserProfile
+                var userProfile = new UserProfile
                 {
                     UserId = userId,
                     FirstName = request.FirstName,

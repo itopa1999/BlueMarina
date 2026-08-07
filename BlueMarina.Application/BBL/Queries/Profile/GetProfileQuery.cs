@@ -7,7 +7,7 @@ using BlueMarina.Shared.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlueMarina.Application.BBL.Queries.UserProfileQuery;
+namespace BlueMarina.Application.BBL.Queries.Profile;
 
 public sealed class GetProfileQuery
 {
@@ -48,7 +48,7 @@ public sealed class GetProfileQuery
                     FirstName = x.FirstName,
                     LastName = x.LastName,
                     Email = x.Email,
-                    PhoneNumber = x.PhoneNumber
+                    PhoneNumber = x.PhoneNumber ?? string.Empty,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 

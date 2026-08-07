@@ -1,12 +1,12 @@
 
 using System.Net;
 using BlueMarina.Api.Configurations;
-using BlueMarina.Application.BBL.Queries.UserProfileQuery;
+using BlueMarina.Application.BBL.Queries.Profile;
 using BlueMarina.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using static BlueMarina.Application.BBL.Queries.UserProfileQuery.GetProfileQuery;
+using static BlueMarina.Application.BBL.Queries.Profile.GetProfileQuery;
 
 namespace BlueMarina.Api.Controllers.V1;
 
@@ -35,18 +35,18 @@ public class UserProfileController(
         );
     }
 
-    [HttpPut("profile")]
-    [Authorize]
-    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
-    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-    public async Task<IActionResult> UpdateProfile(
-        [FromBody] UpdateProfileCommand.Command command)
-    {
-        command.UserId = CurrentUserId.Value;
-        var result = await _mediator.Send(command);
-        return StatusCode(
-            (int)result.StatusCode,
-            result
-        );
-    }
+    // [HttpPut("profile")]
+    // [Authorize]
+    // [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    // [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    // public async Task<IActionResult> UpdateProfile(
+    //     [FromBody] UpdateProfileCommand.Command command)
+    // {
+    //     command.UserId = CurrentUserId.Value;
+    //     var result = await _mediator.Send(command);
+    //     return StatusCode(
+    //         (int)result.StatusCode,
+    //         result
+    //     );
+    // }
 }
