@@ -17,7 +17,7 @@ public sealed class ChangePasswordCommand
     public class Command : IRequest<BaseResult>
     {
         [JsonIgnore]
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
 
         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
         public string OldPassword { get; init; } = string.Empty;
@@ -67,7 +67,9 @@ public sealed class ChangePasswordCommand
                     "New password cannot be the same as the old password.");
             }
 
-            var userExists = await _identityService.IsUserExisting(request.UserId);
+            var userExists = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == request.UserId, cancellationToken);
             if (!userExists)
             {
                 op.Fail($"User not found (UserId: {request.UserId})");
@@ -92,7 +94,7 @@ public sealed class ChangePasswordCommand
                 }
 
                 var refreshTokens = await _unitOfWork.Query<RefreshToken>()
-                    .Where(rt => rt.UserId == request.UserId && rt.RevokedAt == null)
+                    .Where(rt => rt.UserProfileId == request.UserId && rt.RevokedAt == null)
                     .ToListAsync(cancellationToken);
 
                 foreach (var token in refreshTokens)

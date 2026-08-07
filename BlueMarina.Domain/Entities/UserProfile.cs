@@ -4,10 +4,11 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("User Profile")]
+[Table("user_profiles")]
 public class UserProfile : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserId { get; set; }
+    public Guid PublicId { get; set; }
 
     [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
@@ -34,7 +35,7 @@ public class UserProfile : BaseEntity
     public string? Nationality { get; set; }
 
     public string? ReferralCode { get; set; }
-    public Guid? ReferredByUserId { get; set; }
+    public long? ReferredByUserId { get; set; }
 
     public string SignUpMethod { get; set; } = string.Empty;
 

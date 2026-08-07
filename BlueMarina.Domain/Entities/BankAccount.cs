@@ -4,12 +4,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Bank Account")]
+[Table("bank_accounts")]
 public class BankAccount : BaseEntity
 {
-    public Guid UserId { get; set; }
-
-    public virtual UserProfile UserProfile { get; set; } = null!;
+    public long UserProfileId { get; set; }
 
     [MaxLength(10)]
     public string BankCode { get; set; } = string.Empty;
@@ -30,4 +28,7 @@ public class BankAccount : BaseEntity
     public bool IsVerified { get; set; } // via NIBSS name‑enquiry
 
     public bool IsActive { get; set; } = true;
+
+    public virtual UserProfile UserProfile { get; set; } = null!;
+
 }

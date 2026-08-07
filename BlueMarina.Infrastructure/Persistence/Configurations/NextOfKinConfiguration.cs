@@ -9,11 +9,11 @@ public sealed class NextOfKinConfiguration : IEntityTypeConfiguration<NextOfKin>
     public void Configure(EntityTypeBuilder<NextOfKin> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.UserProfileId).IsUnique();
 
         builder.HasOne(x => x.UserProfile)
             .WithOne()
-            .HasForeignKey<NextOfKin>(x => x.UserId)
+            .HasForeignKey<NextOfKin>(x => x.UserProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

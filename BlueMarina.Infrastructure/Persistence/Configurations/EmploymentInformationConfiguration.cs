@@ -9,11 +9,11 @@ public sealed class EmploymentInformationConfiguration : IEntityTypeConfiguratio
     public void Configure(EntityTypeBuilder<EmploymentInformation> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.UserProfileId).IsUnique();
 
         builder.HasOne(x => x.UserProfile)
             .WithOne()
-            .HasForeignKey<EmploymentInformation>(x => x.UserId)
+            .HasForeignKey<EmploymentInformation>(x => x.UserProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

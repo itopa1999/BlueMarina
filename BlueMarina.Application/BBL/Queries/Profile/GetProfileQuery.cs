@@ -17,12 +17,12 @@ public sealed class GetProfileQuery
     {
         [JsonIgnore]
         [Required]
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
     }
 
     public class GetProfileQueryDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
@@ -51,7 +51,7 @@ public sealed class GetProfileQuery
             {
                 return await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
-                    .Where(x => x.UserId == request.UserId && !x.IsDeleted)
+                    .Where(x => x.Id == request.UserId && !x.IsDeleted)
                     .Select(x => new GetProfileQueryDto
                     {
                         UserId = x.UserId,

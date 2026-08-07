@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
@@ -31,7 +30,7 @@ public sealed class VerifyAccountCommand
 
     public class VerifyAccountResponseDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public bool IsAccountVerified { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Platform { get; set; } = Platforms.Mobile;
@@ -96,23 +95,13 @@ public sealed class VerifyAccountCommand
                     "Either Email or Phone Number must be provided.");
             }
 
-            Guid? userId = null;
-            IdentityDto? user = null;
+            var user = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(up => up.Email == request.Email || up.PhoneNumber == request.PhoneNumber)
+                .Select(up => new { up.Id, up.UserId, up.Email, up.FirstName })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-            else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-
-            if (!userId.HasValue)
+            if (user == null)
             {
                 op.Fail("User not found.");
                 return new BaseResult<VerifyAccountResponseDto>(
@@ -125,7 +114,7 @@ public sealed class VerifyAccountCommand
             try
             {
                 var otpVerification = await _unitOfWork.Query<OtpVerification>()
-                    .Where(x => x.UserId == userId
+                    .Where(x => x.UserProfileId == user.Id
                                 && x.Purpose == OtpPurpose.AccountVerification.ToString()
                                 && !x.IsUsed)
                     .OrderByDescending(x => x.CreatedAt)
@@ -133,7 +122,7 @@ public sealed class VerifyAccountCommand
 
                 if (otpVerification is null)
                 {
-                    op.Fail($"No valid OTP found for user {userId}");
+                    op.Fail($"No valid OTP found for user {user.Id}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "Invalid OTP. Please request a new one.");
@@ -141,7 +130,7 @@ public sealed class VerifyAccountCommand
 
                 if (otpVerification.OtpCode != request.OtpCode)
                 {
-                    op.Fail($"Invalid OTP code provided for user {userId}");
+                    op.Fail($"Invalid OTP code provided for user {user.Id}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "Invalid OTP code.");
@@ -149,7 +138,7 @@ public sealed class VerifyAccountCommand
 
                 if (otpVerification.ExpiresAt < DateTime.UtcNow)
                 {
-                    op.Fail($"OTP expired for user {userId}");
+                    op.Fail($"OTP expired for user {user.Id}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "OTP has expired. Please request a new one.");
@@ -157,16 +146,16 @@ public sealed class VerifyAccountCommand
 
                 if (otpVerification.IsUsed)
                 {
-                    op.Fail($"OTP already used for user {userId}");
+                    op.Fail($"OTP already used for user {user.Id}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         "This OTP has already been used.");
                 }
 
-                var (markSuccess, markError) = await _identityService.MarkEmailAndPhoneAsVerifiedAsync(userId);
+                var (markSuccess, markError) = await _identityService.MarkEmailAndPhoneAsVerifiedAsync(user.UserId);
                 if (!markSuccess)
                 {
-                    op.Fail($"Failed to mark account as verified for user {userId}: {markError}");
+                    op.Fail($"Failed to mark account as verified for user {user.Id}: {markError}");
                     return new BaseResult<VerifyAccountResponseDto>(
                         HttpStatusCode.BadRequest,
                         markError);
@@ -181,7 +170,7 @@ public sealed class VerifyAccountCommand
 
                 var userProfile = await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
-                    .Where(up => up.UserId == userId)
+                    .Where(up => up.UserId == user.UserId)
                     .Select(up => new { up.FirstName, })
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -200,13 +189,13 @@ public sealed class VerifyAccountCommand
                 await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                op.Success($"Account verified successfully for user {userId}");
+                op.Success($"Account verified successfully for user {user.Id}");
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.OK,
                     "Account verified successfully.",
                     new VerifyAccountResponseDto
                     {
-                        UserId = userId.Value,
+                        UserId = user.Id,
                         IsAccountVerified = true,
                         FullName = userProfile?.FirstName ?? string.Empty,
                         Platform = request.Platform,
@@ -218,7 +207,7 @@ public sealed class VerifyAccountCommand
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                op.Fail($"Account verification failed for user {userId}", ex);
+                op.Fail($"Account verification failed for user {user.Id}", ex);
                 throw;
             }
         }

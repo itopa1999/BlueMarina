@@ -26,7 +26,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        Guid userId,
+        long userId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -36,7 +36,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
 
         var refreshToken = new RefreshToken
         {
-            UserId = userId,
+            UserProfileId = userId,
             TokenHash = tokenHash,
             ExpiresAt = DateTime.UtcNow.AddDays(
                 _jwtSettings.RefreshTokenExpiryDays)
@@ -92,7 +92,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
             cancellationToken: cancellationToken);
 
         var newRefreshToken = await CreateAsync(
-            refreshToken.UserId,
+            refreshToken.UserProfileId,
             cancellationToken);
 
         refreshToken.ReplacedByTokenHash =

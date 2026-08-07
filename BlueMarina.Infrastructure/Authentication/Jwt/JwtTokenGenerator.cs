@@ -20,7 +20,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     }
 
     public string GenerateToken(
-        Guid userId,
+        long userId,
         string email,
         IList<string> roles)
     {

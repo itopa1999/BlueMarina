@@ -5,12 +5,10 @@ using BlueMarina.Domain.Common;
 namespace BlueMarina.Domain.Entities;
 
 
-[Table("Kyc Document")]
+[Table("kyc_documents")]
 public class KycDocument : BaseEntity
 {
-    public Guid UserId { get; set; }
-
-    public virtual UserProfile UserProfile { get; set; } = null!;
+    public long UserProfileId { get; set; }
 
     public DocumentType Type { get; set; }
 
@@ -28,7 +26,8 @@ public class KycDocument : BaseEntity
 
     public DateTime? VerifiedAt { get; set; }
 
-    public Guid? VerifiedByUserId { get; set; } // admin or automated system
-
+    public long? VerifiedByUserId { get; set; }
     public bool IsExpired { get; set; }
+    public virtual UserProfile UserProfile { get; set; } = null!;
+
 }

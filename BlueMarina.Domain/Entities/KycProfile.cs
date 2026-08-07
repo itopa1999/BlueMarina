@@ -4,11 +4,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Kyc Profile")]
+[Table("kyc_profiles")]
 public class KycProfile : BaseEntity
 {
-    public Guid UserId { get; set; }
-
+    public long UserProfileId { get; set; }
     [MaxLength(11)]
     public string? Bvn { get; set; }
 

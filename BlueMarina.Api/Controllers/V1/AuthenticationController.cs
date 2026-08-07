@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using static BlueMarina.Application.BBL.Commands.Authentication.ApplyReferralCommand;
 using static BlueMarina.Application.BBL.Commands.Authentication.ForgotPasswordCommand;
 using static BlueMarina.Application.BBL.Commands.Authentication.LoginUserCommand;
 using static BlueMarina.Application.BBL.Commands.Authentication.RefreshTokenCommand;
@@ -187,6 +188,21 @@ public class AuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ChangePassword(
         [FromBody] ChangePasswordCommand.Command command, CancellationToken cancellationToken)
+    {
+        command.UserId = CurrentUserId.Value;
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode(
+            (int)result.StatusCode,
+            result
+        );
+    }
+
+    [HttpPost("referral/apply")]
+    [Authorize]
+    [ProducesResponseType(typeof(BaseResult<ApplyReferralResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> ApplyReferralCode(
+        [FromBody] ApplyReferralCommand.Command command, CancellationToken cancellationToken)
     {
         command.UserId = CurrentUserId.Value;
         var result = await _mediator.Send(command, cancellationToken);

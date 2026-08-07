@@ -4,16 +4,15 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Employment Information")]
+[Table("employment_informations")]
 public class EmploymentInformation : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserProfileId { get; set; }
+    public virtual UserProfile UserProfile { get; set; } = null!;
 
     [MaxLength(50)]
     public string? Occupation { get; set; }
 
     [MaxLength(100)]
     public string? Employer { get; set; }
-
-    public virtual UserProfile UserProfile { get; set; } = null!;
 }

@@ -27,7 +27,7 @@ public sealed class LoginUserCommand
 
     public class LoginResponseDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Platform { get; set; } = Platforms.Mobile;
         public string AccessToken { get; set; } = string.Empty;
@@ -80,17 +80,21 @@ public sealed class LoginUserCommand
                 );
             }
 
-            var (success, errorMessage, user) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
-            if (!success)
+            var user = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(u => u.Email == request.Email)
+                .Select(u => new { u.UserId, u.Id, u.FirstName, u.LastName, u.FullName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (user is null)
             {
-                op.Fail($"User lookup failed: {errorMessage}");
+                op.Fail($"User not found for email: {request.Email}");
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Invalid email or password."
                 );
             }
-
-            if (!user.IsEmailVerified || !user.IsPhoneNumberVerified)
+            if (await _identityService.IsAccountVerifiedAsync(user.UserId) is false)
             {
                 op.Fail($"Account not verified for user {user.UserId}");
                 return new BaseResult<LoginResponseDto>(
@@ -106,21 +110,6 @@ public sealed class LoginUserCommand
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Invalid email or password."
-                );
-            }
-
-            var userProfile = await _unitOfWork.Query<UserProfile>()
-                .AsNoTracking()
-                .Where(x => x.UserId == user.UserId)
-                .Select(x => new { x.FullName })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (userProfile is null)
-            {
-                op.Fail($"User profile missing for user {user.UserId}");
-                return new BaseResult<LoginResponseDto>(
-                    HttpStatusCode.BadRequest,
-                    "User profile not found. Please contact support."
                 );
             }
 
@@ -143,8 +132,8 @@ public sealed class LoginUserCommand
                 "Login successful.",
                 new LoginResponseDto
                 {
-                    UserId = user.UserId,
-                    FullName = userProfile.FullName,
+                    UserId = user.Id,
+                    FullName = user.FullName,
                     Platform = request.Platform,
                     AccessToken = accessToken,
                     RefreshToken = refreshToken,

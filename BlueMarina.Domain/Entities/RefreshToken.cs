@@ -3,11 +3,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Refresh Token")]
+[Table("refresh_tokens")]
 public class RefreshToken : BaseEntity
 {
-    public Guid UserId { get; set; }
-
+    public long UserProfileId { get; set; }
     public string TokenHash { get; set; } = string.Empty;
 
     public DateTime ExpiresAt { get; set; }
@@ -31,4 +30,6 @@ public class RefreshToken : BaseEntity
     public bool IsRevoked => RevokedAt.HasValue;
 
     public bool IsActive => !IsExpired && !IsRevoked;
+
+    public virtual UserProfile UserProfile { get; set; } = null!;
 }

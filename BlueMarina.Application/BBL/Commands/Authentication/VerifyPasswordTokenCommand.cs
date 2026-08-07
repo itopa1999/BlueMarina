@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities;
@@ -17,7 +16,7 @@ public sealed class VerifyPasswordTokenCommand
 {
     public class Command : IRequest<BaseResult<VerifyPasswordTokenResponseDto>>
     {
-        public Guid UserId { get; init; }
+        public long UserId { get; init; }
 
         [MinLength(6), MaxLength(6)]
         public string Token { get; init; } = string.Empty;
@@ -25,7 +24,7 @@ public sealed class VerifyPasswordTokenCommand
 
     public class VerifyPasswordTokenResponseDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public bool IsVerified { get; set; }
     }
 
@@ -51,10 +50,13 @@ public sealed class VerifyPasswordTokenCommand
                 ("UserId", request.UserId.ToString())
             );
 
-            IdentityDto? user = null;
+            var user = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(up => up.Id == request.UserId)
+                .Select(up => new { up.Id, up.UserId, up.Email })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            var (userExists, _, userDetails) = await _identityService.GetUserDetailsByUserIDAsync(request.UserId);
-            if (!userExists)
+            if (user == null)
             {
                 op.Fail($"User not found: {request.UserId}");
                 return new BaseResult<VerifyPasswordTokenResponseDto>(
@@ -62,10 +64,8 @@ public sealed class VerifyPasswordTokenCommand
                     "User not Found");
             }
 
-            user = userDetails;
-
             var otpVerification = await _unitOfWork.Query<OtpVerification>()
-                .Where(x => x.UserId == request.UserId
+                .Where(x => x.UserProfileId == user.Id
                             && x.Purpose == OtpPurpose.PasswordReset.ToString()
                             && !x.IsUsed)
                 .OrderByDescending(x => x.CreatedAt)

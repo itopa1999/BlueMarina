@@ -15,7 +15,7 @@ public sealed class ResetPasswordCommand
 {
     public class Command : IRequest<BaseResult>
     {
-        public Guid UserId { get; init; }
+        public long UserId { get; init; }
 
         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
         public string NewPassword { get; init; } = string.Empty;
@@ -40,15 +40,19 @@ public sealed class ResetPasswordCommand
                 ("UserId", request.UserId.ToString())
             );
 
-            var userExists = await _identityService.IsUserExisting(request.UserId);
-            if (!userExists)
+            var userExists = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(up => up.Id == request.UserId)
+                .Select(up => new { up.Id, up.UserId, up.Email })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (userExists == null)
             {
                 op.Fail($"User not found: {request.UserId}");
                 return new BaseResult(HttpStatusCode.BadRequest, "User not Found");
             }
 
             var (success, errorMessage) = await _identityService.ResetPasswordAsync(
-                request.UserId,
+                userExists.UserId,
                 request.NewPassword);
 
             if (!success)
@@ -61,7 +65,7 @@ public sealed class ResetPasswordCommand
             try
             {
                 var refreshTokens = await _unitOfWork.Query<RefreshToken>()
-                    .Where(rt => rt.UserId == request.UserId && rt.RevokedAt == null)
+                    .Where(rt => rt.UserProfileId == userExists.UserId && rt.RevokedAt == null)
                     .ToListAsync(cancellationToken);
 
                 foreach (var token in refreshTokens)

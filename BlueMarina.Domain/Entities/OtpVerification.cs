@@ -3,11 +3,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Otp Verification")]
+[Table("otp_verifications")]
 public class OtpVerification : BaseEntity
 {
-    public Guid UserId { get; set; }
-
+    public long UserProfileId { get; set; }
     public string OtpCode { get; set; } = string.Empty;
 
     public string Purpose { get; set; } = string.Empty;
@@ -16,4 +15,5 @@ public class OtpVerification : BaseEntity
     public DateTime? UsedAt { get; set; }
 
     public DateTime ExpiresAt { get; set; }
+    public virtual UserProfile UserProfile { get; set; } = null!;
 }

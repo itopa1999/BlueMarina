@@ -13,11 +13,11 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
         builder.HasIndex(x => new { x.BankCode, x.AccountNumber })
                .IsUnique();
 
-        builder.HasIndex(x => new { x.UserId, x.Currency });
+        builder.HasIndex(x => new { x.UserProfileId, x.Currency });
 
         builder.HasOne(x => x.UserProfile)
                .WithMany(x => x.BankAccounts)
-               .HasForeignKey(x => x.UserId)
+               .HasForeignKey(x => x.UserProfileId)
                .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
@@ -27,7 +26,7 @@ public sealed class ForgotPasswordCommand
 
     public class ForgotPasswordResponseDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public string Data { get; set; } = string.Empty;
     }
 
@@ -71,23 +70,14 @@ public sealed class ForgotPasswordCommand
                     "Either Email or Phone Number must be provided.");
             }
 
-            Guid? userId = null;
-            IdentityDto? user = null;
-
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-            else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-
-            if (!userId.HasValue || user is null)
+            var userExists = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(u => (request.Email != null && u.Email == request.Email) ||
+                            (request.PhoneNumber != null && u.PhoneNumber == request.PhoneNumber))
+                .Select(u => new { u.Id, u.Email, u.PhoneNumber, u.UserId})
+                .FirstOrDefaultAsync(cancellationToken);
+                
+            if (userExists == null)
             {
                 op.Fail("User not found (identifier provided but not in system).");
                 return new BaseResult<ForgotPasswordResponseDto>(
@@ -95,12 +85,12 @@ public sealed class ForgotPasswordCommand
                     "If an account exists with this email or phone number, a reset OTP will be sent.",
                     new ForgotPasswordResponseDto
                     {
-                        UserId = Guid.Empty,
+                        UserId = 0,
                         Data = "If an account exists, OTP has been sent."
                     });
             }
 
-            if (!user.IsEmailVerified && !user.IsPhoneNumberVerified)
+            if (await _identityService.IsAccountVerifiedAsync(userExists.UserId) is false)
             {
                 op.Fail("User account is not verified.");
                 return new BaseResult<ForgotPasswordResponseDto>(
@@ -115,7 +105,7 @@ public sealed class ForgotPasswordCommand
                 var otpCode = _otpService.GenerateOtp();
                 var otp = new OtpVerification
                 {
-                    UserId = userId.Value,
+                    UserProfileId = userExists.Id,
                     OtpCode = otpCode,
                     Purpose = OtpPurpose.PasswordReset,
                     ExpiresAt = DateTime.UtcNow.AddMinutes(2),
@@ -127,24 +117,24 @@ public sealed class ForgotPasswordCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                await _emailService.SendForgotPasswordOtpAsync(user.Email, otpCode, cancellationToken);
-                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode, cancellationToken);
+                await _emailService.SendForgotPasswordOtpAsync(userExists.Email, otpCode, cancellationToken);
+                await _smsService.SendOtpAsync(userExists.PhoneNumber, otpCode, cancellationToken);
 
-                op.Success($"OTP sent to user {userId} for password reset.");
+                op.Success($"OTP sent to user {userExists.Id} for password reset.");
 
                 return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.OK,
                     "If an account exists with this email or phone number, a reset OTP will be sent.",
                     new ForgotPasswordResponseDto
                     {
-                        UserId = userId.Value,
+                        UserId = userExists.Id,
                         Data = "OTP sent successfully."
                     });
             }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                op.Fail($"Forgot password failed for user {userId}", ex);
+                op.Fail($"Forgot password failed for user {userExists.Id}", ex);
                 throw;
             }
         }

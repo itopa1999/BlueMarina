@@ -14,7 +14,7 @@ public sealed class LogoutCommand
     public class Command : IRequest<BaseResult>
     {
         [JsonIgnore]
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public string RefreshToken { get; init; } = string.Empty;
     }
 
@@ -57,9 +57,9 @@ public sealed class LogoutCommand
                 return new BaseResult(HttpStatusCode.Unauthorized, "Refresh token has been revoked.");
             }
 
-            if (refreshToken.UserId != request.UserId)
+            if (refreshToken.UserProfileId != request.UserId)
             {
-                op.Fail($"Token owner mismatch: token belongs to {refreshToken.UserId}, request user is {request.UserId}");
+                op.Fail($"Token owner mismatch: token belongs to {refreshToken.UserProfileId}, request user is {request.UserId}");
                 return new BaseResult(HttpStatusCode.Unauthorized, "Token does not belong to the authenticated user.");
             }
 

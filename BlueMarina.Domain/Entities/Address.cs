@@ -4,12 +4,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Address")]
+[Table("addresses")]
 public class Address : BaseEntity
 {
-    public Guid UserId { get; set; }
-
-    public virtual UserProfile UserProfile { get; set; } = null!;
+    public long UserProfileId { get; set; }
 
     public AddressType Type { get; set; }
 
@@ -35,4 +33,6 @@ public class Address : BaseEntity
     public double? Longitude { get; set; }
 
     public bool IsPrimary { get; set; }
+    public virtual UserProfile UserProfile { get; set; } = null!;
+
 }

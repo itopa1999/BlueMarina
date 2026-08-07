@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlueMarina.Infrastructure.Persistence;
 
 public sealed class ApplicationDbContext
-    : IdentityDbContext<User, IdentityRole<Guid>, Guid>
+    : IdentityDbContext<User, IdentityRole<long>, long>
 {
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options)

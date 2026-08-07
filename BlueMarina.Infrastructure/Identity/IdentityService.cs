@@ -1,7 +1,5 @@
-using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlueMarina.Infrastructure.Identity;
 
@@ -9,37 +7,19 @@ public sealed class IdentityService : IIdentityService
 {
     private readonly UserManager<User> _userManager;
 
-    public IdentityService(
-        UserManager<User> userManager)
+    public IdentityService(UserManager<User> userManager)
     {
         _userManager = userManager;
     }
 
-    public async Task<bool> EmailExistsAsync(
-        string email)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-
-        return user is not null;
-    }
-
-    public async Task<bool> PhoneNumberExistsAsync(
-        string phoneNumber)
-    {
-        var user = _userManager.Users
-            .FirstOrDefault(x => x.PhoneNumber == phoneNumber);
-
-        return await Task.FromResult(user is not null);
-    }
-
-    public async Task<(bool Success, string ErrorMessage, Guid UserId)> CreateUserAsync(
+    public async Task<(bool Success, string ErrorMessage, long UserId, Guid PublicId)> CreateUserAsync(
         string email,
         string phoneNumber,
         string password)
     {
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            PublicId = Guid.NewGuid(),
             Email = email,
             UserName = email,
             PhoneNumber = phoneNumber,
@@ -50,17 +30,15 @@ public sealed class IdentityService : IIdentityService
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            return (false, errors, Guid.Empty);
+            return (false, errors, 0, Guid.Empty);
         }
 
-        return (true, string.Empty, user.Id);
+        return (true, string.Empty, user.Id, user.PublicId);
     }
 
-    public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(
-        Guid userId,
-        string role)
+    public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(long userId, string role)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
+        var user = await _userManager.FindByIdAsync(userId.ToString()); // ✅ Works now!
         if (user is null)
         {
             return (false, "User not found.");
@@ -76,50 +54,7 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
-    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByEmailAsync(string email)
-    {
-        var existingUser = await _userManager.FindByEmailAsync(email);
-        if (existingUser is null)
-        {
-            return (false, "User not Found", new IdentityDto());
-        }
-
-        var userDto = new IdentityDto
-        {
-            UserId = existingUser.Id,
-            Email = existingUser.Email,
-            PhoneNumber = existingUser.PhoneNumber,
-            IsEmailVerified = existingUser.EmailConfirmed,
-            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
-        };
-
-        return (true, string.Empty, userDto);
-    }
-
-
-    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByPhoneAsync(string phone)
-    {
-        var existingUser = await _userManager.Users
-            .FirstOrDefaultAsync(x => x.PhoneNumber == phone);
-
-        if (existingUser is null)
-        {
-            return (false, "User not found.", new IdentityDto());
-        }
-
-        var userDto = new IdentityDto
-        {
-            UserId = existingUser.Id,
-            Email = existingUser.Email,
-            PhoneNumber = existingUser.PhoneNumber,
-            IsEmailVerified = existingUser.EmailConfirmed,
-            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
-        };
-
-        return (true, string.Empty, userDto);
-    }
-
-    public async Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(Guid? userId)
+    public async Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(long userId)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
         if (existingUser is null)
@@ -128,80 +63,44 @@ public sealed class IdentityService : IIdentityService
         }
         existingUser.EmailConfirmed = true;
         existingUser.PhoneNumberConfirmed = true;
-        var result = await _userManager.UpdateAsync(
-            existingUser);
+        var result = await _userManager.UpdateAsync(existingUser);
 
         if (!result.Succeeded)
         {
-            return (
-                false,
-                string.Join(
-                    ", ",
-                    result.Errors.Select(x => x.Description))
-            );
+            return (false, string.Join(", ", result.Errors.Select(x => x.Description)));
         }
 
         return (true, string.Empty);
     }
 
-    public async Task<bool> CheckPasswordAsync(Guid userId, string password)
-    {
-        var existingUser = await _userManager
-        .FindByIdAsync(userId.ToString());
-
-        if (existingUser is null)
-        {
-            return false;
-        }
-
-        return await _userManager.CheckPasswordAsync(
-            existingUser,
-            password);
-    }
-
-    public async Task<bool> IsAccountVerifiedAsync(Guid userId)
+    public async Task<bool> CheckPasswordAsync(long userId, string password)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (existingUser is null)
-        {
-            return false;
-        }
+        if (existingUser is null) return false;
+
+        return await _userManager.CheckPasswordAsync(existingUser, password);
+    }
+
+    public async Task<bool> IsAccountVerifiedAsync(long userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null) return false;
 
         return existingUser.EmailConfirmed && existingUser.PhoneNumberConfirmed;
     }
 
-    public async Task<IList<string>> GetRolesAsync(Guid userId)
-    {
-        var existingUser = await _userManager
-        .FindByIdAsync(userId.ToString());
-
-        if (existingUser is null)
-        {
-            return new List<string>();
-        }
-
-        return await _userManager.GetRolesAsync(
-            existingUser);
-    }
-
-    public async Task<bool> IsUserExisting(Guid userId)
+    public async Task<IList<string>> GetRolesAsync(long userId)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null) return new List<string>();
 
-        if (existingUser is null)
-        {
-            return false;
-        }
-
-        return true;
-           
+        return await _userManager.GetRolesAsync(existingUser);
     }
 
-    public async Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(Guid userId, string newPassword)
+    public async Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(long userId, string newPassword)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user is null)
-            return (false, "User not found.");
+        if (user is null) return (false, "User not found.");
 
         var validateResult = await _userManager.PasswordValidators
             .FirstOrDefault()?.ValidateAsync(_userManager, user, newPassword);
@@ -211,7 +110,6 @@ public sealed class IdentityService : IIdentityService
             return (false, errors);
         }
 
-        // Hash the new password directly
         var hashedPassword = _userManager.PasswordHasher.HashPassword(user, newPassword);
         user.PasswordHash = hashedPassword;
 
@@ -225,15 +123,10 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
-
-    public async Task<(bool Success, string ErrorMessage)> ChangePasswordAsync(
-        Guid userId,
-        string oldPassword,
-        string newPassword)
+    public async Task<(bool Success, string ErrorMessage)> ChangePasswordAsync(long userId, string oldPassword, string newPassword)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user is null)
-            return (false, "User not found.");
+        if (user is null) return (false, "User not found.");
 
         var result = await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
 
@@ -247,25 +140,5 @@ public sealed class IdentityService : IIdentityService
         await _userManager.UpdateAsync(user);
 
         return (true, string.Empty);
-    }
-
-    public async Task<(bool Success, string ErrorMessage, IdentityDto User)> GetUserDetailsByUserIDAsync(Guid userId)
-    {
-        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
-
-        if (existingUser is null)
-        {
-            return (false, "User not found.", new IdentityDto());
-        }
-
-        var userDto = new IdentityDto
-        {
-            UserId = existingUser.Id,
-            Email = existingUser.Email,
-            PhoneNumber = existingUser.PhoneNumber,
-            IsEmailVerified = existingUser.EmailConfirmed,
-            IsPhoneNumberVerified = existingUser.PhoneNumberConfirmed
-        };
-        return (true, string.Empty, userDto);
     }
 }

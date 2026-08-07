@@ -18,13 +18,13 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.HasIndex(x => x.TokenHash)
                .IsUnique();
 
-        builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => x.UserProfileId);
 
         builder.HasIndex(x => x.ExpiresAt);
 
         builder.HasOne<User>()
                .WithMany(x => x.RefreshTokens)
-               .HasForeignKey(x => x.UserId)
+               .HasForeignKey(x => x.UserProfile.Id)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }

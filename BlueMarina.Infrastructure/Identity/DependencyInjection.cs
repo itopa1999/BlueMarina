@@ -51,7 +51,7 @@ public static class DependencyInjection
         });
 
         services
-            .AddIdentity<User, IdentityRole<Guid>>(options =>
+            .AddIdentity<User, IdentityRole<long>>(options =>
             {
                 ConfigurePassword(options);
                 ConfigureUser(options);

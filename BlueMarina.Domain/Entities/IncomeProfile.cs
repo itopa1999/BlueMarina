@@ -3,10 +3,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Income Profile")]
+[Table("income_profiles")]
 public class IncomeProfile : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserProfileId { get; set; }
     public decimal? AnnualIncome { get; set; }
     public RiskAppetite RiskAppetite { get; set; } = RiskAppetite.Moderate;
 

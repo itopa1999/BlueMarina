@@ -10,13 +10,13 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
     {
         builder.HasKey(x => x.Id);
 
-        builder.HasIndex(x => new { x.UserId, x.Type });
+        builder.HasIndex(x => new { x.UserProfileId, x.Type });
 
         builder.HasIndex(x => x.IsVerified);
 
         builder.HasOne(x => x.UserProfile)
                .WithMany(x => x.Addresses)
-               .HasForeignKey(x => x.UserId)
+               .HasForeignKey(x => x.UserProfileId)
                .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

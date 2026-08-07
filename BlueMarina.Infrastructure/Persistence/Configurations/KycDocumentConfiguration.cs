@@ -10,14 +10,14 @@ public sealed class KycDocumentConfiguration : IEntityTypeConfiguration<KycDocum
     {
         builder.HasKey(x => x.Id);
 
-        builder.HasIndex(x => new { x.UserId, x.Type })
+        builder.HasIndex(x => new { x.UserProfileId, x.Type })
                .IsUnique();
 
         builder.HasIndex(x => x.Status);
 
         builder.HasOne(x => x.UserProfile)
                .WithMany()
-               .HasForeignKey(x => x.UserId)
+               .HasForeignKey(x => x.UserProfileId)
                .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

@@ -11,6 +11,7 @@ using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
 using BlueMarina.Application.Common.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueMarina.Application.BBL.Commands.Authentication;
 
@@ -35,7 +36,7 @@ public sealed class RegisterCommand
 
     public class RegistrationResponseDto
     {
-        public Guid UserId { get; set; }
+        public long PublicId { get; set; }         
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
@@ -111,27 +112,25 @@ public sealed class RegisterCommand
                 ? string.Join(" ", nameParts[1..^1].Select(textInfo.ToTitleCase))
                 : null;
 
-            if (await _identityService.EmailExistsAsync(request.Email))
+            var existingUser = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(x => !x.IsDeleted)
+                .Where(x => x.Email.Equals(request.Email, StringComparison.CurrentCultureIgnoreCase) || x.PhoneNumber == request.PhoneNumber)
+                .Select(x => new { x.Email, x.PhoneNumber })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (existingUser != null)
             {
-                op.Fail($"Email already exists: {request.Email}");
+                op.Fail($"Email or phone number already exists: {request.Email}");
                 return new BaseResult<RegistrationResponseDto>(
                     HttpStatusCode.BadRequest,
-                    "Email already exists.");
-            }
-
-            if (await _identityService.PhoneNumberExistsAsync(request.PhoneNumber))
-            {
-                op.Fail($"Phone number already exists: {request.PhoneNumber}");
-                return new BaseResult<RegistrationResponseDto>(
-                    HttpStatusCode.BadRequest,
-                    "Phone number already exists.");
+                    "Email or phone number already exists.");
             }
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var (success, errorMessage, userId) = await _identityService.CreateUserAsync(
+                var (success, errorMessage, userId, publicId) = await _identityService.CreateUserAsync(
                     request.Email,
                     request.PhoneNumber,
                     request.Password);
@@ -159,7 +158,7 @@ public sealed class RegisterCommand
 
                 var otp = new OtpVerification
                 {
-                    UserId = userId,
+                    UserProfileId = userId,
                     OtpCode = otpCode,
                     Purpose = OtpPurpose.AccountVerification,
                     ExpiresAt = DateTime.UtcNow.AddMinutes(2),
@@ -203,7 +202,7 @@ public sealed class RegisterCommand
                     "Account created successfully.",
                     new RegistrationResponseDto
                     {
-                        UserId = userId,
+                        PublicId = userProfile.UserId,
                         Email = request.Email,
                         Phone = request.PhoneNumber,
                         FullName = userProfile.FullName,

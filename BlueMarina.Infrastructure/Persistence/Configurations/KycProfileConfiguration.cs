@@ -9,14 +9,14 @@ public sealed class KycProfileConfiguration : IEntityTypeConfiguration<KycProfil
     public void Configure(EntityTypeBuilder<KycProfile> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.UserProfileId).IsUnique();
         builder.HasIndex(x => x.Bvn).IsUnique();
         builder.HasIndex(x => x.Nin).IsUnique();
         builder.HasIndex(x => x.KycLevel);
 
         builder.HasOne(x => x.UserProfile)
             .WithOne()
-            .HasForeignKey<KycProfile>(x => x.UserId)
+            .HasForeignKey<KycProfile>(x => x.UserProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

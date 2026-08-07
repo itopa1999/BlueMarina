@@ -9,11 +9,11 @@ public sealed class IncomeProfileConfiguration : IEntityTypeConfiguration<Income
     public void Configure(EntityTypeBuilder<IncomeProfile> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.UserProfileId).IsUnique();
 
         builder.HasOne(x => x.UserProfile)
             .WithOne()
-            .HasForeignKey<IncomeProfile>(x => x.UserId)
+            .HasForeignKey<IncomeProfile>(x => x.UserProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

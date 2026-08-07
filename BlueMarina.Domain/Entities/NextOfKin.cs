@@ -4,10 +4,10 @@ using BlueMarina.Domain.Common;
 
 namespace BlueMarina.Domain.Entities;
 
-[Table("Next Of Kin")]
+[Table("next_of_kins")]
 public class NextOfKin : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserProfileId { get; set; }
 
     [MaxLength(100)]
     public string FullName { get; set; } = string.Empty;

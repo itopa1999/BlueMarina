@@ -6,7 +6,7 @@ namespace BlueMarina.Infrastructure.Identity;
 public static class IdentitySeeder
 {
     public static async Task SeedRolesAsync(
-        RoleManager<IdentityRole<Guid>> roleManager)
+        RoleManager<IdentityRole<long>> roleManager)
     {
         var roles = new[]
         {
@@ -24,7 +24,7 @@ public static class IdentitySeeder
             }
 
             await roleManager.CreateAsync(
-                new IdentityRole<Guid>
+                new IdentityRole<long>
                 {
                     Name = role
                 });

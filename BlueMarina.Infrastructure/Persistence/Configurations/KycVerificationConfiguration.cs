@@ -10,13 +10,13 @@ public sealed class KycVerificationConfiguration : IEntityTypeConfiguration<KycV
     {
         builder.HasKey(x => x.Id);
 
-        builder.HasIndex(x => new { x.UserId, x.Type });
+        builder.HasIndex(x => new { x.UserProfileId, x.Type });
 
         builder.HasIndex(x => x.Result);
 
         builder.HasOne(x => x.UserProfile)
                .WithMany()
-               .HasForeignKey(x => x.UserId)
+               .HasForeignKey(x => x.UserProfileId)
                .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

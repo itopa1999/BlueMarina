@@ -19,7 +19,7 @@ public sealed class ApplyReferralCommand
         public string ReferralCode { get; init; } = string.Empty;
         
         [JsonIgnore]
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
     }
 
     public class ApplyReferralResponseDto
@@ -45,11 +45,11 @@ public sealed class ApplyReferralCommand
         public async Task<BaseResult<ApplyReferralResponseDto>> Handle(Command request, CancellationToken cancellationToken)
         {
             using var op = OperationLogger.Start(_logger, "ApplyReferral", 
-                ("UserId", request.UserId), 
+                ("UserId", request.UserId.ToString()), 
                 ("ReferralCode", request.ReferralCode));
 
             var currentUser = await _unitOfWork.Query<UserProfile>()
-                .Where(up => up.UserId == request.UserId)
+                .Where(up => up.Id == request.UserId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (currentUser == null)
@@ -72,7 +72,7 @@ public sealed class ApplyReferralCommand
             var referrer = await _unitOfWork.Query<UserProfile>()
                 .AsNoTracking()
                 .Where(up => up.ReferralCode.ToUpper() == request.ReferralCode.ToUpper())
-                .Select(up => new { up.UserId, up.FullName })
+                .Select(up => new { up.Id, up.FullName })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (referrer == null)
@@ -92,15 +92,15 @@ public sealed class ApplyReferralCommand
             }
 
             // 5. Apply the referral
-            currentUser.ReferredByUserId = referrer.UserId;
+            currentUser.ReferredByUserId = referrer.Id;
 
             _unitOfWork.Update(currentUser);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             // TODO : add background bonus or point or credit
-            // await _bonusService.CreditReferralBonusAsync(currentUser.UserId, referrer.UserId, cancellationToken);
+            // await _bonusService.CreditReferralBonusAsync(currentUser.Id, referrer.Id, cancellationToken);
 
-            op.Success($"Referral code {request.ReferralCode} successfully applied to user {currentUser.UserId}.");
+            op.Success($"Referral code {request.ReferralCode} successfully applied to user {currentUser.Id}.");
 
             return new BaseResult<ApplyReferralResponseDto>(
                 HttpStatusCode.OK,
@@ -110,7 +110,8 @@ public sealed class ApplyReferralCommand
                     AppliedSuccessfully = true,
                     ReferrerName = referrer.FullName,
                     RewardDescription = "Both you and your referrer will earn Marina Coins upon your first investment."
-                });
+                }
+            );
         }
     }
 }

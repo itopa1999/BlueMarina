@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using BlueMarina.Application.Common.Dtos;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Interfaces.Persistence;
@@ -27,7 +26,7 @@ public sealed class ResendVerificationOtpCommand
 
     public class ResendVerificationOtpResponseDto
     {
-        public Guid UserId { get; set; }
+        public long UserId { get; set; }
         public string Data { get; set; } = string.Empty;
     }
 
@@ -71,23 +70,13 @@ public sealed class ResendVerificationOtpCommand
                     "Either Email or Phone Number must be provided.");
             }
 
-            Guid? userId = null;
-            IdentityDto? user = null;
+            var userExists = await _unitOfWork.Query<UserProfile>()
+                .AsNoTracking()
+                .Where(up => up.Email == request.Email || up.PhoneNumber == request.PhoneNumber)
+                .Select(up => new { up.Id, up.Email, up.FirstName, up.PhoneNumber })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByEmailAsync(request.Email);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-            else if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-            {
-                var (success, _, userDetails) = await _identityService.GetUserDetailsByPhoneAsync(request.PhoneNumber);
-                if (success) userId = userDetails.UserId;
-                user = userDetails;
-            }
-
-            if (!userId.HasValue)
+            if (userExists == null)
             {
                 op.Fail("User not found.");
                 return new BaseResult<ResendVerificationOtpResponseDto>(
@@ -103,7 +92,7 @@ public sealed class ResendVerificationOtpCommand
 
                 var otp = new OtpVerification
                 {
-                    UserId = userId.Value,
+                    UserProfileId = userExists.Id,
                     OtpCode = otpCode,
                     Purpose = OtpPurpose.AccountVerification,
                     ExpiresAt = DateTime.UtcNow.AddMinutes(2),
@@ -114,30 +103,25 @@ public sealed class ResendVerificationOtpCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                var userProfile = await _unitOfWork.Query<UserProfile>()
-                    .AsNoTracking()
-                    .Where(up => up.UserId == userId.Value)
-                    .Select(up => new { up.FirstName })
-                    .FirstOrDefaultAsync(cancellationToken);
 
-                await _emailService.SendOtpAsync(userProfile?.FirstName ?? "Customer", user.Email, otpCode, cancellationToken);
-                await _smsService.SendOtpAsync(user.PhoneNumber, otpCode, cancellationToken);
+                await _emailService.SendOtpAsync(userExists?.FirstName ?? "Customer", userExists.Email, otpCode, cancellationToken);
+                await _smsService.SendOtpAsync(userExists.PhoneNumber, otpCode, cancellationToken);
 
-                op.Success($"OTP resent successfully for user {userId}");
+                op.Success($"OTP resent successfully for user {userExists.Id}");
 
                 return new BaseResult<ResendVerificationOtpResponseDto>(
                     HttpStatusCode.OK,
                     "Verification OTP resent successfully.",
                     new ResendVerificationOtpResponseDto
                     {
-                        UserId = userId.Value,
+                        UserId = userExists.Id,
                         Data = "Data from payload here"
                     });
             }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                op.Fail($"Resend OTP failed for user {userId}", ex);
+                op.Fail($"Resend OTP failed for user {userExists.Id}", ex);
                 throw;
             }
         }

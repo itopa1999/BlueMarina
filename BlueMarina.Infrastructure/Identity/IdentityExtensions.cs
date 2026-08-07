@@ -11,7 +11,7 @@ public static class IdentityExtensions
         using var scope = services.CreateScope();
 
         var roleManager = scope.ServiceProvider
-            .GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+            .GetRequiredService<RoleManager<IdentityRole<long>>>();
 
         await IdentitySeeder.SeedRolesAsync(roleManager);
     }

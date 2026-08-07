@@ -88,7 +88,7 @@ public sealed class RefreshTokenCommand
 
             if (refreshToken.IsExpired)
             {
-                op.Fail($"Refresh token expired (UserId: {refreshToken.UserId})");
+                op.Fail($"Refresh token expired (UserId: {refreshToken.UserProfileId})");
                 return new BaseResult<RefreshTokenResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Refresh token has expired.");
@@ -96,7 +96,7 @@ public sealed class RefreshTokenCommand
 
             if (refreshToken.IsRevoked)
             {
-                op.Fail($"Refresh token already revoked (UserId: {refreshToken.UserId})");
+                op.Fail($"Refresh token already revoked (UserId: {refreshToken.UserProfileId})");
                 return new BaseResult<RefreshTokenResponseDto>(
                     HttpStatusCode.BadRequest,
                     "Refresh token has been revoked.");
@@ -110,26 +110,26 @@ public sealed class RefreshTokenCommand
                 refreshToken.RevocationReason = "Token refreshed";
                 _unitOfWork.Update(refreshToken);
 
-                var roles = await _identityService.GetRolesAsync(refreshToken.UserId);
+                var roles = await _identityService.GetRolesAsync(refreshToken.UserProfileId);
 
                 var userProfile = await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
-                    .Where(up => up.UserId == refreshToken.UserId)
+                    .Where(up => up.UserId == refreshToken.UserProfileId)
                     .Select(up => new { up.Email })
                     .FirstOrDefaultAsync(cancellationToken);
 
                 var accessToken = _jwtTokenGenerator.GenerateToken(
-                    refreshToken.UserId,
+                    refreshToken.UserProfileId,
                     userProfile.Email,
                     roles);
 
-                var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserId, cancellationToken);
+                var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserProfileId, cancellationToken);
 
                 await _unitOfWork.AddAsync(newRefreshToken, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                op.Success($"Token refreshed successfully for user {refreshToken.UserId}");
+                op.Success($"Token refreshed successfully for user {refreshToken.UserProfileId}");
 
                 return new BaseResult<RefreshTokenResponseDto>(
                     HttpStatusCode.OK,
@@ -145,7 +145,7 @@ public sealed class RefreshTokenCommand
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                op.Fail($"Refresh token failed for user {refreshToken.UserId}", ex);
+                op.Fail($"Refresh token failed for user {refreshToken.UserProfileId}", ex);
                 throw;
             }
         }

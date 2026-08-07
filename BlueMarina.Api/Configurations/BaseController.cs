@@ -6,8 +6,8 @@ namespace BlueMarina.Api.Configurations;
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
-    protected Guid? CurrentUserId => 
-        Guid.TryParse(User.FindFirst("UserId")?.Value, out var id) ? id : null;
+    protected long? CurrentUserId => 
+        long.TryParse(User.FindFirst("UserId")?.Value, out var id) ? id : null;
 
     protected string? UserEmail => 
         User.FindFirst("UserEmail")?.Value ?? User.FindFirst(ClaimTypes.Email)?.Value;

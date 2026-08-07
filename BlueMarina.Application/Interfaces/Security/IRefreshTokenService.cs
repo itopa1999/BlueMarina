@@ -5,7 +5,7 @@ namespace BlueMarina.Application.Interfaces.Security;
 public interface IRefreshTokenService
 {
     Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        Guid userId,
+        long userId,
         CancellationToken cancellationToken = default);
 
     Task<RefreshToken?> ValidateAsync(

@@ -4,9 +4,10 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BlueMarina.Infrastructure.Identity;
 
-[Table("Users")]
-public class User : IdentityUser<Guid>
+[Table("users")]
+public class User : IdentityUser<long>
 {
+    public Guid PublicId { get; set; } = Guid.NewGuid(); 
     public virtual UserProfile? Profile { get; set; }
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
     = new List<RefreshToken>();
