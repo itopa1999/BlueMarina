@@ -16,7 +16,7 @@ public sealed class KycDocumentConfiguration : IEntityTypeConfiguration<KycDocum
         builder.HasIndex(x => x.Status);
 
         builder.HasOne(x => x.UserProfile)
-               .WithMany(x => x.KycDocuments)
+               .WithMany()
                .HasForeignKey(x => x.UserId)
                .OnDelete(DeleteBehavior.Restrict);
 

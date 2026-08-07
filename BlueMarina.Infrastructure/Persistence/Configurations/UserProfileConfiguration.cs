@@ -10,19 +10,11 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
     {
        builder.HasKey(x => x.Id);
 
-       builder.HasIndex(x => x.Bvn)
+       builder.HasIndex(x => x.UserId)
               .IsUnique();
-
-       builder.HasIndex(x => x.Nin)
-              .IsUnique();
-
-       builder.HasIndex(x => x.Nin)
-               .IsUnique();
 
        builder.HasIndex(x => x.ReferralCode)
               .IsUnique();
-
-       builder.HasIndex(x => x.KycLevel);
 
        builder.HasQueryFilter(x => !x.IsDeleted);
     }

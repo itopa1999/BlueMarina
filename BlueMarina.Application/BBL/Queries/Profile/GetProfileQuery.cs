@@ -57,7 +57,7 @@ public sealed class GetProfileQuery
                         UserId = x.UserId,
                         FirstName = x.FirstName,
                         LastName = x.LastName,
-                        Email = "x.Email",
+                        Email = x.Email,
                         PhoneNumber = x.PhoneNumber ?? string.Empty,
                     })
                     .FirstOrDefaultAsync(ct);

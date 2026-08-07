@@ -17,6 +17,10 @@ public sealed class ApplicationDbContext
     }
 
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<KycProfile> KycProfiles => Set<KycProfile>();
+    public DbSet<NextOfKin> NextOfKins => Set<NextOfKin>();
+    public DbSet<EmploymentInformation> EmploymentInformations => Set<EmploymentInformation>();
+    public DbSet<IncomeProfile> IncomeProfiles => Set<IncomeProfile>();
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<KycDocument> KycDocuments => Set<KycDocument>();

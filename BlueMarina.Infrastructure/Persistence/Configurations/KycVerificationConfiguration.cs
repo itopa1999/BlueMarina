@@ -15,7 +15,7 @@ public sealed class KycVerificationConfiguration : IEntityTypeConfiguration<KycV
         builder.HasIndex(x => x.Result);
 
         builder.HasOne(x => x.UserProfile)
-               .WithMany(x => x.KycVerifications)
+               .WithMany()
                .HasForeignKey(x => x.UserId)
                .OnDelete(DeleteBehavior.Restrict);
 

@@ -174,6 +174,105 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.ToTable("Bank Account");
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.EmploymentInformation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Employer")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Occupation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Employment Information");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.IncomeProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("AnnualIncome")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FinancialGoalsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("RiskAppetite")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Income Profile");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.KycDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -244,6 +343,69 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.ToTable("Kyc Document");
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.KycProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Bvn")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("KycLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Nin")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Bvn")
+                        .IsUnique();
+
+                    b.HasIndex("KycLevel");
+
+                    b.HasIndex("Nin")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Kyc Profile");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.KycVerification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -300,6 +462,62 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("UserId", "Type");
 
                     b.ToTable("Kyc Verification");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.NextOfKin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Relationship")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Next Of Kin");
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.OtpVerification", b =>
@@ -437,13 +655,6 @@ namespace BlueMarina.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal?>("AnnualIncome")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Bvn")
-                        .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -466,13 +677,6 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("Employer")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("FinancialGoalsJson")
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -483,12 +687,6 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<int>("KycLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("KycVerifiedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -509,26 +707,6 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("NextOfKinName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("NextOfKinPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("NextOfKinRelationship")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Nin")
-                        .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
-
-                    b.Property<string>("Occupation")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("OtherNames")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -543,21 +721,10 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<Guid?>("ReferredByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("RiskAppetite")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Bvn")
-                        .IsUnique();
-
-                    b.HasIndex("KycLevel");
-
-                    b.HasIndex("Nin")
-                        .IsUnique();
 
                     b.HasIndex("ReferralCode")
                         .IsUnique();
@@ -791,11 +958,44 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Navigation("UserProfile");
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.EmploymentInformation", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
+                        .WithOne()
+                        .HasForeignKey("BlueMarina.Domain.Entities.EmploymentInformation", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserProfile");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.IncomeProfile", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
+                        .WithOne()
+                        .HasForeignKey("BlueMarina.Domain.Entities.IncomeProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserProfile");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.KycDocument", b =>
                 {
                     b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
-                        .WithMany("KycDocuments")
+                        .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserProfile");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.KycProfile", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
+                        .WithOne()
+                        .HasForeignKey("BlueMarina.Domain.Entities.KycProfile", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -805,8 +1005,19 @@ namespace BlueMarina.Infrastructure.Migrations
             modelBuilder.Entity("BlueMarina.Domain.Entities.KycVerification", b =>
                 {
                     b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
-                        .WithMany("KycVerifications")
+                        .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserProfile");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.NextOfKin", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.UserProfile", "UserProfile")
+                        .WithOne()
+                        .HasForeignKey("BlueMarina.Domain.Entities.NextOfKin", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -887,10 +1098,6 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Navigation("Addresses");
 
                     b.Navigation("BankAccounts");
-
-                    b.Navigation("KycDocuments");
-
-                    b.Navigation("KycVerifications");
                 });
 
             modelBuilder.Entity("BlueMarina.Infrastructure.Identity.User", b =>
