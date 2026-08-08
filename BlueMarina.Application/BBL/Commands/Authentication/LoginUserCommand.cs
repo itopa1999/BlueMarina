@@ -116,11 +116,11 @@ public sealed class LoginUserCommand
             var roles = await _identityService.GetRolesAsync(user.UserId);
 
             var accessToken = _jwtTokenGenerator.GenerateToken(
-                user.UserId,
+                user.Id,
                 request.Email,
                 roles);
 
-            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.UserId, cancellationToken);
+            var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.Id, cancellationToken);
 
             await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -114,9 +114,18 @@ public sealed class RefreshTokenCommand
 
                 var userProfile = await _unitOfWork.Query<UserProfile>()
                     .AsNoTracking()
-                    .Where(up => up.UserId == refreshToken.UserProfileId)
+                    .Where(up => up.Id == refreshToken.UserProfileId)
                     .Select(up => new { up.Email })
                     .FirstOrDefaultAsync(cancellationToken);
+
+                if (userProfile is null)
+                {
+                    op.Fail($"User profile not found for refresh token user {refreshToken.UserProfileId}");
+                    return new BaseResult<RefreshTokenResponseDto>(
+                        HttpStatusCode.BadRequest,
+                        "User profile not found."
+                    );
+                }
 
                 var accessToken = _jwtTokenGenerator.GenerateToken(
                     refreshToken.UserProfileId,

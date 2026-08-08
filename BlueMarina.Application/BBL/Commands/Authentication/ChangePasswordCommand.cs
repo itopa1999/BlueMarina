@@ -67,10 +67,12 @@ public sealed class ChangePasswordCommand
                     "New password cannot be the same as the old password.");
             }
 
-            var userExists = await _unitOfWork.Query<UserProfile>()
+            var user = await _unitOfWork.Query<UserProfile>()
                 .AsNoTracking()
-                .AnyAsync(u => u.Id == request.UserId, cancellationToken);
-            if (!userExists)
+                .Where(u => u.Id == request.UserId)
+                .Select(u => new { u.Id, u.Email, u.PhoneNumber, u.UserId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (user == null)
             {
                 op.Fail($"User not found (UserId: {request.UserId})");
                 return new BaseResult(
@@ -83,7 +85,7 @@ public sealed class ChangePasswordCommand
             try
             {
                 var (success, errorMessage) = await _identityService.ChangePasswordAsync(
-                    request.UserId,
+                    user.UserId,
                     request.OldPassword,
                     request.NewPassword);
 
@@ -94,7 +96,7 @@ public sealed class ChangePasswordCommand
                 }
 
                 var refreshTokens = await _unitOfWork.Query<RefreshToken>()
-                    .Where(rt => rt.UserProfileId == request.UserId && rt.RevokedAt == null)
+                    .Where(rt => rt.UserProfileId == user.Id && rt.RevokedAt == null)
                     .ToListAsync(cancellationToken);
 
                 foreach (var token in refreshTokens)
@@ -107,7 +109,7 @@ public sealed class ChangePasswordCommand
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                op.Success($"Password changed successfully for user {request.UserId}");
+                op.Success($"Password changed successfully for user {user.UserId}");
 
                 return new BaseResult(
                     HttpStatusCode.OK,

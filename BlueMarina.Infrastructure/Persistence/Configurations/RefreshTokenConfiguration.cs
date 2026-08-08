@@ -1,5 +1,4 @@
 using BlueMarina.Domain.Entities;
-using BlueMarina.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,9 +21,9 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 
         builder.HasIndex(x => x.ExpiresAt);
 
-        builder.HasOne<User>()
+        builder.HasOne(x => x.UserProfile)
                .WithMany(x => x.RefreshTokens)
-               .HasForeignKey(x => x.UserProfile.Id)
+               .HasForeignKey(x => x.UserProfileId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }

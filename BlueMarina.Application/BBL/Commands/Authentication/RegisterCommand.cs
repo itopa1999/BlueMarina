@@ -36,7 +36,7 @@ public sealed class RegisterCommand
 
     public class RegistrationResponseDto
     {
-        public long PublicId { get; set; }         
+        public long UserId { get; set; }         
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
@@ -112,10 +112,13 @@ public sealed class RegisterCommand
                 ? string.Join(" ", nameParts[1..^1].Select(textInfo.ToTitleCase))
                 : null;
 
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            var normalizedPhoneNumber = request.PhoneNumber?.Trim();
+
             var existingUser = await _unitOfWork.Query<UserProfile>()
                 .AsNoTracking()
                 .Where(x => !x.IsDeleted)
-                .Where(x => x.Email.Equals(request.Email, StringComparison.CurrentCultureIgnoreCase) || x.PhoneNumber == request.PhoneNumber)
+                .Where(x => x.Email.ToLower() == normalizedEmail || x.PhoneNumber == normalizedPhoneNumber)
                 .Select(x => new { x.Email, x.PhoneNumber })
                 .FirstOrDefaultAsync(cancellationToken);
             if (existingUser != null)
@@ -132,7 +135,7 @@ public sealed class RegisterCommand
             {
                 var (success, errorMessage, userId, publicId) = await _identityService.CreateUserAsync(
                     request.Email,
-                    request.PhoneNumber,
+                    request.PhoneNumber ?? string.Empty,
                     request.Password);
 
                 if (!success)
@@ -156,19 +159,10 @@ public sealed class RegisterCommand
 
                 var otpCode = _otpService.GenerateOtp();
 
-                var otp = new OtpVerification
-                {
-                    UserProfileId = userId,
-                    OtpCode = otpCode,
-                    Purpose = OtpPurpose.AccountVerification,
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(2),
-                    CreatedAt = DateTime.UtcNow,
-                    IsUsed = false
-                };
-
                 var userProfile = new UserProfile
                 {
                     UserId = userId,
+                    PublicId = publicId,
                     FirstName = firstName,
                     LastName = lastName,
                     OtherNames = otherNames,
@@ -179,6 +173,18 @@ public sealed class RegisterCommand
                 };
 
                 await _unitOfWork.AddAsync(userProfile, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var otp = new OtpVerification
+                {
+                    UserProfileId = userProfile.Id,
+                    OtpCode = otpCode,
+                    Purpose = OtpPurpose.AccountVerification,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(2),
+                    CreatedAt = DateTime.UtcNow,
+                    IsUsed = false
+                };
+
                 await _unitOfWork.AddAsync(otp, cancellationToken);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -188,7 +194,7 @@ public sealed class RegisterCommand
                 {
                     await Task.WhenAll(
                         _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode, cancellationToken),
-                        _smsService.SendOtpAsync(request.PhoneNumber, otpCode, cancellationToken));
+                        _smsService.SendOtpAsync(request.PhoneNumber ?? string.Empty, otpCode, cancellationToken));
                 }
                 catch (Exception sendEx)
                 {
@@ -202,9 +208,9 @@ public sealed class RegisterCommand
                     "Account created successfully.",
                     new RegistrationResponseDto
                     {
-                        PublicId = userProfile.UserId,
+                        UserId = userProfile.UserId,
                         Email = request.Email,
-                        Phone = request.PhoneNumber,
+                        Phone = request.PhoneNumber ?? string.Empty,
                         FullName = userProfile.FullName,
                         ReferralCode = userProfile.ReferralCode,
                         Data = "Account created. Please verify your email/phone with the OTP sent."

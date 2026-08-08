@@ -259,5 +259,4 @@ public class AuthenticationController(
         Response.Cookies.Append("access_token", string.Empty, cookieOptions);
         Response.Cookies.Append("refresh_token", string.Empty, cookieOptions);
     }
-
 }

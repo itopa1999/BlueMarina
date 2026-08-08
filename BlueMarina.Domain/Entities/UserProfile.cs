@@ -44,4 +44,5 @@ public class UserProfile : BaseEntity
 
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+    public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

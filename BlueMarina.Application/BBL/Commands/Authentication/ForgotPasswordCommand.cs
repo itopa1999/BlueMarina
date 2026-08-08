@@ -74,7 +74,7 @@ public sealed class ForgotPasswordCommand
                 .AsNoTracking()
                 .Where(u => (request.Email != null && u.Email == request.Email) ||
                             (request.PhoneNumber != null && u.PhoneNumber == request.PhoneNumber))
-                .Select(u => new { u.Id, u.Email, u.PhoneNumber, u.UserId})
+                .Select(u => new { u.Id, u.Email, u.PhoneNumber, u.UserId })
                 .FirstOrDefaultAsync(cancellationToken);
                 
             if (userExists == null)
