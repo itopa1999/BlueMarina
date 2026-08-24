@@ -2,11 +2,26 @@ using BlueMarina.Api;
 using BlueMarina.Infrastructure.Identity;
 using DotNetEnv;
 
+var currentDirectory = Directory.GetCurrentDirectory();
+
+var projectRoot = Path.GetFullPath(
+    Path.Combine(
+        currentDirectory,
+        ".."
+    )
+);
+
 var envPath = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "..",
+    projectRoot,
     ".env"
 );
+
+if (!File.Exists(envPath))
+{
+    throw new FileNotFoundException(
+        $"Required .env file was not found at: {envPath}",
+        envPath);
+}
 
 Env.Load(envPath);
 
@@ -14,9 +29,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
 
-var startup = new Startup(builder.Configuration);
+var wwwRootPath = Path.Combine(
+    projectRoot,
+    "wwwroot"
+);
 
-startup.ConfigureServices(builder.Services);
+Directory.CreateDirectory(wwwRootPath);
+
+builder.Environment.WebRootPath = wwwRootPath;
+
+var startup = new Startup(
+    builder.Configuration);
+
+startup.ConfigureServices(
+    builder.Services);
 
 var app = builder.Build();
 

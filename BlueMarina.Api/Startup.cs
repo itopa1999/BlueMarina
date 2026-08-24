@@ -210,11 +210,16 @@ public class Startup(IConfiguration configuration)
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-        app.UseHttpsRedirection();
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
 
         app.UseAuthentication();
 
         app.UseAuthorization();
+
+        app.UseStaticFiles();
 
         app.MapControllers();
     }

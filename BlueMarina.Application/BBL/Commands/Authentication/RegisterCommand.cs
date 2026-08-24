@@ -169,7 +169,7 @@ public sealed class RegisterCommand
                     Email = request.Email,
                     PhoneNumber = request.PhoneNumber,
                     SignUpMethod = request.SignUpMethod,
-                    ReferralCode = $"BM-{Helper.GenerateReferralCode(8)}",
+                    ReferralCode = $"BM-{ExtensionHelper.GenerateReferralCode(8)}",
                 };
 
                 await _unitOfWork.AddAsync(userProfile, cancellationToken);
