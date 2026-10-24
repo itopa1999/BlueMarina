@@ -11,7 +11,7 @@ public class OtpCodeConfiguration : IEntityTypeConfiguration<OtpCode>
     {
         builder.ToTable("otp_codes");
 
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.CodeHash).HasMaxLength(500).IsRequired();
 
         builder.Property(x => x.Channel).HasConversion<string>().HasMaxLength(50);
@@ -22,6 +22,8 @@ public class OtpCodeConfiguration : IEntityTypeConfiguration<OtpCode>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

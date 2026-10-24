@@ -11,7 +11,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.ToTable("refresh_tokens");
 
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.TokenHash).HasMaxLength(500).IsRequired();
         builder.Property(x => x.RevokedByIp).HasMaxLength(45);
         builder.Property(x => x.ReplacedByTokenHash).HasMaxLength(500);
@@ -30,6 +30,8 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

@@ -16,13 +16,15 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(x => x.RegisteredAddress).HasMaxLength(500);
 
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
-        builder.Property(x => x.CreatedByUserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.CreatedByUserId).HasMaxLength(100).IsRequired();
         
         builder.HasIndex(x => x.RcNumber).IsUnique();
 
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.CreatedByUserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Restrict);
     }
 }
+

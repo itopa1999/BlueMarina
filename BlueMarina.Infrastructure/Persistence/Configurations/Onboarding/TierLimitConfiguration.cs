@@ -13,3 +13,4 @@ public class TierLimitConfiguration : IEntityTypeConfiguration<TierLimit>
         builder.HasIndex(x => x.Tier).IsUnique();
     }
 }
+

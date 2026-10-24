@@ -9,7 +9,7 @@ public class TwoFactorMethodConfiguration : IEntityTypeConfiguration<TwoFactorMe
 {
     public void Configure(EntityTypeBuilder<TwoFactorMethod> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.SecretEncrypted).HasMaxLength(500);
 
         builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(50);
@@ -17,6 +17,8 @@ public class TwoFactorMethodConfiguration : IEntityTypeConfiguration<TwoFactorMe
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

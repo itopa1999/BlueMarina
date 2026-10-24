@@ -9,7 +9,7 @@ public class IdDocumentConfiguration : IEntityTypeConfiguration<IdDocument>
 {
     public void Configure(EntityTypeBuilder<IdDocument> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.IdNumber).HasMaxLength(100).IsRequired();
         builder.Property(x => x.NameOnId).HasMaxLength(255).IsRequired();
         builder.Property(x => x.ImageUrl).HasMaxLength(500).IsRequired();
@@ -21,6 +21,8 @@ public class IdDocumentConfiguration : IEntityTypeConfiguration<IdDocument>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

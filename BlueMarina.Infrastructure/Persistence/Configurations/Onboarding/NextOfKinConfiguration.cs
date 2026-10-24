@@ -9,7 +9,7 @@ public class NextOfKinConfiguration : IEntityTypeConfiguration<NextOfKin>
 {
     public void Configure(EntityTypeBuilder<NextOfKin> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.FullName).HasMaxLength(255).IsRequired();
         builder.Property(x => x.Phone).HasMaxLength(20).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(255);
@@ -19,6 +19,8 @@ public class NextOfKinConfiguration : IEntityTypeConfiguration<NextOfKin>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

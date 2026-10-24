@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Security;
 /// </summary>
 public class SignInAttempt : BaseEntity
 {
-    public long? UserId { get; set; }
+    public string? UserId { get; set; }
     public long? DeviceId { get; set; }
     public SignInMethod Method { get; set; }
     public SignInStatus Status { get; set; }

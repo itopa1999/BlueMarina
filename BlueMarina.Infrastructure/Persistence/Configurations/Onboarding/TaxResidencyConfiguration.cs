@@ -9,7 +9,7 @@ public class TaxResidencyConfiguration : IEntityTypeConfiguration<TaxResidency>
 {
     public void Configure(EntityTypeBuilder<TaxResidency> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.CountryCode).HasMaxLength(2).IsRequired();
         builder.Property(x => x.Tin).HasMaxLength(50);
         
@@ -18,6 +18,8 @@ public class TaxResidencyConfiguration : IEntityTypeConfiguration<TaxResidency>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

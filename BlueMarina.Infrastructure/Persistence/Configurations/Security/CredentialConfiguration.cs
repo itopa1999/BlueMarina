@@ -9,7 +9,7 @@ public class CredentialConfiguration : IEntityTypeConfiguration<Credential>
 {
     public void Configure(EntityTypeBuilder<Credential> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.LoginPinHash).HasMaxLength(500);
         builder.Property(x => x.TransactionPinHash).HasMaxLength(500);
 
@@ -19,6 +19,8 @@ public class CredentialConfiguration : IEntityTypeConfiguration<Credential>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

@@ -14,3 +14,4 @@ public class TierUpgradeItemConfiguration : IEntityTypeConfiguration<TierUpgrade
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
     }
 }
+

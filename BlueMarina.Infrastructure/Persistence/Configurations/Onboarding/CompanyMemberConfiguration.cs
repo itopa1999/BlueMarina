@@ -9,7 +9,7 @@ public class CompanyMemberConfiguration : IEntityTypeConfiguration<CompanyMember
 {
     public void Configure(EntityTypeBuilder<CompanyMember> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450);
+        builder.Property(x => x.UserId).HasMaxLength(100);
         builder.Property(x => x.FullName).HasMaxLength(255).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(255).IsRequired();
         builder.Property(x => x.Phone).HasMaxLength(20).IsRequired();
@@ -29,6 +29,8 @@ public class CompanyMemberConfiguration : IEntityTypeConfiguration<CompanyMember
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.SetNull);
     }
 }
+

@@ -8,7 +8,7 @@ public class CompanyInvitationConfiguration : IEntityTypeConfiguration<CompanyIn
 {
     public void Configure(EntityTypeBuilder<CompanyInvitation> builder)
     {
-        builder.Property(x => x.CompanyMemberUserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.CompanyMemberUserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.TokenHash).HasMaxLength(255).IsRequired();
         builder.Property(x => x.AcceptedWithEmail).HasMaxLength(255);
 
@@ -22,3 +22,4 @@ public class CompanyInvitationConfiguration : IEntityTypeConfiguration<CompanyIn
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

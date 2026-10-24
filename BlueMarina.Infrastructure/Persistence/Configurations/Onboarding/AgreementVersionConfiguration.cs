@@ -16,3 +16,4 @@ public class AgreementVersionConfiguration : IEntityTypeConfiguration<AgreementV
         builder.HasIndex(x => new { x.Type, x.Version }).IsUnique();
     }
 }
+

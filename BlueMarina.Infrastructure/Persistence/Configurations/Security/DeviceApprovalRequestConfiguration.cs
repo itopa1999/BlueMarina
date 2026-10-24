@@ -9,13 +9,14 @@ public class DeviceApprovalRequestConfiguration : IEntityTypeConfiguration<Devic
 {
     public void Configure(EntityTypeBuilder<DeviceApprovalRequest> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
 
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
 
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
                
         // Optional: If Device uses Guid for its PK, you can map these too.
@@ -24,3 +25,4 @@ public class DeviceApprovalRequestConfiguration : IEntityTypeConfiguration<Devic
         // builder.HasOne<Device>().WithMany().HasForeignKey(x => x.ApproverDeviceId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+

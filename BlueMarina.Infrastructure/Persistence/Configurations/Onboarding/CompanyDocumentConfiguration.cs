@@ -20,3 +20,4 @@ public class CompanyDocumentConfiguration : IEntityTypeConfiguration<CompanyDocu
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

@@ -9,7 +9,7 @@ public class IdentityCheckConfiguration : IEntityTypeConfiguration<IdentityCheck
 {
     public void Configure(EntityTypeBuilder<IdentityCheck> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.ProviderReference).HasMaxLength(255);
         builder.Property(x => x.FailureReason).HasMaxLength(500);
 
@@ -19,6 +19,8 @@ public class IdentityCheckConfiguration : IEntityTypeConfiguration<IdentityCheck
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

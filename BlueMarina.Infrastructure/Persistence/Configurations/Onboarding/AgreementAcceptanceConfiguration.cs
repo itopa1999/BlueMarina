@@ -9,7 +9,7 @@ public class AgreementAcceptanceConfiguration : IEntityTypeConfiguration<Agreeme
 {
     public void Configure(EntityTypeBuilder<AgreementAcceptance> builder)
     {
-        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.IpAddress).HasMaxLength(45);
 
         // AgreementVersion PK is long (from BaseEntity), so FK must be long
@@ -21,6 +21,7 @@ public class AgreementAcceptanceConfiguration : IEntityTypeConfiguration<Agreeme
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
+.HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
