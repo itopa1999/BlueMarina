@@ -1,4 +1,5 @@
 using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Infrastructure.Jobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
 
         services.AddScoped<ISmsService, SmsService>();
+        
+        services.AddScoped<INotificationQueue, NotificationQueue>();
 
         return services;
     }

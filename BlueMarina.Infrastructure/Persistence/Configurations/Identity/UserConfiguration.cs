@@ -9,7 +9,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         // Configure PublicId as a Unique Alternate Key
-        builder.HasIndex(x => x.PublicId).IsUnique();
+        builder.HasIndex(x => x.PublicId);
         builder.HasAlternateKey(x => x.PublicId);
     }
 }

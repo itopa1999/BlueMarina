@@ -5,7 +5,28 @@ public interface IIdentityService
     Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
         string phoneNumber,
-        string password);
+        string password,
+        long? referredByUserId = null,
+        string? referredByCode = null);
+
+    Task<bool> EmailExistsAsync(
+        string email,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> BvnExistsAsync(
+        string bvnHash,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> PhoneExistsAsync(
+        string phoneNumber,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Found, long UserId)> FindUserByReferralCodeAsync(
+        string referralCode,
+        CancellationToken cancellationToken = default);
 
     Task<(bool Success, string ErrorMessage)> AddToRoleAsync(
         long userId,

@@ -1,46 +1,42 @@
-// using System.Net;
-// using BlueMarina.Api.Configurations;
-// using BlueMarina.Application.BBL.Commands.Authentication;
-// using BlueMarina.Infrastructure.Authentication.Jwt;
-// using BlueMarina.Shared.Constants;
-// using BlueMarina.Shared.Results;
-// using MediatR;
-// using Microsoft.AspNetCore.Authorization;
-// using Microsoft.AspNetCore.Mvc;
-// using Microsoft.Extensions.Options;
-// using static BlueMarina.Application.BBL.Commands.Authentication.ApplyReferralCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.ForgotPasswordCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.LoginUserCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.RefreshTokenCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.RegisterCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.ResendVerificationOtpCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.VerifyAccountCommand;
-// using static BlueMarina.Application.BBL.Commands.Authentication.VerifyPasswordTokenCommand;
+using System.Net;
+using BlueMarina.Api.Configurations;
+using BlueMarina.Api.RateLimiting;
+using BlueMarina.Application.BBL.Commands.Authentication;
+using BlueMarina.Infrastructure.Authentication.Jwt;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Constants;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
+using static BlueMarina.Application.BBL.Commands.Authentication.RegisterCommand;
 
-// namespace BlueMarina.Api.Controllers.V1;
+namespace BlueMarina.Api.Controllers.V1;
 
-// [ApiController]
-// [Route("api/v1/auth")]
-// [ApiExplorerSettings(GroupName = "v1")]
-// public class AuthenticationController(
-//     IMediator mediator,
-//     IOptions<JwtSettings> jwtOptions) : BaseController
-// {
-//     private readonly IMediator _mediator = mediator;
-//     private readonly JwtSettings _jwt = jwtOptions.Value;
+[ApiController]
+[Route("api/v1/auth")]
+[ApiExplorerSettings(GroupName = "v1")]
+public class AuthenticationController(
+    IMediator mediator,
+    IOptions<JwtSettings> jwtOptions) : BaseController
+{
+    private readonly IMediator _mediator = mediator;
+    private readonly JwtSettings _jwt = jwtOptions.Value;
 
-//     [HttpPost("register")]
-//     [ProducesResponseType(typeof(BaseResult<RegistrationResponseDto>), (int)HttpStatusCode.OK)]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-//     public async Task<IActionResult> Register(
-//         [FromBody] RegisterCommand.Command command, CancellationToken cancellationToken)
-//     {
-//         var result = await _mediator.Send(command, cancellationToken);
-
-//         return StatusCode(
-//             (int)result.StatusCode,
-//             result);
-//     }
+    [HttpPost("register")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<RegistrationResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterCommand.Command command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode(
+            (int)result.StatusCode,
+            result);
+    }
 
 //     [HttpPost("verify-account")]
 //     [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]
@@ -259,4 +255,4 @@
 //         Response.Cookies.Append("access_token", string.Empty, cookieOptions);
 //         Response.Cookies.Append("refresh_token", string.Empty, cookieOptions);
 //     }
-// }
+}

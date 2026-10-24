@@ -157,17 +157,14 @@ public class Startup(IConfiguration configuration)
 
             options.CustomSchemaIds(type =>
             {
-                if (type.IsGenericType)
-                {
-                    var typeName = type.Name.Split('`')[0];
-                    var genericArgs = string.Join("_", type.GetGenericArguments().Select(t => t.Name));
-                    return $"{typeName}_{genericArgs}";
-                }
-                
-                if (type.IsNested)
-                    return $"{type.DeclaringType!.Name}.{type.Name}";
-                
-                return type.Name;
+                var fullName = type.FullName ?? type.Name;
+                return fullName
+                    .Replace("+", "_")
+                    .Replace("`", "_")
+                    .Replace("[", "_")
+                    .Replace("]", "")
+                    .Replace(",", "_")
+                    .Replace(" ", "_");
             });
 
         });

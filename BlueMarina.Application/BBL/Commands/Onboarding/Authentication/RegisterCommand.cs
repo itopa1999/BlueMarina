@@ -1,227 +1,219 @@
-// using MediatR;
-// using BlueMarina.Shared.Results;
-// using BlueMarina.Application.Interfaces.Identity;
-// using System.Net;
-// using BlueMarina.Domain.Entities;
-// using BlueMarina.Shared.Constants;
-// using BlueMarina.Application.Interfaces.Persistence;
-// using System.ComponentModel.DataAnnotations;
-// using BlueMarina.Application.Interfaces.Security;
-// using BlueMarina.Application.Interfaces.Notification;
-// using BlueMarina.Shared.Logging;
-// using Microsoft.Extensions.Logging;
-// using BlueMarina.Application.Common.Extensions;
-// using Microsoft.EntityFrameworkCore;
+using MediatR;
+using BlueMarina.Application.Interfaces.Identity;
+using System.Net;
+using BlueMarina.Application.Interfaces.Persistence;
+using System.ComponentModel.DataAnnotations;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Shared.Logging;
+using Microsoft.Extensions.Logging;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Application.Helpers;
+using BlueMarina.Domain.Entities.Security;
+using BlueMarina.Domain.Enums;
+using BlueMarina.Shared.Constants;
 
-// namespace BlueMarina.Application.BBL.Commands.Authentication;
+namespace BlueMarina.Application.BBL.Commands.Authentication;
 
-// public sealed class RegisterCommand
-// {
-//     public class Command : IRequest<BaseResult<RegistrationResponseDto>>
-//     {
-//         [MinLength(3), MaxLength(150)]
-//         public string FullName { get; init; } = string.Empty;
+public sealed class RegisterCommand
+{
+    public class Command : IRequest<BaseResult<RegistrationResponseDto>>
+    {
+        [EmailAddress, MaxLength(100)]
+        public string Email { get; init; } = string.Empty;
 
-//         [EmailAddress, MaxLength(100)]
-//         public string Email { get; init; } = string.Empty;
+        [Required, MaxLength(20)]
+        public string PhoneNumber { get; init; } = string.Empty;
 
-//         public string PhoneNumber { get; init; } = string.Empty;
+        [MinLength(8)]
+        public string Password { get; init; } = string.Empty;
 
-//         [MinLength(8)]
-//         public string Password { get; init; } = string.Empty;
-        
-//         [Required]
-//         public string SignUpMethod { get; init; } = string.Empty;
-//     }
+        [MaxLength(50)]
+        public string? ReferralCode { get; init; }
+    }
 
-//     public class RegistrationResponseDto
-//     {
-//         public string UserId { get; set; } = string.Empty;         
-//         public string Email { get; set; } = string.Empty;
-//         public string Phone { get; set; } = string.Empty;
-//         public string FullName { get; set; } = string.Empty;
-//         public string ReferralCode { get; set; } = string.Empty;
-//         public string Data { get; set; } = string.Empty;
-//     }
+    public class RegistrationResponseDto
+    {
+        public string UserPublicId { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string NextStep { get; set; } = string.Empty;
+    }
 
-//     public class Handler : IRequestHandler<Command, BaseResult<RegistrationResponseDto>>
-//     {
-//         private readonly IIdentityService _identityService;
-//         private readonly IUnitOfWork _unitOfWork;
-//         private readonly IOtpService _otpService;
-//         private readonly IEmailService _emailService;
-//         private readonly ISmsService _smsService;
-//         private readonly ILogger<Handler> _logger;
+    public class Handler : IRequestHandler<Command, BaseResult<RegistrationResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOtpService _otpService;
+        private readonly INotificationQueue _notificationQueue;
+        private readonly ILogger<Handler> _logger;
 
-//         private static readonly HashSet<string> ValidSignUpMethods =
-//         new(StringComparer.OrdinalIgnoreCase)
-//         {
-//             SignUpMethods.Email,
-//             SignUpMethods.PhoneNumber
-//         };
+        public Handler(
+            IIdentityService identityService,
+            IUnitOfWork unitOfWork,
+            IOtpService otpService,
+            INotificationQueue notificationQueue,
+            ILogger<Handler> logger)
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _otpService = otpService;
+            _notificationQueue = notificationQueue;
+            _logger = logger;
+        }
 
-//         public Handler(
-//             IIdentityService identityService,
-//             IUnitOfWork unitOfWork,
-//             IOtpService otpService,
-//             IEmailService emailService,
-//             ISmsService smsService,
-//             ILogger<Handler> logger)
-//         {
-//             _identityService = identityService;
-//             _unitOfWork = unitOfWork;
-//             _otpService = otpService;
-//             _emailService = emailService;
-//             _smsService = smsService;
-//             _logger = logger;
-//         }
+        public async Task<BaseResult<RegistrationResponseDto>> Handle(
+            Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "RegisterUser",
+                ("Email", request.Email),
+                ("Phone", request.PhoneNumber));
 
-//         public async Task<BaseResult<RegistrationResponseDto>> Handle(Command request, CancellationToken cancellationToken)
-//         {
-//             using var op = OperationLogger.Start(_logger, "RegisterUser",
-//                 ("Email", request.Email),
-//                 ("Phone", request.PhoneNumber)
-//             );
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            var normalizedPhoneNumber = ExtensionHelpers.Normalize(request.PhoneNumber);
 
-//             if (!ValidSignUpMethods.Contains(request.SignUpMethod))
-//             {
-//                 op.Fail($"Invalid sign-up method: {request.SignUpMethod}");
+            if (normalizedPhoneNumber is null)
+            {
+                op.Warning("Invalid phone number format.");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Please provide a valid Nigerian phone number.");
+            }
 
-//                 return new BaseResult<RegistrationResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Invalid sign-up method specified."
-//                 );
-//             }
+            var emailExists = await _identityService.EmailExistsAsync(
+                normalizedEmail, cancellationToken: cancellationToken);
+            if (emailExists)
+            {
+                op.Warning($"Email already exists: {normalizedEmail}");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.Conflict, "Email is already in use.");
+            }
 
-//             var nameParts = request.FullName.Split(
-//                 (char[]?)null,
-//                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var phoneExists = await _identityService.PhoneExistsAsync(
+                normalizedPhoneNumber, cancellationToken: cancellationToken);
+            if (phoneExists)
+            {
+                op.Warning($"Phone already exists: {normalizedPhoneNumber}");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.Conflict, "Phone number is already in use.");
+            }
 
-//             if (nameParts.Length < 2)
-//             {
-//                 op.Fail("A first and last name are required.");
-//                 return new BaseResult<RegistrationResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Please provide both a first name and a last name.");
-//             }
-            
-//             var textInfo = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
-//             var firstName = textInfo.ToTitleCase(nameParts[0]);
-//             var lastName = textInfo.ToTitleCase(nameParts[^1]);
-//             var otherNames = nameParts.Length > 2
-//                 ? string.Join(" ", nameParts[1..^1].Select(textInfo.ToTitleCase))
-//                 : null;
+            long? referredByUserId = null;
+            string? referredByCode = null;
 
-//             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-//             var normalizedPhoneNumber = request.PhoneNumber?.Trim();
+            if (!string.IsNullOrWhiteSpace(request.ReferralCode))
+            {
+                var (found, referrerId) = await _identityService.FindUserByReferralCodeAsync(
+                    request.ReferralCode, cancellationToken);
 
-//             var existingUser = await _unitOfWork.Query<UserProfile>()
-//                 .AsNoTracking()
-//                 .Where(x => !x.IsDeleted)
-//                 .Where(x => x.Email.ToLower() == normalizedEmail || x.PhoneNumber == normalizedPhoneNumber)
-//                 .Select(x => new { x.Email, x.PhoneNumber })
-//                 .FirstOrDefaultAsync(cancellationToken);
-//             if (existingUser != null)
-//             {
-//                 op.Fail($"Email or phone number already exists: {request.Email}");
-//                 return new BaseResult<RegistrationResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Email or phone number already exists.");
-//             }
+                if (!found)
+                {
+                    op.Warning($"Invalid referral code: {request.ReferralCode}");
+                    return new BaseResult<RegistrationResponseDto>(
+                        HttpStatusCode.BadRequest,
+                        "Invalid referral code.");
+                }
 
-//             await _unitOfWork.BeginTransactionAsync(cancellationToken);
+                referredByUserId = referrerId;
+                referredByCode = request.ReferralCode.Trim().ToUpperInvariant();
+            }
 
-//             try
-//             {
-//                 var (success, errorMessage, userId, publicId) = await _identityService.CreateUserAsync(
-//                     request.Email,
-//                     request.PhoneNumber ?? string.Empty,
-//                     request.Password);
+            await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
-//                 if (!success)
-//                 {
-//                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                     op.Fail($"User creation failed: {errorMessage}");
-//                     return new BaseResult<RegistrationResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         errorMessage);
-//                 }
+            var (success, errorMessage, publicId, userId) =
+                await _identityService.CreateUserAsync(
+                    normalizedEmail,
+                    normalizedPhoneNumber,
+                    request.Password,
+                    referredByUserId,
+                    referredByCode);
 
-//                 var (roleSuccess, roleError) = await _identityService.AddToRoleAsync(userId, Roles.Customer);
-//                 if (!roleSuccess)
-//                 {
-//                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                     op.Fail($"Role assignment failed: {roleError}");
-//                     return new BaseResult<RegistrationResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         roleError);
-//                 }
+            if (!success)
+            {
+                op.Warning($"User creation failed: {errorMessage}");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest, errorMessage);
+            }
 
-//                 var otpCode = _otpService.GenerateOtp();
+            if (referredByUserId.HasValue && referredByUserId.Value == userId)
+            {
+                op.Warning($"Self-referral blocked for user {publicId}.");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "You cannot refer yourself.");
+            }
 
-//                 var userProfile = new UserProfile
-//                 {
-//                     UserId = userId,
-//                     PublicId = publicId,
-//                     FirstName = firstName,
-//                     LastName = lastName,
-//                     OtherNames = otherNames,
-//                     Email = request.Email,
-//                     PhoneNumber = request.PhoneNumber,
-//                     SignUpMethod = request.SignUpMethod,
-//                     ReferralCode = $"BM-{ExtensionHelper.GenerateReferralCode(8)}",
-//                 };
+            var (roleSuccess, roleError) = await _identityService.AddToRoleAsync(
+                userId, Roles.Customer);
+            if (!roleSuccess)
+            {
+                op.Warning($"Role assignment failed: {roleError}");
+                return new BaseResult<RegistrationResponseDto>(
+                    HttpStatusCode.BadRequest, roleError);
+            }
 
-//                 await _unitOfWork.AddAsync(userProfile, cancellationToken);
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var credential = new Credential
+            {
+                UserId = publicId,
+                LoginPinHash = null,
+                TransactionPinHash = null,
+                BiometricEnabled = false
+            };
+            await _unitOfWork.AddAsync(credential, cancellationToken);
 
-//                 var otp = new OtpVerification
-//                 {
-//                     UserProfileId = userProfile.Id,
-//                     OtpCode = otpCode,
-//                     Purpose = OtpPurpose.AccountVerification,
-//                     ExpiresAt = DateTime.UtcNow.AddMinutes(2),
-//                     CreatedAt = DateTime.UtcNow,
-//                     IsUsed = false
-//                 };
+            var smsOtp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
+            await _unitOfWork.AddAsync(new OtpCode
+            {
+                UserId = publicId,
+                CodeHash = smsOtp.HashedOtp,
+                Channel = OtpChannel.Sms,
+                Purpose = OtpPurpose.SignUpVerification,
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+                CreatedAt = DateTimeOffset.UtcNow,
+                IsUsed = false,
+                Attempts = 0
+            }, cancellationToken);
 
-//                 await _unitOfWork.AddAsync(otp, cancellationToken);
+            var emailOtp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
+            await _unitOfWork.AddAsync(new OtpCode
+            {
+                UserId = publicId,
+                CodeHash = emailOtp.HashedOtp,
+                Channel = OtpChannel.Email,
+                Purpose = OtpPurpose.SignUpVerification,
+                ExpiresAt = DateTimeOffset.UtcNow.AddHours(24),
+                CreatedAt = DateTimeOffset.UtcNow,
+                IsUsed = false,
+                Attempts = 0
+            }, cancellationToken);
 
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-//                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
 
-//                 try
-//                 {
-//                     await Task.WhenAll(
-//                         _emailService.SendOtpAsync(userProfile.FirstName, request.Email, otpCode, cancellationToken),
-//                         _smsService.SendOtpAsync(request.PhoneNumber ?? string.Empty, otpCode, cancellationToken));
-//                 }
-//                 catch (Exception sendEx)
-//                 {
-//                     op.Fail($"OTP sending failed (but user created): {sendEx.Message}", sendEx);
-//                 }
+            _notificationQueue.QueueOtpDelivery(
+                string.Empty,
+                string.Empty,
+                normalizedPhoneNumber,
+                smsOtp.RawOtp);
 
-//                 op.Success($"User {userId} registered successfully.");
+            _notificationQueue.QueueOtpDelivery(
+                string.Empty,
+                string.Empty,
+                normalizedEmail,
+                emailOtp.RawOtp);
 
-//                 return new BaseResult<RegistrationResponseDto>(
-//                     HttpStatusCode.Created,
-//                     "Account created successfully.",
-//                     new RegistrationResponseDto
-//                     {
-//                         UserId = userProfile.UserId,
-//                         Email = request.Email,
-//                         Phone = request.PhoneNumber ?? string.Empty,
-//                         FullName = userProfile.FullName,
-//                         ReferralCode = userProfile.ReferralCode,
-//                         Data = "Account created. Please verify your email/phone with the OTP sent."
-//                     });
-//             }
-//             catch (Exception ex)
-//             {
-//                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                 op.Fail("Registration failed", ex);
-//                 throw;
-//             }
-//         }
-//     }
-// }
+            op.Success($"User {publicId} registered successfully.");
+
+            return new BaseResult<RegistrationResponseDto>(
+                HttpStatusCode.Created,
+                "Account created successfully.",
+                new RegistrationResponseDto
+                {
+                    UserPublicId = publicId,
+                    Email = normalizedEmail,
+                    Phone = normalizedPhoneNumber,
+                    NextStep = NextSteps.VerifyContact
+                });
+        }
+    }
+}

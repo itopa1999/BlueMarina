@@ -9,6 +9,7 @@ public enum AccountTier
 
 public enum UserStatus
 {
+    PendingVerification,
     Active,
     Locked,
     Suspended,

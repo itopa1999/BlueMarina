@@ -12,8 +12,8 @@ public class User : IdentityUser<long>
     public string PublicId { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public DateOnly DateOfBirth { get; set; }
-    public Gender Gender { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public Gender? Gender { get; set; }
     public string? BvnEncrypted { get; set; }
     public string? BvnHash { get; set; }
     public string? NinEncrypted { get; set; }

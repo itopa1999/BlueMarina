@@ -24,16 +24,16 @@ namespace BlueMarina.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
-    this IServiceCollection services,
-    IConfiguration configuration)
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddIdentityServices(configuration);
         services.AddJwtAuthentication(configuration);
-        
+
         var postgresConnectionString = configuration.GetConnectionString("Postgres")
             ?? throw new InvalidOperationException("Postgres connection string is missing.");
 
-        services.AddHangfire(configuration => configuration
+        services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
@@ -44,11 +44,9 @@ public static class DependencyInjection
         services.AddHangfireServer();
 
         var redisConnectionString = configuration["Redis:URL"]
-            ?? throw new InvalidOperationException(
-                "Redis connection string is missing.");
+            ?? throw new InvalidOperationException("Redis connection string is missing.");
 
-        var redisOptions = ConfigurationOptions.Parse(
-            redisConnectionString);
+        var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
 
         redisOptions.AbortOnConnectFail = false;
         redisOptions.ConnectTimeout = 1000;
@@ -57,7 +55,6 @@ public static class DependencyInjection
         redisOptions.ConnectRetry = 1;
         redisOptions.ClientName = "BLUEMARINA-API";
 
-        
         services.AddSingleton<IConnectionMultiplexer>(
             _ => ConnectionMultiplexer.Connect(redisOptions));
         services.AddScoped<ICacheService, RedisCacheService>();
@@ -67,7 +64,13 @@ public static class DependencyInjection
         services.Configure<KycFileSettings>(
             configuration.GetSection(KycFileSettings.SectionName));
 
+        var hmacKey = configuration["Security:HmacKey"]
+            ?? throw new InvalidOperationException("HMAC Key is missing.");
+
+        services.AddSingleton(new SensitiveIdentifierHasher(hmacKey));
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         services.AddScoped<IOtpService, OtpService>();
 
         services.AddNotificationServices(configuration);
@@ -80,7 +83,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         services.AddScoped<DatabaseSeeder>();
-        
+
         return services;
     }
 }

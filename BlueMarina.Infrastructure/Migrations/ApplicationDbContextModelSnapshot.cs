@@ -1661,7 +1661,7 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
-                    b.Property<DateOnly>("DateOfBirth")
+                    b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
 
                     b.Property<string>("Email")
@@ -1678,7 +1678,7 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Gender")
+                    b.Property<int?>("Gender")
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsPep")
@@ -1778,8 +1778,7 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.HasIndex("PublicId")
-                        .IsUnique();
+                    b.HasIndex("PublicId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });

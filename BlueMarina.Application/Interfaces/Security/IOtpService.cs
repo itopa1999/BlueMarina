@@ -1,5 +1,7 @@
 namespace BlueMarina.Application.Interfaces.Security;
+
+public record OtpResult(string RawOtp, string HashedOtp);
 public interface IOtpService
 {
-    string GenerateOtp();
+    OtpResult GenerateOtp(string purpose);
 }

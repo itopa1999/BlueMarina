@@ -1,27 +1,43 @@
 using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Domain.Enums;
+using BlueMarina.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueMarina.Infrastructure.Identity;
 
 public sealed class IdentityService : IIdentityService
 {
     private readonly UserManager<User> _userManager;
+    private readonly ApplicationDbContext _context;
 
-    public IdentityService(UserManager<User> userManager)
+    public IdentityService(
+        UserManager<User> userManager,
+        ApplicationDbContext context
+    )
     {
         _userManager = userManager;
+        _context = context;
     }
 
     public async Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
         string phoneNumber,
-        string password)
+        string password,
+        long? referredByUserId = null,
+        string? referredByCode = null)
     {
         var user = new User
         {
             Email = email,
             UserName = email,
             PhoneNumber = phoneNumber,
+            PublicId = string.Empty,
+            Status = UserStatus.PendingVerification,
+            ReferredByUserId = referredByUserId,
+            ReferredByCode = referredByCode,
+            Tier = AccountTier.Tier1
+
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -33,6 +49,7 @@ public sealed class IdentityService : IIdentityService
         }
 
         user.PublicId = user.Id.ToString("D4");
+        user.OwnReferralCode = $"{user.PublicId}{Random.Shared.Next(1000, 9999)}";
 
         var updateResult = await _userManager.UpdateAsync(user);
 
@@ -149,5 +166,77 @@ public sealed class IdentityService : IIdentityService
         await _userManager.UpdateAsync(user);
 
         return (true, string.Empty);
+    }
+
+    //  EXITENCE CHECKS
+
+    public async Task<bool> EmailExistsAsync(
+        string email,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = email.Trim().ToUpperInvariant();
+
+        var query = _context.Users
+            .AsNoTracking()
+            .Where(x => x.NormalizedEmail == normalizedEmail);
+
+        if (excludeUserId.HasValue)
+        {
+            query = query.Where(x => x.Id != excludeUserId.Value);
+        }
+
+        return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<bool> BvnExistsAsync(
+        string bvnHash,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Users
+            .AsNoTracking()
+            .Where(x => x.BvnHash == bvnHash);
+
+        if (excludeUserId.HasValue)
+        {
+            query = query.Where(x => x.Id != excludeUserId.Value);
+        }
+
+        return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<bool> PhoneExistsAsync(
+        string phoneNumber,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPhone = phoneNumber.Trim();
+
+        var query = _context.Users
+            .AsNoTracking()
+            .Where(x => x.PhoneNumber == normalizedPhone);
+
+        if (excludeUserId.HasValue)
+        {
+            query = query.Where(x => x.Id != excludeUserId.Value);
+        }
+
+        return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<(bool Found, long UserId)> FindUserByReferralCodeAsync(
+    string referralCode,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = referralCode.Trim().ToUpperInvariant();
+
+        var user = await _context.Users
+            .AsNoTracking()
+            .Where(x => x.OwnReferralCode == normalized)
+            .Select(x => new { x.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return user is null ? (false, 0) : (true, user.Id);
     }
 }
