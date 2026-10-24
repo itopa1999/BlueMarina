@@ -15,7 +15,7 @@ public class Company : BaseEntity
     public string Tin { get; set; } = string.Empty;
     public string RegisteredAddress { get; set; } = string.Empty;
     public CompanyStatus Status { get; set; }
-    public long CreatedByUserId { get; set; }
+    public string CreatedByUserId { get; set; } = string.Empty;
     public List<CompanyMember> Members { get; set; } = new();
     public List<CompanyDocument> Documents { get; set; } = new();
 }

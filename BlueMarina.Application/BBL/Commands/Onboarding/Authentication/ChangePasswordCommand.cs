@@ -16,7 +16,7 @@
 //     public class Command : IRequest<BaseResult>
 //     {
 //         [JsonIgnore]
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 
 //         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
 //         public string OldPassword { get; init; } = string.Empty;

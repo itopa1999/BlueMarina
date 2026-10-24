@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class Consent : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     // public ConsentType Type { get; set; }
     public string? Version { get; set; }
     public bool Granted { get; set; }

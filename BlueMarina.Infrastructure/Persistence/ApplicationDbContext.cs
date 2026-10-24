@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Entities.Security;
+using BlueMarina.Domain.Entities.Onboarding; 
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Infrastructure.Service;
 using Microsoft.AspNetCore.Identity;
@@ -21,8 +22,33 @@ public sealed class ApplicationDbContext
         _currentUser = currentUser;
     }
 
+    // --- Security Entities ---
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
+    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<Credential> Credentials => Set<Credential>();
+    public DbSet<Device> Devices => Set<Device>();
+    public DbSet<DeviceApprovalRequest> DeviceApprovalRequests => Set<DeviceApprovalRequest>();
+    public DbSet<SignInAttempt> SignInAttempts => Set<SignInAttempt>();
+    public DbSet<TwoFactorMethod> TwoFactorMethods => Set<TwoFactorMethod>();
+
+    // --- Onboarding Entities ---
+    public DbSet<Address> Addresses => Set<Address>();
+    public DbSet<AgreementAcceptance> AgreementAcceptances => Set<AgreementAcceptance>();
+    public DbSet<AgreementVersion> AgreementVersions => Set<AgreementVersion>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
+    public DbSet<CompanyInvitation> CompanyInvitations => Set<CompanyInvitation>();
+    public DbSet<CompanyMember> CompanyMembers => Set<CompanyMember>();
+    public DbSet<Consent> Consents => Set<Consent>();
+    public DbSet<IdDocument> IdDocuments => Set<IdDocument>();
+    public DbSet<IdentityCheck> IdentityChecks => Set<IdentityCheck>();
+    public DbSet<NextOfKin> NextOfKins => Set<NextOfKin>();
+    public DbSet<SelfieCheck> SelfieChecks => Set<SelfieCheck>();
+    public DbSet<Signature> Signatures => Set<Signature>();
+    public DbSet<TaxResidency> TaxResidencies => Set<TaxResidency>();
+    public DbSet<TierLimit> TierLimits => Set<TierLimit>();
+    public DbSet<TierUpgradeItem> TierUpgradeItems => Set<TierUpgradeItem>();
+    public DbSet<TierUpgradeRequest> TierUpgradeRequests => Set<TierUpgradeRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

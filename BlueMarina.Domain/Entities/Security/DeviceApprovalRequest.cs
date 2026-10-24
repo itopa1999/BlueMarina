@@ -8,9 +8,9 @@ namespace BlueMarina.Domain.Entities.Security;
 /// </summary>
 public class DeviceApprovalRequest : BaseEntity
 {
-    public Guid UserId { get; set; }
-    public Guid NewDeviceId { get; set; }
-    public Guid? ApproverDeviceId { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public long NewDeviceId { get; set; }
+    public long? ApproverDeviceId { get; set; }
     public DeviceApprovalStatus Status { get; set; }
     public DateTime ExpiresAt { get; set; }
     public DateTime? DecidedAt { get; set; }

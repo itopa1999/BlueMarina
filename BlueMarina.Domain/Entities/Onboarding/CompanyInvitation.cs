@@ -9,7 +9,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 public class CompanyInvitation : BaseEntity
 {
     public long CompanyId { get; set; }
-    public long CompanyMemberId { get; set; }
+    public string CompanyMemberUserId { get; set; } = string.Empty;
     public string TokenHash { get; set; } = string.Empty;
     public InvitationStatus Status { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }

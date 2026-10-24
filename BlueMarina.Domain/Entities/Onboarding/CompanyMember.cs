@@ -9,7 +9,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 public class CompanyMember : BaseEntity
 {
     public long CompanyId { get; set; }
-    public long? UserId { get; set; }
+    public string? UserId { get; set; }
     public CompanyMemberType MemberType { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

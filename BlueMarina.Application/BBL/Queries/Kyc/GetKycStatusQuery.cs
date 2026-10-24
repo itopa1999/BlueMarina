@@ -13,7 +13,7 @@
 // {
 //     public class Query : IRequest<BaseResult<KycStatusDto>>
 //     {
-//         [JsonIgnore] public long UserId { get; set; }
+//         [JsonIgnore] public string UserId { get; set; } = string.Empty;
 //     }
 
 //     public class KycStatusDto

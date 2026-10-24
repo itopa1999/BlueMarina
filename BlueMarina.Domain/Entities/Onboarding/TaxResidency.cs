@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class TaxResidency : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string CountryCode { get; set; } = string.Empty;
     public string? Tin { get; set; }
     public TaxNoTinReason? NoTinReason { get; set; }

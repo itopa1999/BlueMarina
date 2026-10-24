@@ -26,7 +26,7 @@
 
 //     public class ForgotPasswordResponseDto
 //     {
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //         public string Data { get; set; } = string.Empty;
 //     }
 

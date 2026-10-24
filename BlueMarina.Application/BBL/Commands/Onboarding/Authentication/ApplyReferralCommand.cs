@@ -18,7 +18,7 @@
 //         public string ReferralCode { get; init; } = string.Empty;
         
 //         [JsonIgnore]
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //     }
 
 //     public class ApplyReferralResponseDto

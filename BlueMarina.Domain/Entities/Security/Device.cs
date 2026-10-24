@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Security;
 /// </summary>
 public class Device : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Platform { get; set; } = string.Empty;
     public string? Model { get; set; }

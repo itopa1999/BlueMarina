@@ -25,7 +25,7 @@
 
 //     public class VerifyKycBVNDto
 //     {
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //         public string Bvn { get; set; } = string.Empty;
 //         public string DOB { get; set; } = string.Empty;
 //         public string PhoneNumber { get; set; } = string.Empty;

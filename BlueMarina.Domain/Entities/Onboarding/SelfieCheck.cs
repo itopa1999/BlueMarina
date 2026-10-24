@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class SelfieCheck : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string? MediaUrl { get; set; }
     public SelfieCheckStatus Status { get; set; }
     public int AttemptNumber { get; set; }

@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class IdDocument : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public IdDocumentType Type { get; set; }
     public string IdNumber { get; set; } = string.Empty;
     public string NameOnId { get; set; } = string.Empty;

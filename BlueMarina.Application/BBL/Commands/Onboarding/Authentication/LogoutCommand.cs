@@ -14,7 +14,7 @@
 //     public class Command : IRequest<BaseResult>
 //     {
 //         [JsonIgnore]
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //         public string RefreshToken { get; init; } = string.Empty;
 //     }
 

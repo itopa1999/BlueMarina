@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class IdentityCheck : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public IdentityCheckType Type { get; set; }
     public IdentityCheckStatus Status { get; set; }
     public string? ProviderReference { get; set; }

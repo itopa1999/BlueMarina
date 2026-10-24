@@ -9,9 +9,9 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 public class AgreementAcceptance : BaseEntity
 {
     public required string UserId { get; set; }
-    public Guid AgreementVersionId { get; set; }
+    public long AgreementVersionId { get; set; }
     public DateTimeOffset AcceptedAt { get; set; }
-    public Guid? DeviceId { get; set; }
+    public long? DeviceId { get; set; }
     public string? IpAddress { get; set; }
     public AgreementVersion AgreementVersion { get; set; } = null!;
 }

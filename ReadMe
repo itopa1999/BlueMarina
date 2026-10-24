@@ -3,3 +3,233 @@ dotnet ef migrations add AddProfileDetailsUserProfile --project BlueMarina.Infra
 
 
 dotnet ef database update --project BlueMarina.Infrastructure --startup-project BlueMarina.Api
+
+
+Here is a clean, markdown-formatted `README.md` file for your Frontend team. You can copy and paste this directly into a file named `README.md` inside your API/Backend repository or share it via Confluence/Notion.
+
+***
+
+# 📋 Backend Validation & Data Rules (For Frontend)
+
+This document outlines the data constraints enforced by the Backend/Database. Please use these rules to implement client-side validation (e.g., `maxlength` attributes, required field markers) to ensure a smooth user experience and prevent `400 Bad Request` errors.
+
+## 📖 Legend
+
+*   🔴 **Required:** The field cannot be null or empty.
+*   🔵 **Optional:** The field can be null or omitted.
+*   🟢 **Max Length:** Maximum allowed characters for strings.
+*   🟡 **Unique:** No duplicate values allowed in the database.
+*   🔢 **Number:** Integer.
+*   🔣 **Decimal:** Precision is `5,2` (e.g., max `999.99`).
+*   ⏱️ **Timestamp:** ISO 8601 string (e.g., `"2024-05-20T14:30:00Z"`).
+*   📅 **Date Only:** String format `"YYYY-MM-DD"`.
+*   🆔 **UUID:** Standard v4 UUID string.
+*   🔠 **Enum:** Sent and received as a **String** (e.g., `"Pending"`, `"Approved"`), not an integer.
+
+---
+
+## 🔐 Security Module
+
+### `Credential`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450, 🟡 Unique (1 per user) |
+| `LoginPinHash` | 🔵 Optional, 🟢 Max 500 |
+| `TransactionPinHash` | 🔵 Optional, 🟢 Max 500 |
+| `FailedLoginPinAttempts` | 🔢 Number |
+| `FailedTransactionPinAttempts` | 🔢 Number |
+| `BiometricEnabled` | Boolean |
+| `PasswordChangedAt` | ⏱️ Timestamp |
+
+### `Device`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `Name` | 🔴 Required, 🟢 Max 100 |
+| `Platform` | 🔴 Required, 🟢 Max 50 |
+| `Model` | 🔵 Optional, 🟢 Max 100 |
+| `PushToken` | 🔵 Optional, 🟢 Max 500 |
+| `LastLocation` | 🔵 Optional, 🟢 Max 255 |
+| `IsTrusted` | Boolean |
+
+### `DeviceApprovalRequest`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `Status` | 🔠 Enum, 🟢 Max 50 |
+| `ExpiresAt` | ⏱️ Timestamp |
+
+### `OtpCode`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `CodeHash` | 🔴 Required, 🟢 Max 500 |
+| `Channel` | 🔠 Enum, 🟢 Max 50 |
+| `Purpose` | 🔠 Enum, 🟢 Max 100 |
+| `IsUsed` | Boolean |
+
+### `RefreshToken`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `TokenHash` | 🔴 Required, 🟢 Max 500, 🟡 Unique |
+| `RevokedByIp` / `CreatedByIp` | 🔵 Optional, 🟢 Max 45 (IPv6 format) |
+| `ReplacedByTokenHash` | 🔵 Optional, 🟢 Max 500 |
+| `RevocationReason` | 🔵 Optional, 🟢 Max 255 |
+| `DeviceName` | 🔵 Optional, 🟢 Max 255 |
+| `UserAgent` | 🔵 Optional, 🟢 Max 500 |
+
+### `SignInAttempt`
+| Field | Constraints |
+| :--- | :--- |
+| `IpAddress` | 🔵 Optional, 🟢 Max 45 |
+| `Location` | 🔵 Optional, 🟢 Max 255 |
+| `Method` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `TwoFactorMethod`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `SecretEncrypted` | 🔵 Optional, 🟢 Max 500 |
+| `Type` | 🔠 Enum, 🟢 Max 50 |
+| `IsPrimary` | Boolean |
+
+---
+
+## 🏢 Onboarding Module
+
+### `Address`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `Street` | 🔵 Optional, 🟢 Max 255 |
+| `Area` | 🔵 Optional, 🟢 Max 255 |
+| `State` | 🔵 Optional, 🟢 Max 100 |
+| `Lga` | 🔵 Optional, 🟢 Max 100 |
+| `ProofDocumentUrl` | 🔵 Optional, 🟢 Max 500 |
+| `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `AgreementAcceptance`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `IpAddress` | 🔵 Optional, 🟢 Max 45 |
+
+### `AgreementVersion`
+| Field | Constraints |
+| :--- | :--- |
+| `Version` | 🔴 Required, 🟢 Max 50 |
+| `ContentUrl` | 🔴 Required, 🟢 Max 500 |
+| `Type` | 🔠 Enum, 🟢 Max 50 |
+| **Composite** | 🟡 `Type` + `Version` must be unique together |
+
+### `Company`
+| Field | Constraints |
+| :--- | :--- |
+| `Name` | 🔴 Required, 🟢 Max 255 |
+| `RcNumber` | 🔴 Required, 🟢 Max 100, 🟡 Unique |
+| `NatureOfBusiness` | 🔵 Optional, 🟢 Max 500 |
+| `Tin` | 🔵 Optional, 🟢 Max 50 |
+| `RegisteredAddress` | 🔵 Optional, 🟢 Max 500 |
+| `CreatedByUserId` | 🔴 Required, 🟢 Max 450 |
+| `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `CompanyDocument`
+| Field | Constraints |
+| :--- | :--- |
+| `FileUrl` | 🔴 Required, 🟢 Max 500 |
+| `RejectionReason` | 🔵 Optional, 🟢 Max 500 |
+| `Type` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `CompanyInvitation`
+| Field | Constraints |
+| :--- | :--- |
+| `CompanyMemberUserId` | 🔴 Required, 🟢 Max 450 |
+| `TokenHash` | 🔴 Required, 🟢 Max 255, 🟡 Unique |
+| `AcceptedWithEmail` | 🔵 Optional, 🟢 Max 255 |
+| `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `CompanyMember`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔵 Optional, 🟢 Max 450 |
+| `FullName` | 🔴 Required, 🟢 Max 255 |
+| `Email` | 🔴 Required, 🟢 Max 255 |
+| `Phone` | 🔴 Required, 🟢 Max 20 |
+| `OwnershipPercent` | 🔣 Decimal (Max 999.99) |
+| `MemberType` / `Roles` / `SigningMandate` / `VerificationStatus` | 🔠 Enum, 🟢 Max 50 |
+
+### `Consent`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `Version` | 🔵 Optional, 🟢 Max 50 |
+
+### `IdDocument`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `IdNumber` | 🔴 Required, 🟢 Max 100 |
+| `NameOnId` | 🔴 Required, 🟢 Max 255 |
+| `ImageUrl` | 🔴 Required, 🟢 Max 500 |
+| `RejectionReason` | 🔵 Optional, 🟢 Max 500 |
+| `Type` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `IdentityCheck`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `ProviderReference` | 🔵 Optional, 🟢 Max 255 |
+| `FailureReason` | 🔵 Optional, 🟢 Max 500 |
+| `Type` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `NextOfKin`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `FullName` | 🔴 Required, 🟢 Max 255 |
+| `Phone` | 🔴 Required, 🟢 Max 20 |
+| `Email` | 🔵 Optional, 🟢 Max 255 |
+| `Relationship` | 🔠 Enum, 🟢 Max 50 |
+
+### `SelfieCheck`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `MediaUrl` | 🔵 Optional, 🟢 Max 500 |
+| `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `Signature`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `SpecimenImageUrl` | 🔴 Required, 🟢 Max 500 |
+| `SignedCopyUrl` | 🔵 Optional, 🟢 Max 500 |
+
+### `TaxResidency`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `CountryCode` | 🔴 Required, 🟢 **Exactly 2 chars** (ISO Alpha-2) |
+| `Tin` | 🔵 Optional, 🟢 Max 50 |
+| `NoTinReason` | 🔠 Enum, 🟢 Max 100 |
+
+### `TierLimit`
+| Field | Constraints |
+| :--- | :--- |
+| `Tier` | 🔠 Enum, 🟢 Max 50, 🟡 Unique |
+
+### `TierUpgradeItem`
+| Field | Constraints |
+| :--- | :--- |
+| `Reason` | 🔵 Optional, 🟢 Max 500 |
+| `ItemType` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+### `TierUpgradeRequest`
+| Field | Constraints |
+| :--- | :--- |
+| `UserId` | 🔴 Required, 🟢 Max 450 |
+| `TargetTier` / `Status` | 🔠 Enum, 🟢 Max 50 |
+
+---
+*Note: If any frontend form fields violate these rules, the backend will return a `400 Bad Request` or a database exception. Please map these constraints to your input fields (e.g., `<input maxlength="255" required />`).*

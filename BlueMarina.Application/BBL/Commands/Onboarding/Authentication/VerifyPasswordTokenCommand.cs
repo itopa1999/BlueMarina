@@ -24,7 +24,7 @@
 
 //     public class VerifyPasswordTokenResponseDto
 //     {
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //         public bool IsVerified { get; set; }
 //     }
 

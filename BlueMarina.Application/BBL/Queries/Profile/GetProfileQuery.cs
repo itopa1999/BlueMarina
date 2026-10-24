@@ -17,12 +17,12 @@
 //     {
 //         [JsonIgnore]
 //         [Required]
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //     }
 
 //     public class GetProfileQueryDto
 //     {
-//         public long UserId { get; set; }
+//         public string UserId { get; set; } = string.Empty;
 //         public string FirstName { get; set; } = string.Empty;
 //         public string LastName { get; set; } = string.Empty;
 //         public string OtherNames { get; set; } = string.Empty;

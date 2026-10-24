@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class TierUpgradeItem : BaseEntity
 {
-    public Guid TierUpgradeRequestId { get; set; }
+    public long TierUpgradeRequestId { get; set; }
     public TierUpgradeItemType ItemType { get; set; }
     public ReviewItemStatus Status { get; set; }
     public string? Reason { get; set; }

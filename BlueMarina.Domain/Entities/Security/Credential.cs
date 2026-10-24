@@ -7,7 +7,7 @@ namespace BlueMarina.Domain.Entities.Security;
 /// </summary>
 public class Credential : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string? LoginPinHash { get; set; }
     public string? TransactionPinHash { get; set; }
     public int FailedLoginPinAttempts { get; set; }

@@ -8,7 +8,7 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// </summary>
 public class TierUpgradeRequest : BaseEntity
 {
-    public long UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public AccountTier TargetTier { get; set; }
     public TierUpgradeStatus Status { get; set; }
     public DateTimeOffset? SubmittedAt { get; set; }

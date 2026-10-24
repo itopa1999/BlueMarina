@@ -4,8 +4,8 @@ using BlueMarina.Domain.Enums;
 
 namespace BlueMarina.Domain.Entities.Security;
 
-[Table("otp_verifications")]
-public class OtpVerification : BaseEntity
+[Table("otp_codes")]
+public class OtpCode : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;
     public string CodeHash { get; set; } = string.Empty;
