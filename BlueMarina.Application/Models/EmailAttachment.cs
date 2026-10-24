@@ -1,4 +1,4 @@
-namespace BlueMarina.Application.Common.Models;
+namespace BlueMarina.Application.Models;
 
 public sealed class EmailAttachment
 {

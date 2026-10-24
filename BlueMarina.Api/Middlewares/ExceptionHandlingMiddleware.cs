@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Net;
+using BlueMarina.Shared.Common;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
 using Microsoft.EntityFrameworkCore;

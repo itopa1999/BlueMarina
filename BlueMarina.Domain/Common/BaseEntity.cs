@@ -8,11 +8,14 @@ public abstract class BaseEntity
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public long Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? ModifiedAt { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public DateTimeOffset? ModifiedAt { get; set; }
 
     public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
+
+    public DateTimeOffset? DeletedAt { get; set; }
 
     [MaxLength(100)]
     public string? CreatedBy { get; set; }

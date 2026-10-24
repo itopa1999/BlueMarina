@@ -26,7 +26,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        long userId,
+        string userPublicId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -36,9 +36,9 @@ public sealed class RefreshTokenService : IRefreshTokenService
 
         var refreshToken = new RefreshToken
         {
-            UserProfileId = userId,
+            UserPublicId = userPublicId,
             TokenHash = tokenHash,
-            ExpiresAt = DateTime.UtcNow.AddDays(
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(
                 _jwtSettings.RefreshTokenExpiryDays)
         };
 
@@ -74,7 +74,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        refreshToken.RevokedAt = DateTime.UtcNow;
+        refreshToken.RevokedAt = DateTimeOffset.UtcNow;
         refreshToken.RevokedByIp = revokedByIp;
 
         refreshToken.RevocationReason = reason;
@@ -92,12 +92,33 @@ public sealed class RefreshTokenService : IRefreshTokenService
             cancellationToken: cancellationToken);
 
         var newRefreshToken = await CreateAsync(
-            refreshToken.UserProfileId,
+            refreshToken.UserPublicId,
             cancellationToken);
 
         refreshToken.ReplacedByTokenHash =
             newRefreshToken.RefreshToken.TokenHash;
 
         return newRefreshToken;
+    }
+
+    public async Task<int> RevokeAllForUserAsync(
+        string userPublicId,
+        string? reason = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var now = DateTimeOffset.UtcNow;
+
+        var affected = await _context.RefreshTokens
+            .Where(x => x.UserPublicId == userPublicId
+                    && x.RevokedAt == null
+                    && x.ExpiresAt > now)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.RevokedAt, now)
+                .SetProperty(x => x.RevocationReason, reason ?? "Account closed"),
+                cancellationToken);
+
+        return affected;
     }
 }

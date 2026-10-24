@@ -37,6 +37,7 @@ obj/
 # =========================
 .env
 .env.*
+!.env.example
 
 # =========================
 # APP SETTINGS SECRETS
@@ -125,3 +126,6 @@ docker-data/
 # WINDOWS
 # =========================
 Desktop.ini
+
+# Local development settings
+appsettings.Development.json

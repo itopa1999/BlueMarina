@@ -1,4 +1,4 @@
-namespace BlueMarina.Shared.Common.Results;
+namespace BlueMarina.Shared.Common;
 
 /// <summary>
 /// Signals a system-level failure that has nothing to do with the caller.

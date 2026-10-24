@@ -1,4 +1,6 @@
+using System.Data;
 using BlueMarina.Application.Interfaces.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BlueMarina.Infrastructure.Persistence;
@@ -14,9 +16,7 @@ public sealed class UnitOfWork : IUnitOfWork
     }
 
     public IQueryable<T> Query<T>() where T : class
-    {
-        return _context.Set<T>();
-    }
+        => _context.Set<T>();
 
     public async Task AddAsync<T>(T entity, CancellationToken cancellationToken = default)
         where T : class
@@ -24,14 +24,12 @@ public sealed class UnitOfWork : IUnitOfWork
         await _context.Set<T>().AddAsync(entity, cancellationToken);
     }
 
-    public void Update<T>(T entity)
-        where T : class
+    public void Update<T>(T entity) where T : class
     {
         _context.Set<T>().Update(entity);
     }
 
-    public void Remove<T>(T entity)
-        where T : class
+    public void Remove<T>(T entity) where T : class
     {
         _context.Set<T>().Remove(entity);
     }
@@ -49,31 +47,97 @@ public sealed class UnitOfWork : IUnitOfWork
             .BeginTransactionAsync(cancellationToken);
     }
 
+    public async Task BeginTransactionAsync(
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default)
+    {
+        _transaction = await _context.Database
+            .BeginTransactionAsync(isolationLevel, cancellationToken);
+    }
+
     public async Task CommitTransactionAsync(
         CancellationToken cancellationToken = default)
     {
-        if (_transaction is not null)
+        if (_transaction is null)
         {
-            await _transaction.CommitAsync(
-                cancellationToken);
-
-            await _transaction.DisposeAsync();
-
-            _transaction = null;
+            return;
         }
+
+        var transaction = _transaction;
+        _transaction = null;
+
+        await transaction.CommitAsync(cancellationToken);
+        await transaction.DisposeAsync();
     }
 
     public async Task RollbackTransactionAsync(
         CancellationToken cancellationToken = default)
     {
-        if (_transaction is not null)
+        if (_transaction is null)
         {
-            await _transaction.RollbackAsync(
-                cancellationToken);
+            return;
+        }
 
-            await _transaction.DisposeAsync();
+        var transaction = _transaction;
+        _transaction = null;
 
-            _transaction = null;
+        try
+        {
+            await transaction.RollbackAsync(cancellationToken);
+        }
+        catch (ObjectDisposedException)
+        {
+            // A failed database command can already have disposed the
+            // underlying transaction. Safe to ignore.
+        }
+        finally
+        {
+            await transaction.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Rolls back any uncommitted transaction when the request scope ends.
+    /// The middleware catches the exception, the DI scope disposes the UoW,
+    /// and this method cleans up the transaction. Handlers don't need
+    /// try/catch for rollback anymore.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        await RollbackTransactionAsync();
+    }
+
+    /// <summary>
+    /// Synchronous disposal path. Required because some DI scope
+    /// disposals happen synchronously — e.g. `using (var scope = ...)`
+    /// at application startup — and the container refuses to call
+    /// DisposeAsync from synchronous code.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_transaction is null)
+        {
+            return;
+        }
+
+        var transaction = _transaction;
+        _transaction = null;
+
+        try
+        {
+            transaction.Rollback();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Underlying transaction was already disposed.
+        }
+        catch (InvalidOperationException)
+        {
+            // Transaction already completed (committed or disposed elsewhere).
+        }
+        finally
+        {
+            transaction.Dispose();
         }
     }
 }

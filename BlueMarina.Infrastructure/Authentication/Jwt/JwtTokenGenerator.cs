@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -21,9 +22,21 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateToken(
         long userId,
+        string userPublicId,
+        string firstName,
+        string otherNames,
+        string lastName,
         string email,
+        string phoneNumber,
+        decimal balance,
+        string fullName,
+        string platform,
         IList<string> roles)
     {
+        ArgumentNullException.ThrowIfNull(roles);
+
+        var now = DateTimeOffset.UtcNow;
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -31,21 +44,36 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(
                 JwtRegisteredClaimNames.Iat,
-                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                now.ToUnixTimeSeconds().ToString(),
                 ClaimValueTypes.Integer64),
 
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userPublicId),
             new(ClaimTypes.Email, email),
+            new("UserId", userId.ToString()),
+            new("UserPublicId", userPublicId ?? string.Empty),
+            new("UserEmail", email ?? string.Empty),
+            new("UserFirstName", firstName ?? string.Empty),
+            new("UserOtherNames", otherNames ?? string.Empty),
+            new("UserLastName", lastName ?? string.Empty),
+            new("UserPhoneNumber", phoneNumber ?? string.Empty),
+            new("UserFullName", fullName ?? string.Empty),
+            new("Platform", string.IsNullOrWhiteSpace(platform) ? "web" : platform),
 
-            new Claim("UserId", userId.ToString()),
-            new Claim("UserEmail", email ?? string.Empty),
-            new Claim("Platform", "web" ?? "swagger"),
+            new(
+                "UserBalance",
+                balance.ToString(CultureInfo.InvariantCulture),
+                ClaimValueTypes.String)
         };
 
         foreach (var role in roles)
         {
-            claims.Add(
-                new Claim(ClaimTypes.Role, role));
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                claims.Add(
+                    new Claim(
+                        ClaimTypes.Role,
+                        role));
+            }
         }
 
         var securityKey = new SymmetricSecurityKey(
@@ -55,13 +83,15 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             securityKey,
             SecurityAlgorithms.HmacSha256);
 
+        var expires = now.AddMinutes(
+            _jwtSettings.AccessTokenExpiryMinutes);
+
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(
-                _jwtSettings.AccessTokenExpiryMinutes),
+            notBefore: now.UtcDateTime,
+            expires: expires.UtcDateTime,
             signingCredentials: signingCredentials);
 
         return TokenHandler.WriteToken(token);

@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Infrastructure",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Shared", "BlueMarina.Shared\BlueMarina.Shared.csproj", "{FAF1AC2B-484E-4FD0-B778-D0D7D41E1429}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Test", "BlueMarina.Test\BlueMarina.Test.csproj", "{8E1EB7A3-24D9-422A-80AC-81F84D83BFA2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueMarina.Tests", "BlueMarina.Tests\BlueMarina.Tests.csproj", "{8E1EB7A3-24D9-422A-80AC-81F84D83BFA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

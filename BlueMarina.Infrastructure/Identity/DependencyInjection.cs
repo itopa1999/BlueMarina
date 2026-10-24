@@ -15,7 +15,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IIdentityService, IdentityService>();
         
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>((options) =>
         {
             var databaseProvider = configuration
                 .GetValue<string>("DatabaseProvider")?
@@ -32,16 +32,6 @@ public static class DependencyInjection
                         "Postgres connection string is missing.");
 
                 options.UseNpgsql(connectionString);
-            }
-            else if (databaseProvider is "sqlserver"
-                     or "mssql")
-            {
-                var connectionString =
-                    configuration.GetConnectionString("SqlServer")
-                    ?? throw new InvalidOperationException(
-                        "SqlServer connection string is missing.");
-
-                options.UseSqlServer(connectionString);
             }
             else
             {
@@ -80,9 +70,9 @@ public static class DependencyInjection
 
     private static void ConfigureLockout(IdentityOptions options)
     {
-        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.MaxFailedAccessAttempts = 4;
         options.Lockout.DefaultLockoutTimeSpan =
-            TimeSpan.FromMinutes(15);
+            TimeSpan.FromMinutes(30);
         options.Lockout.AllowedForNewUsers = true;
     }
 

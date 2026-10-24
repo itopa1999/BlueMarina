@@ -6,12 +6,12 @@ namespace BlueMarina.Domain.Entities;
 [Table("refresh_tokens")]
 public class RefreshToken : BaseEntity
 {
-    public long UserProfileId { get; set; }
+    public required string UserPublicId { get; set; }
     public string TokenHash { get; set; } = string.Empty;
 
-    public DateTime ExpiresAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
 
-    public DateTime? RevokedAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
 
     public string? RevokedByIp { get; set; }
 
@@ -25,11 +25,9 @@ public class RefreshToken : BaseEntity
 
     public string? UserAgent { get; set; }
 
-    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAt;
 
     public bool IsRevoked => RevokedAt.HasValue;
 
     public bool IsActive => !IsExpired && !IsRevoked;
-
-    public virtual UserProfile UserProfile { get; set; } = null!;
 }

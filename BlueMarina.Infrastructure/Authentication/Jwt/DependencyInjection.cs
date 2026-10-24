@@ -45,6 +45,33 @@ public static class DependencyInjection
             })
             .AddJwtBearer(options =>
             {
+                // ✅ Read token from cookie only
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Cookies["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+
+                    OnAuthenticationFailed = context =>
+                    {
+                        Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                        return Task.CompletedTask;
+                    },
+
+                    OnChallenge = context =>
+                    {
+                        Console.WriteLine($"Challenge: {context.Error}");
+                        return Task.CompletedTask;
+                    }
+                };
+
+                
                 options.TokenValidationParameters =
                     new TokenValidationParameters
                     {
