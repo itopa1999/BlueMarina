@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 
-namespace BlueMarina.Application.Common.Extensions;
+namespace BlueMarina.Application.Helpers;
 public static class ExtensionHelper
 {
     public static string GenerateRandomString(int length)

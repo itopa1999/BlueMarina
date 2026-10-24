@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json.Serialization;
-using BlueMarina.Shared.Constants;
-namespace BlueMarina.Shared.Results;
+namespace BlueMarina.Shared.Common.Results;
 
 public class BaseResult
 {

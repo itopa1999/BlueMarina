@@ -1,8 +1,8 @@
+using System.Data.Common;
 using System.Net;
-using BlueMarina.Shared.Constants;
+using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
-using BlueMarina.Shared.Results;
-using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueMarina.Api.Middlewares;
 
@@ -11,7 +11,9 @@ public class ExceptionHandlingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
@@ -44,25 +46,140 @@ public class ExceptionHandlingMiddleware
             ("Path", context.Request.Path.ToString()),
             ("Method", context.Request.Method));
 
-        if (context.Response.HasStarted)
+        // Real client disconnect only. TaskCanceledException from HttpClient
+        // timeouts inherits from OperationCanceledException but does NOT
+        // cancel RequestAborted — those fall through and are handled below.
+        if (exception is OperationCanceledException
+            && context.RequestAborted.IsCancellationRequested)
         {
-            op.Fail("Response already started", exception);
+            op.Warning("Request was cancelled by the client.");
             return;
         }
 
-        op.Fail("Unhandled exception", exception);
+        if (context.Response.HasStarted)
+        {
+            op.Warning("Response already started — cannot write error response.");
+            return;
+        }
+
+        var (statusCode, message) = GetExceptionDetails(exception);
+
+        if ((int)statusCode >= 500)
+        {
+            op.Error("Unhandled system exception.", exception);
+        }
+        else
+        {
+            op.Warning($"Handled {statusCode}: {exception.GetType().Name}");
+        }
 
         context.Response.Clear();
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         context.Response.ContentType = "application/json";
 
-        var result = new BaseResult(
-            statusCode: HttpStatusCode.InternalServerError,
-            message: "An error occurred; please try again later"
-        );
-
+        context.Response.StatusCode = (int)statusCode;
         context.Response.Headers["X-Request-Id"] = requestId;
 
+        var result = new BaseResult(
+            statusCode: statusCode,
+            message: message,
+            requestId: requestId
+        );
+
         await context.Response.WriteAsJsonAsync(result);
+    }
+
+    private (HttpStatusCode statusCode, string message) GetExceptionDetails(Exception exception)
+    {
+        // Explicit system-failure marker — beats every branch below it so
+        // an InfrastructureException that inherits from InvalidOperationException
+        // still maps to 500 and reaches Sentry.
+        if (exception is InfrastructureException)
+        {
+            return (
+                HttpStatusCode.InternalServerError,
+                "An error occurred while completing your request. Please try again later.");
+        }
+
+        if (ContainsException<DbUpdateException>(exception))
+        {
+            return (
+                HttpStatusCode.Conflict,
+                "We couldn't save your changes right now. Please try again.");
+        }
+
+        if (ContainsException<DbException>(exception))
+        {
+            return (
+                HttpStatusCode.ServiceUnavailable,
+                "The service is temporarily unavailable. Please try again shortly.");
+        }
+
+        if (exception is ArgumentException)
+        {
+            return (
+                HttpStatusCode.BadRequest,
+                "Please check the submitted information and try again.");
+        }
+
+        if (exception is InvalidOperationException)
+        {
+            return (
+                HttpStatusCode.BadRequest,
+                "This request could not be completed. Please review your information and try again.");
+        }
+
+        if (exception.GetType().Name == "ValidationException")
+        {
+            return (
+                HttpStatusCode.BadRequest,
+                "Please check the submitted information and try again.");
+        }
+
+        if (exception is UnauthorizedAccessException)
+        {
+            return (
+                HttpStatusCode.Unauthorized,
+                "You are not authorized to perform this action.");
+        }
+
+        if (exception is KeyNotFoundException)
+        {
+            return (
+                HttpStatusCode.NotFound,
+                "The requested resource was not found.");
+        }
+
+        if (exception is TimeoutException or TaskCanceledException)
+        {
+            return (
+                HttpStatusCode.GatewayTimeout,
+                "The upstream service took too long to respond. Please try again.");
+        }
+
+        if (exception is NotImplementedException)
+        {
+            return (
+                HttpStatusCode.NotImplemented,
+                "This feature is not available right now.");
+        }
+
+        return (
+            HttpStatusCode.InternalServerError,
+            "An error occurred. Please try again later."
+        );
+    }
+
+    private static bool ContainsException<TException>(Exception exception)
+        where TException : Exception
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is TException)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

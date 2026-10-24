@@ -1,3 +1,4 @@
+
 using BlueMarina.Domain.Entities;
 
 namespace BlueMarina.Application.Interfaces.Security;
@@ -5,7 +6,7 @@ namespace BlueMarina.Application.Interfaces.Security;
 public interface IRefreshTokenService
 {
     Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        long userId,
+        string userPublicId,
         CancellationToken cancellationToken = default);
 
     Task<RefreshToken?> ValidateAsync(
@@ -15,6 +16,11 @@ public interface IRefreshTokenService
     Task RevokeAsync(
         RefreshToken refreshToken,
         string? revokedByIp = null,
+        string? reason = null,
+        CancellationToken cancellationToken = default);
+
+    Task<int> RevokeAllForUserAsync(
+        string userPublicId,
         string? reason = null,
         CancellationToken cancellationToken = default);
 

@@ -1,9 +1,13 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.Middlewares;
+using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application;
 using BlueMarina.Infrastructure;
-using BlueMarina.Shared.Results;
+using BlueMarina.Shared.Common.Results;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
@@ -18,7 +22,17 @@ public class Startup(IConfiguration configuration)
     public void ConfigureServices(IServiceCollection services)
     {
         // Controllers
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.JsonSerializerOptions.Converters.Add(
+                    new JsonStringEnumConverter(
+                    namingPolicy: JsonNamingPolicy.CamelCase,
+                    allowIntegerValues: false));
+            });
+
+        services.AddHealthChecks();
         
         // CQRS (MediatR)
         services.AddMediatR(cfg =>
@@ -26,10 +40,11 @@ public class Startup(IConfiguration configuration)
             cfg.RegisterServicesFromAssembly(
                 typeof(AssemblyReference).Assembly
             );
+            cfg.AddOpenBehavior(
+                typeof(Application.Behaviors.RequestValidationBehavior<,>));
         });
 
         // Model Behaviour setting
-
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -51,12 +66,15 @@ public class Startup(IConfiguration configuration)
             };
         });
 
+        var origins = (_configuration["Cors:AllowedOrigins"] ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         services.AddCors(options =>
         {
             options.AddPolicy("AllowSpecificOrigin",
                 policy =>
                 {
-                    policy.WithOrigins("https://localhost:3000", "https://yourdomain.com")
+                    policy.WithOrigins(origins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
@@ -71,7 +89,7 @@ public class Startup(IConfiguration configuration)
                 });
         });
 
-
+        services.AddAppRateLimiting();
 
         // Swagger
         services.AddEndpointsApiExplorer();
@@ -159,15 +177,32 @@ public class Startup(IConfiguration configuration)
         services.AddInfrastructure(_configuration);
         services.Configure<SwaggerSettings>(
             _configuration.GetSection(SwaggerSettings.SectionName));
-
+        services.Configure<HangfireSettings>(
+            _configuration.GetSection(HangfireSettings.SectionName));
+        
         services.AddDataProtection();
     }
 
-
-
+    
     // Configure middleware pipeline
     public void Configure(WebApplication app)
     {
+        // HangFire
+        var recurringJobManager = app.Services
+            .GetRequiredService<IRecurringJobManager>();
+
+        // ExceptionsHandlerMiddleWare
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
+
+
+        app.UseCors("AllowSpecificOrigin");
+
         app.UseMiddleware<SwaggerAuthMiddleware>();
 
         app.UseSwagger();
@@ -197,30 +232,26 @@ public class Startup(IConfiguration configuration)
                 "BlueMarina API Documentation";
         });
 
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseCors("AllowAllDev");
-        }
-        else
-        {
-            app.UseCors("AllowSpecificOrigin");
-        }
-
-
-        app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseHttpsRedirection();
-        }
-
         app.UseAuthentication();
 
         app.UseAuthorization();
 
+        app.UseRateLimiter();
+
+        app.UseMiddleware<HangfireAuthMiddleware>();
+
+        app.UseHangfireDashboard("/hangfire");
+
         app.UseStaticFiles();
+
+        app.MapHealthChecks("/health/live");
+
+        app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready")
+        });
 
         app.MapControllers();
     }
+
 }

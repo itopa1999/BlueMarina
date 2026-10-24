@@ -1,52 +1,63 @@
 using BlueMarina.Api;
 using BlueMarina.Infrastructure.Identity;
+using BlueMarina.Infrastructure.Persistence.Seeding;
 using DotNetEnv;
-
-var currentDirectory = Directory.GetCurrentDirectory();
-
-var projectRoot = Path.GetFullPath(
-    Path.Combine(
-        currentDirectory,
-        ".."
-    )
-);
-
-var envPath = Path.Combine(
-    projectRoot,
-    ".env"
-);
-
-if (!File.Exists(envPath))
-{
-    throw new FileNotFoundException(
-        $"Required .env file was not found at: {envPath}",
-        envPath);
-}
-
-Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    var currentDirectory = Directory.GetCurrentDirectory();
+
+    var projectRoot = Path.GetFullPath(
+        Path.Combine(currentDirectory, "..")
+    );
+
+    var envPath = Path.Combine(projectRoot, ".env.dev");
+
+    if (File.Exists(envPath))
+    {
+        Env.Load(envPath);
+    }
+}
+
+
 builder.Configuration.AddEnvironmentVariables();
 
-var wwwRootPath = Path.Combine(
-    projectRoot,
-    "wwwroot"
-);
+if (builder.Environment.IsProduction())
+{
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = builder.Configuration["Sentry:Dsn"];
+        options.Debug = false;
+        options.EnableLogs = true;
+    });
+    builder.Logging.AddSentry(options =>
+    {
+        options.Dsn = builder.Configuration["Sentry:Dsn"];
+        options.MinimumEventLevel = LogLevel.Error;
+        options.MinimumBreadcrumbLevel = LogLevel.Information;
+        options.AttachStacktrace = true;
+    });
+}
 
-Directory.CreateDirectory(wwwRootPath);
 
-builder.Environment.WebRootPath = wwwRootPath;
 
-var startup = new Startup(
-    builder.Configuration);
+var startup = new Startup(builder.Configuration);
 
-startup.ConfigureServices(
-    builder.Services);
+startup.ConfigureServices(builder.Services);
 
 var app = builder.Build();
 
 await app.Services.SeedIdentityAsync();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var seeder = scope.ServiceProvider
+        .GetRequiredService<DatabaseSeeder>();
+
+    await seeder.SeedAsync();
+}
 
 startup.Configure(app);
 
