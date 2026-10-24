@@ -8,7 +8,4 @@ namespace BlueMarina.Infrastructure.Identity;
 public class User : IdentityUser<long>
 {
     public Guid PublicId { get; set; } = Guid.NewGuid(); 
-    public virtual UserProfile? Profile { get; set; }
-    public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
-    = new List<RefreshToken>();
 }
