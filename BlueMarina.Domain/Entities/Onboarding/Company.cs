@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// Business account.
 /// </summary>
+
+[Table("companies")]
 public class Company : BaseEntity
 {
     public string Name { get; set; } = string.Empty;

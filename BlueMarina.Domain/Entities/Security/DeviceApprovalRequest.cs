@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Security;
 /// <summary>
 /// New-phone approval from a trusted phone. Expires after 5 minutes.
 /// </summary>
+
+[Table("device_approval_requests")]
 public class DeviceApprovalRequest : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;

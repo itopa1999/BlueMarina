@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// Director, signatory, owner or admin of a company.
 /// </summary>
+
+[Table("company_members")]
 public class CompanyMember : BaseEntity
 {
     public long CompanyId { get; set; }

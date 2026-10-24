@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// Secure invitation to join a company. Expires after 7 days.
 /// </summary>
+
+[Table("company_invitations")]
 public class CompanyInvitation : BaseEntity
 {
     public long CompanyId { get; set; }

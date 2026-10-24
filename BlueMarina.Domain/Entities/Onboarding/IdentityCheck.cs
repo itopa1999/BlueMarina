@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// BVN or NIN verification attempt.
 /// </summary>
+
+[Table("identity_checks")]
 public class IdentityCheck : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;

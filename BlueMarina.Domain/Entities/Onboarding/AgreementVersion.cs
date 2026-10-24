@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// A published version of terms, privacy policy or account agreement.
 /// </summary>
+
+[Table("agreement_versions")]
 public class AgreementVersion : BaseEntity
 {
     public AgreementType Type { get; set; }

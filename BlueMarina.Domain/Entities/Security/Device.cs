@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Security;
 /// <summary>
 /// A phone the user has signed in on.
 /// </summary>
+
+[Table("device")]
 public class Device : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;

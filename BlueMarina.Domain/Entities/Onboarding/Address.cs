@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// Home address and proof.
 /// </summary>
+
+[Table("addresses")]
 public class Address : BaseEntity
 {
     public required string UserId { get; set; }

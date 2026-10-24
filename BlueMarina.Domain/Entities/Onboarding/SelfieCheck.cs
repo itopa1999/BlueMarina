@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
@@ -6,6 +7,8 @@ namespace BlueMarina.Domain.Entities.Onboarding;
 /// <summary>
 /// Liveness selfie check.
 /// </summary>
+
+[Table("selfie_checks")]
 public class SelfieCheck : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;
