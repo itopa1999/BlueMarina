@@ -1,15 +1,15 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Director, signatory, owner or admin of a company.
 /// </summary>
 public class CompanyMember : BaseEntity
 {
-    public Guid CompanyId { get; set; }
-    public Guid? UserId { get; set; }
+    public long CompanyId { get; set; }
+    public long? UserId { get; set; }
     public CompanyMemberType MemberType { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

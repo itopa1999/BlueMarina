@@ -12,14 +12,13 @@ public sealed class IdentityService : IIdentityService
         _userManager = userManager;
     }
 
-    public async Task<(bool Success, string ErrorMessage, long UserId, Guid PublicId)> CreateUserAsync(
+    public async Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
         string phoneNumber,
         string password)
     {
         var user = new User
         {
-            PublicId = Guid.NewGuid(),
             Email = email,
             UserName = email,
             PhoneNumber = phoneNumber,
@@ -30,10 +29,20 @@ public sealed class IdentityService : IIdentityService
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            return (false, errors, 0, Guid.Empty);
+            return (false, errors, string.Empty, 0);
         }
 
-        return (true, string.Empty, user.Id, user.PublicId);
+        user.PublicId = user.Id.ToString("D4");
+
+        var updateResult = await _userManager.UpdateAsync(user);
+
+        if (!updateResult.Succeeded)
+        {
+            var errors = string.Join(", ", updateResult.Errors.Select(x => x.Description));
+            return (false, errors, string.Empty, 0);
+        }
+
+        return (true, string.Empty, user.PublicId, user.Id);
     }
 
     public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(long userId, string role)

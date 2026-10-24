@@ -1,14 +1,14 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Home address and proof.
 /// </summary>
 public class Address : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public required string UserId { get; set; }
     public string Street { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;

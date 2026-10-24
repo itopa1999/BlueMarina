@@ -1,7 +1,7 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Limits and feature flags per tier. Configuration table.

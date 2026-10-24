@@ -1,14 +1,14 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Scanned ID document.
 /// </summary>
 public class IdDocument : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserId { get; set; }
     public IdDocumentType Type { get; set; }
     public string IdNumber { get; set; } = string.Empty;
     public string NameOnId { get; set; } = string.Empty;

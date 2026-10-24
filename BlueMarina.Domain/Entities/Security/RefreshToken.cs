@@ -1,12 +1,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Security;
 
 [Table("refresh_tokens")]
 public class RefreshToken : BaseEntity
 {
-    public required string UserPublicId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string TokenHash { get; set; } = string.Empty;
 
     public DateTimeOffset ExpiresAt { get; set; }

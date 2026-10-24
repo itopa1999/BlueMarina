@@ -1,5 +1,6 @@
 
-using BlueMarina.Application.Common.Models;
+
+using BlueMarina.Application.Models;
 
 namespace BlueMarina.Application.Interfaces.Notification;
 public interface IEmailService

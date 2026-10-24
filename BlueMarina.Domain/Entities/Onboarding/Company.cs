@@ -1,7 +1,7 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Business account.
@@ -15,7 +15,7 @@ public class Company : BaseEntity
     public string Tin { get; set; } = string.Empty;
     public string RegisteredAddress { get; set; } = string.Empty;
     public CompanyStatus Status { get; set; }
-    public Guid CreatedByUserId { get; set; }
+    public long CreatedByUserId { get; set; }
     public List<CompanyMember> Members { get; set; } = new();
     public List<CompanyDocument> Documents { get; set; } = new();
 }

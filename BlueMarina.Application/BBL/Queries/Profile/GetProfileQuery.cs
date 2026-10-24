@@ -1,88 +1,88 @@
-using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Text.Json.Serialization;
-using BlueMarina.Application.Interfaces.Caching;
-using BlueMarina.Application.Interfaces.Persistence;
-using BlueMarina.Domain.Entities;
-using BlueMarina.Shared.Constants;
-using BlueMarina.Shared.Results;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
+// using System.ComponentModel.DataAnnotations;
+// using System.Net;
+// using System.Text.Json.Serialization;
+// using BlueMarina.Application.Interfaces.Caching;
+// using BlueMarina.Application.Interfaces.Persistence;
+// using BlueMarina.Domain.Entities;
+// using BlueMarina.Shared.Constants;
+// using BlueMarina.Shared.Results;
+// using MediatR;
+// using Microsoft.EntityFrameworkCore;
 
-namespace BlueMarina.Application.BBL.Queries.Profile;
+// namespace BlueMarina.Application.BBL.Queries.Profile;
 
-public sealed class GetProfileQuery
-{
-    public class Query : IRequest<BaseResult<GetProfileQueryDto>>
-    {
-        [JsonIgnore]
-        [Required]
-        public long UserId { get; set; }
-    }
+// public sealed class GetProfileQuery
+// {
+//     public class Query : IRequest<BaseResult<GetProfileQueryDto>>
+//     {
+//         [JsonIgnore]
+//         [Required]
+//         public long UserId { get; set; }
+//     }
 
-    public class GetProfileQueryDto
-    {
-        public long UserId { get; set; }
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string OtherNames { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-    }
+//     public class GetProfileQueryDto
+//     {
+//         public long UserId { get; set; }
+//         public string FirstName { get; set; } = string.Empty;
+//         public string LastName { get; set; } = string.Empty;
+//         public string OtherNames { get; set; } = string.Empty;
+//         public string Email { get; set; } = string.Empty;
+//         public string PhoneNumber { get; set; } = string.Empty;
+//         public string FullName { get; set; } = string.Empty;
+//     }
 
-    public class Handler : IRequestHandler<Query, BaseResult<GetProfileQueryDto>>
-    {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ICacheService _cacheService;
+//     public class Handler : IRequestHandler<Query, BaseResult<GetProfileQueryDto>>
+//     {
+//         private readonly IUnitOfWork _unitOfWork;
+//         private readonly ICacheService _cacheService;
 
-        public Handler(
-            IUnitOfWork unitOfWork,
-            ICacheService cacheService)
-        {
-            _unitOfWork = unitOfWork;
-            _cacheService = cacheService;
-        }
+//         public Handler(
+//             IUnitOfWork unitOfWork,
+//             ICacheService cacheService)
+//         {
+//             _unitOfWork = unitOfWork;
+//             _cacheService = cacheService;
+//         }
 
-        public async Task<BaseResult<GetProfileQueryDto>> Handle(Query request, CancellationToken cancellationToken)
-        {
-            var cacheKey = CacheKeys.Profile(request.UserId);
+//         public async Task<BaseResult<GetProfileQueryDto>> Handle(Query request, CancellationToken cancellationToken)
+//         {
+//             var cacheKey = CacheKeys.Profile(request.UserId);
 
-            async Task<GetProfileQueryDto?> BuildProfileAsync(CancellationToken ct)
-            {
-                return await _unitOfWork.Query<UserProfile>()
-                    .AsNoTracking()
-                    .Where(x => x.Id == request.UserId && !x.IsDeleted)
-                    .Select(x => new GetProfileQueryDto
-                    {
-                        UserId = x.UserId,
-                        FirstName = x.FirstName,
-                        LastName = x.LastName,
-                        OtherNames = x.OtherNames ?? string.Empty,
-                        Email = x.Email,
-                        PhoneNumber = x.PhoneNumber ?? string.Empty,
-                        FullName = x.FullName
-                    })
-                    .FirstOrDefaultAsync(ct);
-            }
+//             async Task<GetProfileQueryDto?> BuildProfileAsync(CancellationToken ct)
+//             {
+//                 return await _unitOfWork.Query<UserProfile>()
+//                     .AsNoTracking()
+//                     .Where(x => x.Id == request.UserId && !x.IsDeleted)
+//                     .Select(x => new GetProfileQueryDto
+//                     {
+//                         UserId = x.UserId,
+//                         FirstName = x.FirstName,
+//                         LastName = x.LastName,
+//                         OtherNames = x.OtherNames ?? string.Empty,
+//                         Email = x.Email,
+//                         PhoneNumber = x.PhoneNumber ?? string.Empty,
+//                         FullName = x.FullName
+//                     })
+//                     .FirstOrDefaultAsync(ct);
+//             }
 
-            var userProfile = await _cacheService.GetOrSetAsync(
-                cacheKey,
-                BuildProfileAsync,
-                timeout: TimeSpan.FromSeconds(10),
-                cancellationToken: cancellationToken);
+//             var userProfile = await _cacheService.GetOrSetAsync(
+//                 cacheKey,
+//                 BuildProfileAsync,
+//                 timeout: TimeSpan.FromSeconds(10),
+//                 cancellationToken: cancellationToken);
 
-            if (userProfile is null)
-            {
-                return new BaseResult<GetProfileQueryDto>(
-                    HttpStatusCode.NotFound,
-                    "User profile not found.");
-            }
+//             if (userProfile is null)
+//             {
+//                 return new BaseResult<GetProfileQueryDto>(
+//                     HttpStatusCode.NotFound,
+//                     "User profile not found.");
+//             }
 
-            return new BaseResult<GetProfileQueryDto>(
-                HttpStatusCode.OK,
-                "Profile retrieved successfully.",
-                userProfile);
-        }
-    }
-}
+//             return new BaseResult<GetProfileQueryDto>(
+//                 HttpStatusCode.OK,
+//                 "Profile retrieved successfully.",
+//                 userProfile);
+//         }
+//     }
+// }

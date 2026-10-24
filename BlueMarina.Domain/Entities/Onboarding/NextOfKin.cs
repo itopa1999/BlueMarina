@@ -1,14 +1,14 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// Next of kin. No account access.
 /// </summary>
 public class NextOfKin : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public NextOfKinRelationship Relationship { get; set; }
     public string Phone { get; set; } = string.Empty;

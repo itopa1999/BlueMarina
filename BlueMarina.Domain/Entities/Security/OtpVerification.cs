@@ -1,19 +1,20 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
+using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Security;
 
 [Table("otp_verifications")]
 public class OtpVerification : BaseEntity
 {
-    public long UserProfileId { get; set; }
-    public string OtpCode { get; set; } = string.Empty;
-
-    public string Purpose { get; set; } = string.Empty;
-
+    public string UserId { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;
+    public OtpChannel Channel { get; set; }
+    public OtpPurpose Purpose { get; set; }
     public bool IsUsed { get; set; }
-    public DateTime? UsedAt { get; set; }
-
-    public DateTime ExpiresAt { get; set; }
-    public virtual UserProfile UserProfile { get; set; } = null!;
+    public DateTimeOffset? UsedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }    
+    public int Attempts { get; set; }
+    public DateTimeOffset? LockedUntil { get; set; }
+    public DateTimeOffset? ConsumedAt { get; set; }
 }

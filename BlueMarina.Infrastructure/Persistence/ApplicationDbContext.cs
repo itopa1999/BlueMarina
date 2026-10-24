@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 using BlueMarina.Domain.Common;
-using BlueMarina.Domain.Entities;
+using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Infrastructure.Service;
 using Microsoft.AspNetCore.Identity;

@@ -2,7 +2,7 @@ namespace BlueMarina.Application.Interfaces.Identity;
 
 public interface IIdentityService
 {
-    Task<(bool Success, string ErrorMessage, long UserId, Guid PublicId)> CreateUserAsync(
+    Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
         string phoneNumber,
         string password);

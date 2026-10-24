@@ -1,5 +1,5 @@
-using BlueMarina.Application.Common.Models;
 using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Application.Models;
 using BlueMarina.Infrastructure.Notification.Email;
 using BlueMarina.Shared.Logging;
 using MailKit.Net.Smtp;
@@ -221,7 +221,7 @@ public sealed class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            op.Fail($"Failed to send email to {email.To}", ex);
+            op.Error($"Failed to send email to {email.To}", ex);
 
             throw;
         }

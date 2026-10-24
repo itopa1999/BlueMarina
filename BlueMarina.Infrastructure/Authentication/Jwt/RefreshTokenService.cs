@@ -1,5 +1,5 @@
 using BlueMarina.Application.Interfaces.Security;
-using BlueMarina.Domain.Entities;
+using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -26,7 +26,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public Task<(string Token, RefreshToken RefreshToken)> CreateAsync(
-        string userPublicId,
+        string userId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -36,7 +36,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
 
         var refreshToken = new RefreshToken
         {
-            UserPublicId = userPublicId,
+            UserId = userId,
             TokenHash = tokenHash,
             ExpiresAt = DateTimeOffset.UtcNow.AddDays(
                 _jwtSettings.RefreshTokenExpiryDays)
@@ -92,7 +92,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
             cancellationToken: cancellationToken);
 
         var newRefreshToken = await CreateAsync(
-            refreshToken.UserPublicId,
+            refreshToken.UserId,
             cancellationToken);
 
         refreshToken.ReplacedByTokenHash =
@@ -102,7 +102,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
     }
 
     public async Task<int> RevokeAllForUserAsync(
-        string userPublicId,
+        string userId,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
@@ -111,7 +111,7 @@ public sealed class RefreshTokenService : IRefreshTokenService
         var now = DateTimeOffset.UtcNow;
 
         var affected = await _context.RefreshTokens
-            .Where(x => x.UserPublicId == userPublicId
+            .Where(x => x.UserId == userId
                     && x.RevokedAt == null
                     && x.ExpiresAt > now)
             .ExecuteUpdateAsync(s => s

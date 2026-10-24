@@ -1,17 +1,17 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Onboarding;
 
 /// <summary>
 /// BVN or NIN verification attempt.
 /// </summary>
 public class IdentityCheck : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public long UserId { get; set; }
     public IdentityCheckType Type { get; set; }
     public IdentityCheckStatus Status { get; set; }
     public string? ProviderReference { get; set; }
     public string? FailureReason { get; set; }
-    public DateTime? CheckedAt { get; set; }
+    public DateTimeOffset? CheckedAt { get; set; }
 }

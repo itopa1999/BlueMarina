@@ -1,7 +1,7 @@
 using BlueMarina.Domain.Common;
 using BlueMarina.Domain.Enums;
 
-namespace BlueMarina.Domain.Entities;
+namespace BlueMarina.Domain.Entities.Security;
 
 /// <summary>
 /// New-phone approval from a trusted phone. Expires after 5 minutes.
