@@ -26,7 +26,9 @@ public sealed class ConfirmIdentityDetailsCommand
         [Required]
         public string IdentityNumber { get; set; } = string.Empty;
         
+        [Required]
         public string ProviderReference { get; set; } = string.Empty;
+        
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public DateOnly DateOfBirth { get; set; }
@@ -60,7 +62,9 @@ public sealed class ConfirmIdentityDetailsCommand
             }
 
             var identityCheck = await _unitOfWork.Query<IdentityCheck>()
-                .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
+                .FirstOrDefaultAsync(x => x.UserId == request.UserId 
+                                          && x.ProviderReference == request.ProviderReference, 
+                                     cancellationToken);
 
             if (identityCheck == null || identityCheck.Status != IdentityCheckStatus.Pending)
             {
@@ -89,6 +93,7 @@ public sealed class ConfirmIdentityDetailsCommand
                 lastName: request.LastName,
                 dateOfBirth: request.DateOfBirth,
                 phoneNumber: request.PhoneNumber,
+                referenceId: request.ProviderReference,
                 cancellationToken: cancellationToken);
 
             if (!success)
@@ -96,13 +101,6 @@ public sealed class ConfirmIdentityDetailsCommand
                 op.Warning($"Failed to save identity details: {error}");
                 return new BaseResult(HttpStatusCode.BadRequest, error);
             }
-
-            identityCheck.Status = IdentityCheckStatus.Matched;
-            identityCheck.FailureReason = null;
-            identityCheck.CheckedAt = DateTimeOffset.UtcNow;
-
-            _unitOfWork.Update(identityCheck);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             op.Success($"Identity ({identityCheck.Type}) confirmed and saved.");
 

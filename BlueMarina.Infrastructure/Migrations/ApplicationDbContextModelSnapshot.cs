@@ -1180,19 +1180,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<bool>("Tier1_AccountDone")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Tier1_IdDone")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("Tier1_IsCompleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("Tier1_SelfieDone")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("Tier1_SignatureDone")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("Tier2_AccountDone")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("Tier2_IdDone")
@@ -1207,19 +1195,25 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<bool>("Tier2_SignatureDone")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Tier3_AccountDone")
+                    b.Property<bool>("Tier3_AddressDone")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Tier3_IdDone")
+                    b.Property<bool>("Tier3_BankAccountDone")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("Tier3_IsCompleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Tier3_SelfieDone")
+                    b.Property<bool>("Tier3_NextOfKinDone")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("Tier3_SignatureDone")
+                    b.Property<bool>("Tier3_OccupationDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_PersonalDetailsDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_TaxResidencyDone")
                         .HasColumnType("boolean");
 
                     b.Property<string>("UserId")

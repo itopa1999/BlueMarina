@@ -49,12 +49,13 @@ public sealed class IdentityProviderService : IIdentityProviderService
         string identityNumber, 
         string otp,
         IdentityCheckType type,
+        string referenceId,
         CancellationToken ct)
     {
         return type switch
         {
-            IdentityCheckType.Bvn => _bvnService.VerifyBvnOtpAsync(userId, identityNumber, otp, ct),
-            IdentityCheckType.Nin => _ninService.VerifyNinOtpAsync(userId, identityNumber, otp, ct),
+            IdentityCheckType.Bvn => _bvnService.VerifyBvnOtpAsync(userId, referenceId, identityNumber, otp, ct),
+            IdentityCheckType.Nin => _ninService.VerifyNinOtpAsync(userId, referenceId, identityNumber, otp, ct),
             _ => Task.FromResult<(bool, string, IdentityCheckErrorCode, BvnDetailsDto?)>(
                 (false, "Unsupported identity type.", IdentityCheckErrorCode.ValidationFailed, null))
         };
@@ -68,12 +69,41 @@ public sealed class IdentityProviderService : IIdentityProviderService
         string lastName,
         DateOnly dateOfBirth,
         string phoneNumber,
+        string referenceId,
         CancellationToken cancellationToken = default)
     {
         var user = await _context.Users.FirstOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
         
         if (user == null)
             return (false, "User not found.");
+
+        var identityCheck = await _context.IdentityChecks
+            .FirstOrDefaultAsync(x => x.UserId == publicId 
+                                      && x.Type == type 
+                                      && x.ProviderReference == referenceId, cancellationToken);
+
+        if (identityCheck == null || identityCheck.Status != IdentityCheckStatus.Pending)
+        {
+            return (false, "No valid pending identity check found. Please try again.");
+        }
+
+        var identityHash = _hasher.Hash(identityNumber, type.ToString().ToUpper());
+
+        bool identityExists = false;
+        
+        if (type == IdentityCheckType.Bvn)
+        {
+            identityExists = await _context.Users.AnyAsync(x => x.BvnHash == identityHash && x.PublicId != publicId, cancellationToken);
+        }
+        else if (type == IdentityCheckType.Nin)
+        {
+            identityExists = await _context.Users.AnyAsync(x => x.NinEncrypted == identityHash && x.PublicId != publicId, cancellationToken);
+        }
+
+        if (identityExists)
+        {
+            return (false, $"This {type} is already linked to another account.");
+        }
 
         user.FirstName = firstName;
         user.LastName = lastName;
@@ -82,13 +112,13 @@ public sealed class IdentityProviderService : IIdentityProviderService
 
         if (type == IdentityCheckType.Bvn)
         {
-            user.BvnHash = _hasher.Hash(identityNumber, "BVN");
+            user.BvnHash = identityHash;
             user.BvnEncrypted = identityNumber;
             user.BvnPhone = phoneNumber;
         }
         else if (type == IdentityCheckType.Nin)
         {
-            user.NinEncrypted = _hasher.Hash(identityNumber, "NIN");
+            user.NinEncrypted = identityHash;
             user.NinEncrypted = identityNumber; 
         }
 
@@ -99,6 +129,9 @@ public sealed class IdentityProviderService : IIdentityProviderService
         {
             progress.Tier1_AccountDone = true;
         }
+
+        identityCheck.Status = IdentityCheckStatus.Matched;
+        identityCheck.CheckedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
         return (true, string.Empty);

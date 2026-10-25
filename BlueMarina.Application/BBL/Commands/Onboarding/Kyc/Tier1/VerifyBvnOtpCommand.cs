@@ -21,6 +21,9 @@ public sealed class VerifyIdentityOtpCommand
         public string IdentityNumber { get; set; } = string.Empty;
 
         [Required]
+        public string ReferenceId { get; set; } = string.Empty;
+
+        [Required]
         public string Otp { get; set; } = string.Empty;
 
         [Required]
@@ -86,6 +89,7 @@ public sealed class VerifyIdentityOtpCommand
                 identityNumber: sanitizedIdentityNumber,
                 otp: sanitizedOtp,
                 type: request.Type,
+                referenceId: request.ReferenceId,
                 cancellationToken: cancellationToken);
 
             if (!result.Success || result.Details == null)

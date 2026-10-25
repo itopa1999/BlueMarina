@@ -2,15 +2,14 @@ using System.Net;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
+using BlueMarina.Application.BBL.Queries.Kyc;
 using BlueMarina.Application.Interfaces.IdentityVerification;
-using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
 
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
@@ -66,6 +65,21 @@ public class IdentityVerificationController(
         command.UserId = UserPublicId ?? string.Empty;
 
         var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    [HttpGet("progress")]
+    [ProducesResponseType(typeof(BaseResult<GetOnboardingProgressQuery.OnboardingProgressDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> GetOnboardingProgress(CancellationToken cancellationToken)
+    {
+        var query = new GetOnboardingProgressQuery.Query
+        {
+            UserId = UserPublicId ?? string.Empty
+        };
+        
+        var result = await _mediator.Send(query, cancellationToken);
+        
         return StatusCode((int)result.StatusCode, result);
     }
 }

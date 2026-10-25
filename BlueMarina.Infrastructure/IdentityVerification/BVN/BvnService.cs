@@ -101,20 +101,37 @@ public sealed class BvnService : IBvnService
         return new InitiateIdentityResult
         {
             Success = true,
-            MaskedPhoneNumber = maskedPhone
+            MaskedPhoneNumber = maskedPhone,
+            ProviderReferenceId = identityCheck.ProviderReference
         };
     }
 
     public async Task<(bool Success, string ErrorMessage, IdentityCheckErrorCode ErrorCode, BvnDetailsDto? Details)> VerifyBvnOtpAsync(
-        string userId, string bvn, string otp, CancellationToken ct)
+        string userId, string referenceId, string bvn, string otp, CancellationToken ct)
     {
         var identityCheck = await _context.IdentityChecks
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Type == IdentityCheckType.Bvn &&  x.ProviderReference == referenceId, ct);
 
-        if (identityCheck != null && identityCheck.Status == IdentityCheckStatus.Matched)
+        if (identityCheck == null)
+        {
+            return (false, "No active verification found for this user. Please initiate the check again.", IdentityCheckErrorCode.NotFound, null);
+        }
+
+        if (identityCheck.Status == IdentityCheckStatus.Matched)
         {
             return (false, "Your BVN is already verified.", IdentityCheckErrorCode.ValidationFailed, null);
+        }
+
+        // 1. ADDED: Double-check if BVN is already linked to another user
+        var bvnHash = _hasher.Hash(bvn, "BVN");
+        
+        var bvnExists = await _context.Users
+            .AnyAsync(x => x.BvnHash == bvnHash && x.PublicId != userId, ct);
+
+        if (bvnExists)
+        {
+            return (false, "This BVN is already linked to another account.", IdentityCheckErrorCode.AlreadyLinked, null);
         }
 
         // var response = await _apiClient.PostAsync<VerifyOtpRequest, VerifyOtpResponse>(url, new { bvn, otp }, ct: ct);
@@ -142,7 +159,7 @@ public sealed class BvnService : IBvnService
             DateOfBirth: new DateOnly(1992, 3, 14),
             PhoneNumber: user.PhoneNumber ?? "+2348030000021",
             Gender: Gender.Male.ToString(),
-            ProviderReference: identityCheck?.ProviderReference ?? Guid.NewGuid().ToString()
+            ProviderReference: identityCheck.ProviderReference 
         );
 
         return (true, string.Empty, IdentityCheckErrorCode.None, details);

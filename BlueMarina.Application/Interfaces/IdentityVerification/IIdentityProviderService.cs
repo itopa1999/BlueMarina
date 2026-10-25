@@ -26,6 +26,7 @@ public interface IIdentityProviderService
         string identityNumber, 
         string otp, 
         IdentityCheckType type,
+        string referenceId,
         CancellationToken cancellationToken = default);
 
     Task<(bool Success, string ErrorMessage)> SaveVerifiedIdentityAsync(
@@ -36,6 +37,7 @@ public interface IIdentityProviderService
         string lastName,
         DateOnly dateOfBirth,
         string phoneNumber,
+        string referenceId,
         CancellationToken cancellationToken = default);
 }
 
@@ -45,6 +47,7 @@ public class InitiateIdentityResult
     public string ErrorMessage { get; set; } = string.Empty;
     public IdentityCheckErrorCode ErrorCode { get; set; } = IdentityCheckErrorCode.None;
     public string MaskedPhoneNumber { get; set; } = string.Empty;
+    public string ProviderReferenceId { get; set; } = string.Empty;
 }
 
 public record BvnDetailsDto(

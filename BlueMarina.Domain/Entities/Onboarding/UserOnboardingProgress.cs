@@ -14,22 +14,20 @@ public class UserOnboardingProgress : BaseEntity
 
     // Tier 1 Status
     public bool Tier1_AccountDone { get; set; }
-    public bool Tier1_SelfieDone { get; set; }
-    public bool Tier1_IdDone { get; set; }
-    public bool Tier1_SignatureDone { get; set; }
     public bool Tier1_IsCompleted { get; set; }
 
     // Tier 2 Status
-    public bool Tier2_AccountDone { get; set; }
     public bool Tier2_SelfieDone { get; set; }
     public bool Tier2_IdDone { get; set; }
     public bool Tier2_SignatureDone { get; set; }
     public bool Tier2_IsCompleted { get; set; }
 
     // Tier 3 Status
-    public bool Tier3_AccountDone { get; set; }
-    public bool Tier3_SelfieDone { get; set; }
-    public bool Tier3_IdDone { get; set; }
-    public bool Tier3_SignatureDone { get; set; }
+    public bool Tier3_PersonalDetailsDone { get; set; }
+    public bool Tier3_AddressDone { get; set; }
+    public bool Tier3_NextOfKinDone { get; set; }
+    public bool Tier3_BankAccountDone { get; set; }
+    public bool Tier3_OccupationDone { get; set; }
+    public bool Tier3_TaxResidencyDone { get; set; }
     public bool Tier3_IsCompleted { get; set; }
 }

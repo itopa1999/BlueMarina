@@ -67,8 +67,6 @@ public sealed class NinService : INinService
             };
         }
 
-        // var response = await _apiClient.PostAsync<NinRequest, NinResponse>(url, new { nin }, ct: ct);
-        
         var apiSuccess = true;
         var maskedPhone = "*** ** *4321"; 
         var providerRef = Guid.NewGuid().ToString();
@@ -101,24 +99,38 @@ public sealed class NinService : INinService
         return new InitiateIdentityResult
         {
             Success = true,
-            MaskedPhoneNumber = maskedPhone
+            MaskedPhoneNumber = maskedPhone,
+            ProviderReferenceId = identityCheck.ProviderReference
         };
     }
 
     public async Task<(bool Success, string ErrorMessage, IdentityCheckErrorCode ErrorCode, BvnDetailsDto? Details)> VerifyNinOtpAsync(
-        string userId, string nin, string otp, CancellationToken ct)
+        string userId, string referenceId, string nin, string otp, CancellationToken ct)
     {
         var identityCheck = await _context.IdentityChecks
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Type == IdentityCheckType.Nin && x.ProviderReference == referenceId, ct);
 
-        if (identityCheck != null && identityCheck.Status == IdentityCheckStatus.Matched)
+        if (identityCheck == null)
+        {
+            return (false, "No active verification found for this user. Please initiate the check again.", IdentityCheckErrorCode.NotFound, null);
+        }
+
+        if (identityCheck.Status == IdentityCheckStatus.Matched)
         {
             return (false, "Your NIN is already verified.", IdentityCheckErrorCode.ValidationFailed, null);
         }
 
-        // var response = await _apiClient.PostAsync<VerifyOtpRequest, VerifyOtpResponse>(url, new { nin, otp }, ct: ct);
+        var ninHash = _hasher.Hash(nin, "NIN");
         
+        var ninExists = await _context.Users
+            .AnyAsync(x => x.NinEncrypted == ninHash && x.PublicId != userId, ct);
+
+        if (ninExists)
+        {
+            return (false, "This NIN is already linked to another account.", IdentityCheckErrorCode.AlreadyLinked, null);
+        }
+
         var isValid = true;
 
         if (!isValid)
@@ -142,7 +154,7 @@ public sealed class NinService : INinService
             DateOfBirth: new DateOnly(1995, 8, 20),
             PhoneNumber: user.PhoneNumber ?? "+2348030000021",
             Gender: Gender.Female.ToString(),
-            ProviderReference: identityCheck?.ProviderReference ?? Guid.NewGuid().ToString()
+            ProviderReference: identityCheck.ProviderReference
         );
 
         return (true, string.Empty, IdentityCheckErrorCode.None, details);

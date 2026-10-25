@@ -28,6 +28,7 @@ public sealed class InitiateIdentityCheckCommand
     public class InitiateIdentityResponseDto
     {
         public string MaskedPhoneNumber { get; set; } = string.Empty;
+        public string ReferenceNumber { get; set; } = string.Empty;
         public string NextStep { get; set; } = string.Empty;
     }
 
@@ -108,6 +109,7 @@ public sealed class InitiateIdentityCheckCommand
                 new InitiateIdentityResponseDto 
                 { 
                     MaskedPhoneNumber = result.MaskedPhoneNumber,
+                    ReferenceNumber =  result.ProviderReferenceId,
                     NextStep = IdentityNextSteps.VerifyIdentity
                 });
         }
