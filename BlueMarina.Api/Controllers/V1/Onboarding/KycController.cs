@@ -1,65 +1,71 @@
+using System.Net;
+using BlueMarina.Api.Configurations;
+using BlueMarina.Api.RateLimiting;
+using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
+using BlueMarina.Application.Interfaces.IdentityVerification;
+using BlueMarina.Infrastructure.Authentication.Jwt;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Constants;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
+namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
-// using System.Net;
-// using BlueMarina.Api.Configurations;
-// using BlueMarina.Application.BBL.Commands.Kyc;
-// using BlueMarina.Application.BBL.Queries.Kyc;
-// using BlueMarina.Shared.Results;
-// using MediatR;
-// using Microsoft.AspNetCore.Mvc;
-// using static BlueMarina.Application.BBL.Queries.Kyc.GetKycStatusQuery;
+[ApiController]
+[Authorize(Roles = Roles.Customer)]
+[Route("api/v1/kyc")]
+[ApiExplorerSettings(GroupName = "v1")]
+public class IdentityVerificationController(
+    IMediator mediator) : BaseController
+{
+    private readonly IMediator _mediator = mediator;
 
-// namespace BlueMarina.Api.Controllers.V1;
+    [HttpPost("identity-check/initiate")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<InitiateIdentityCheckCommand.InitiateIdentityResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Conflict)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.ServiceUnavailable)]
+    public async Task<IActionResult> InitiateIdentityCheck(
+        [FromBody] InitiateIdentityCheckCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
+        
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
 
-// [ApiController]
-// [Route("api/v1/kyc")]
-// [ApiExplorerSettings(GroupName = "v1")]
+    [HttpPost("identity-check/verify-otp")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<BvnDetailsDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.TooManyRequests)]
+    public async Task<IActionResult> VerifyIdentityOtp(
+        [FromBody] VerifyIdentityOtpCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
 
-// public class KycController(
-//     IMediator mediator) : BaseController
-// {
-//     private readonly IMediator _mediator = mediator;
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
 
-//     [HttpGet("get/status")]
-//     [ProducesResponseType(typeof(BaseResult<KycStatusDto>), (int)HttpStatusCode.OK)]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-//     public async Task<IActionResult> GetStatus(CancellationToken cancellationToken)
-//     {
-//         var query = new GetKycStatusQuery.Query
-//         {
-//             UserId = CurrentUserId.Value
-//         };
-//         var result = await _mediator.Send(query, cancellationToken);
+    [HttpPost("identity-check/confirm")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> ConfirmIdentityDetails(
+        [FromBody] ConfirmIdentityDetailsCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
 
-//         return StatusCode(
-//             (int)result.StatusCode,
-//             result);
-//     }
-
-//     [HttpPost("verify/bvn")]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
-//     public async Task<IActionResult> VerifyBvn([FromBody] VerifyKycBVN.Command command, CancellationToken cancellationToken)
-//     {
-//         command = command with { UserId = CurrentUserId.Value };
-//         var result = await _mediator.Send(command, cancellationToken);
-//         return StatusCode((int)result.StatusCode, result);
-//     }
-
-//     [HttpPost("verify/nin")]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
-//     public async Task<IActionResult> VerifyNin([FromBody] VerifyKycNIN.Command command, CancellationToken cancellationToken)
-//     {
-//         command = command with { UserId = CurrentUserId.Value };
-//         var result = await _mediator.Send(command, cancellationToken);
-//         return StatusCode((int)result.StatusCode, result);
-//     }
-
-//     [HttpPost("verify/id")]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
-//     public async Task<IActionResult> VerifyId([FromForm] VerifyKycID.Command command, CancellationToken cancellationToken)
-//     {
-//         command = command with { UserId = CurrentUserId.Value };
-//         var result = await _mediator.Send(command, cancellationToken);
-//         return StatusCode((int)result.StatusCode, result);
-//     }
-// }
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+}

@@ -8,7 +8,7 @@ using BlueMarina.Shared.Logging;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace BlueMarina.Application.BBL.Commands.Onboarding.IdentityVerification;
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
 
 public sealed class VerifyIdentityOtpCommand
 {
