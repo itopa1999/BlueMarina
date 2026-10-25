@@ -31,7 +31,7 @@ public sealed class OtpService : IOtpService
 
         var hashedOtp = _hasher.Hash(rawOtp, purpose);
 
-        return new OtpResult(rawOtp, hashedOtp);
+        return new OtpResult(rawOtp, hashedOtp, _settings.ExpiryMinutes);
     }
 
     public string Hash(string rawCode, string purpose)

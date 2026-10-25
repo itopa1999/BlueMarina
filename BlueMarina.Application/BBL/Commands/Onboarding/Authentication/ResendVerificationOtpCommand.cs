@@ -11,6 +11,8 @@ using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
+using static BlueMarina.Application.Interfaces.Security.IOtpService;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
@@ -88,6 +90,20 @@ public sealed class ResendVerificationOtpCommand
                     HttpStatusCode.BadRequest, "No phone number on file.");
             }
 
+            var lockout = await _otpService.CheckAsync(
+                user.PublicId,
+                OtpPurpose.SignUpVerification,
+                OtpChannel.Sms,
+                cancellationToken);
+
+            if (lockout == OtpAttemptResult.LockedOut)
+            {
+                op.Warning("OTP lockout active.");
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.TooManyRequests,
+                    "Too many failed attempts. Please try again later.");
+            }
+
             await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
             var otp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
@@ -98,11 +114,23 @@ public sealed class ResendVerificationOtpCommand
                 CodeHash = otp.HashedOtp,
                 Channel = OtpChannel.Sms,
                 Purpose = OtpPurpose.SignUpVerification,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(otp.ExpiringMinutes),
                 CreatedAt = DateTimeOffset.UtcNow,
                 IsUsed = false,
                 Attempts = 0
             }, cancellationToken);
+
+            var now = DateTimeOffset.UtcNow;
+            await _unitOfWork
+                .Query<OtpCode>()
+                .Where(x => x.UserId == user.PublicId
+                            && x.Purpose == OtpPurpose.SignUpVerification
+                            && x.Channel == OtpChannel.Sms
+                            && !x.IsUsed)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.IsUsed, true)
+                    .SetProperty(p => p.UsedAt, now)
+                    .SetProperty(p => p.ConsumedAt, now), cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);

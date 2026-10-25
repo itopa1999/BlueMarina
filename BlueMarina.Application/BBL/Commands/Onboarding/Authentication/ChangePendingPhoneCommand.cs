@@ -128,7 +128,7 @@ public sealed class ChangePendingPhoneCommand
                 CodeHash = smsOtp.HashedOtp,
                 Channel = OtpChannel.Sms,
                 Purpose = OtpPurpose.SignUpVerification,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(smsOtp.ExpiringMinutes),
                 CreatedAt = DateTimeOffset.UtcNow,
                 IsUsed = false,
                 Attempts = 0
@@ -152,7 +152,7 @@ public sealed class ChangePendingPhoneCommand
                 {
                     UserId = request.UserId,
                     Phone = normalizedPhone,
-                    NextStep = NextSteps.VerifyContact
+                    NextStep = SignUpNextSteps.VerifyContact
                 });
         }
     }

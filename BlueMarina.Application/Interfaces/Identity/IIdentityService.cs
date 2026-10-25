@@ -40,7 +40,7 @@ public interface IIdentityService
     Task<(bool Success, string ErrorMessage)> AddToRoleAsync(
         long userId,
         string role);
-    Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(long userId);
+    Task<(bool Success, string ErrorMessage)> MarkEmailAsVerifiedAsync(long userId);
 
     Task<(bool Success, string ErrorMessage)> MarkPhoneAsVerifiedAsync(long userId);
 

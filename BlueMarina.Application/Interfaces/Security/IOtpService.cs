@@ -2,7 +2,7 @@ using BlueMarina.Domain.Enums;
 
 namespace BlueMarina.Application.Interfaces.Security;
 
-public record OtpResult(string RawOtp, string HashedOtp);
+public record OtpResult(string RawOtp, string HashedOtp, int ExpiringMinutes);
 public interface IOtpService
 {
     OtpResult GenerateOtp(string purpose);

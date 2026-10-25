@@ -8,6 +8,12 @@ public interface INotificationQueue
         string? phoneNumber,
         string otp);
 
+    void QueueEmailVerificationLink(
+        string firstName,
+        string email,
+        string link,
+        string expiry);
+
     // void QueueForgotPasswordOtp(
     //     string email,
     //     string? phoneNumber,

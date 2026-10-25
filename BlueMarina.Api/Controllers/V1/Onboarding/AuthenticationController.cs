@@ -4,6 +4,7 @@ using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.Regis
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.ResendVerificationOtpCommand;
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.VerifyAccountCommand;
 
-namespace BlueMarina.Api.Controllers.V1;
+namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
 [Route("api/v1/auth")]
@@ -54,10 +55,10 @@ public class AuthenticationController(
         return StatusCode((int)result.StatusCode, result);
     }
 
-    [HttpPost("resend-otp")]
+    [HttpPost("resend-otp-sms")]
     [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-    public async Task<IActionResult> ResendVerificationToken(
+    public async Task<IActionResult> ResendVerificationOtp(
         [FromBody] ResendVerificationOtpCommand.Command command, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
@@ -68,6 +69,55 @@ public class AuthenticationController(
     }
 
 
+    [HttpPost("resend-email-verification-link")]
+    [Authorize (Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> ResendEmailVerificationLink(
+        CancellationToken cancellationToken)
+    {
+        var command = new ResendEmailVerificationLinkCommand.Command
+        {
+            UserId = UserPublicId ?? string.Empty
+        };
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return StatusCode(
+            (int)result.StatusCode,
+            result);
+    }
+
+    [HttpGet("verify-email")]
+    [AllowAnonymous]
+    [Produces("text/html")]
+    public async Task<IActionResult> VerifyEmail(
+        [FromQuery] string userId,
+        [FromQuery] string code,
+        CancellationToken cancellationToken)
+    {
+        var command = new VerifyEmailCommand.Command 
+        { 
+            UserId = userId, 
+            Code = code 
+        };
+        var result = await _mediator.Send( command, cancellationToken);
+        if (result.StatusCode == HttpStatusCode.OK)
+        {
+            return Content(
+                "<html><body style='font-family:sans-serif;text-align:center;padding:60px;'>" +
+                "<h1 style='color:#1A3A6B;'>Email Verified</h1>" +
+                "<p style='color:#3E4F66;'>Your email address has been confirmed. You can close this tab.</p>" +
+                "</body></html>",
+                "text/html");
+        }
+
+        return Content(
+            "<html><body style='font-family:sans-serif;text-align:center;padding:60px;'>" +
+            "<h1 style='color:#C0392B;'>Verification Failed</h1>" +
+            $"<p style='color:#3E4F66;'>{System.Net.WebUtility.HtmlEncode(result.Message)}</p>" +
+            "</body></html>",
+            "text/html");
+    }
 
     [HttpPost("verify-account")]
     [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]

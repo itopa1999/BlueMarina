@@ -12,9 +12,11 @@ public interface IEmailService
         CancellationToken cancellationToken = default
     );
 
-    Task SendForgotPasswordOtpAsync(
+    Task SendEmailVericationLinkAsync(
+        string firstName,
         string email,
-        string otp,
+        string link,
+        string expiry,
         CancellationToken cancellationToken = default
     );
 
@@ -23,6 +25,11 @@ public interface IEmailService
         string email,
         CancellationToken cancellationToken = default
     );
+
+
+
+
+    // Don't touch or edit please.
 
     Task SendAsync(
         EmailMessage email,

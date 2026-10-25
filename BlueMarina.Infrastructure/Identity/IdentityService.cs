@@ -101,7 +101,7 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
-    public async Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(long userId)
+    public async Task<(bool Success, string ErrorMessage)> MarkEmailAsVerifiedAsync(long userId)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
         if (existingUser is null)
@@ -109,7 +109,6 @@ public sealed class IdentityService : IIdentityService
             return (false, "User not Found");
         }
         existingUser.EmailConfirmed = true;
-        existingUser.PhoneNumberConfirmed = true;
         var result = await _userManager.UpdateAsync(existingUser);
 
         if (!result.Succeeded)

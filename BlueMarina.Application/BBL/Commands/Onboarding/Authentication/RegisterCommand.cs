@@ -5,13 +5,16 @@ using BlueMarina.Application.Interfaces.Persistence;
 using System.ComponentModel.DataAnnotations;
 using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Application.Common.Settings;
 using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Application.Helpers;
 using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Constants;
+using BlueMarina.Application.Interfaces.ExternalAPI;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
@@ -46,6 +49,7 @@ public sealed class RegisterCommand
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOtpService _otpService;
         private readonly INotificationQueue _notificationQueue;
+        private readonly ExternalApiSettings _settings;
         private readonly ILogger<Handler> _logger;
 
         public Handler(
@@ -53,12 +57,14 @@ public sealed class RegisterCommand
             IUnitOfWork unitOfWork,
             IOtpService otpService,
             INotificationQueue notificationQueue,
+            IOptions<ExternalApiSettings> settings,
             ILogger<Handler> logger)
         {
             _identityService = identityService;
             _unitOfWork = unitOfWork;
             _otpService = otpService;
             _notificationQueue = notificationQueue;
+            _settings = settings.Value;
             _logger = logger;
         }
 
@@ -168,12 +174,24 @@ public sealed class RegisterCommand
                 CodeHash = smsOtp.HashedOtp,
                 Channel = OtpChannel.Sms,
                 Purpose = OtpPurpose.SignUpVerification,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(smsOtp.ExpiringMinutes),
                 CreatedAt = DateTimeOffset.UtcNow,
                 IsUsed = false,
                 Attempts = 0
             }, cancellationToken);
 
+            var emailOtp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
+            await _unitOfWork.AddAsync(new OtpCode
+            {
+                UserId = publicId,
+                CodeHash = emailOtp.HashedOtp,
+                Channel = OtpChannel.Email,
+                Purpose = OtpPurpose.SignUpVerification,
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(emailOtp.ExpiringMinutes),
+                CreatedAt = DateTimeOffset.UtcNow,
+                IsUsed = false,
+                Attempts = 0
+            }, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -183,7 +201,14 @@ public sealed class RegisterCommand
                 string.Empty,
                 normalizedPhoneNumber,
                 smsOtp.RawOtp);
-                
+
+            var verificationLink = BuildEmailVerificationLink(publicId, emailOtp.RawOtp);
+
+            _notificationQueue.QueueEmailVerificationLink(
+                firstName: string.Empty,
+                email: normalizedEmail,
+                link: verificationLink,
+                expiry: $"{emailOtp.ExpiringMinutes} minutes");
 
             op.Success($"User {publicId} registered successfully.");
 
@@ -195,8 +220,15 @@ public sealed class RegisterCommand
                     UserId = publicId,
                     Email = normalizedEmail,
                     Phone = normalizedPhoneNumber,
-                    NextStep = NextSteps.VerifyContact
+                    NextStep = SignUpNextSteps.VerifyContact
                 });
+        }
+
+        private string BuildEmailVerificationLink(string publicId, string rawOtp)
+        {
+            return $"{_settings.BackendBaseUrl.TrimEnd('/')}/api/v1/auth/verify-email" +
+                   $"?userId={Uri.EscapeDataString(publicId)}" +
+                   $"&code={Uri.EscapeDataString(rawOtp)}";
         }
     }
 }

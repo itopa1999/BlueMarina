@@ -6,4 +6,5 @@ public sealed class OtpSecuritySettings
 
     public int MaxAttempts { get; init; } = 5;
     public int LockoutMinutes { get; init; } = 30;
+    public int ExpiryMinutes { get; init; } = 10;
 }

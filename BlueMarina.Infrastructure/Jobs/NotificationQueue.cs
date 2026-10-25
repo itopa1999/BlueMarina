@@ -46,6 +46,24 @@ public sealed class NotificationQueue : INotificationQueue
         }
     }
 
+    public void QueueEmailVerificationLink(
+        string firstName,
+        string email,
+        string verificationLink,
+        string expiresAt)
+    {
+        TryEnqueue(
+            "QueueEmailVerificationLink",
+            () => _backgroundJobClient.Enqueue<BackgroundNotificationJob>(
+                job => job.SendEmailVericationLinkAsync(
+                    firstName,
+                    email,
+                    verificationLink,
+                    expiresAt,
+                    CancellationToken.None)),
+            ("Email", email));
+    }
+
     // public void QueueWelcomeEmail(string firstName, string email)
     // {
     //     TryEnqueue(
@@ -56,18 +74,7 @@ public sealed class NotificationQueue : INotificationQueue
     //         ("Email", email));
     // }
 
-    // public void QueueForgotPasswordOtp(
-    //     string email,
-    //     string? phoneNumber,
-    //     string otp)
-    // {
-    //     TryEnqueue(
-    //         "QueueForgotPasswordOtp",
-    //         () => _backgroundJobClient.Enqueue<BackgroundNotificationJob>(
-    //             job => job.SendForgotPasswordEmailAsync(
-    //                 email, otp, CancellationToken.None)),
-    //         ("Email", email));
-    // }
+    
 
     // public void QueueNotificationEmail(
     //     string firstName,

@@ -70,6 +70,22 @@ public sealed class BackgroundNotificationJob
     }
 
     [AutomaticRetry(Attempts = 3)]
+    public Task SendEmailVericationLinkAsync(
+        string? firstName,
+        string email,
+        string link,
+        string expiresAt,
+        CancellationToken cancellationToken)
+    {
+        return _emailService.SendEmailVericationLinkAsync(
+            string.IsNullOrWhiteSpace(firstName) ? "Customer" : firstName,
+            email,
+            link,
+            expiresAt,
+            cancellationToken);
+    }
+
+    [AutomaticRetry(Attempts = 3)]
     public Task SendOtpSmsAsync(
         string phoneNumber,
         string otp,

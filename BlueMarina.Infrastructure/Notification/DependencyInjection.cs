@@ -1,5 +1,6 @@
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Infrastructure.Jobs;
+using BlueMarina.Infrastructure.Notification.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

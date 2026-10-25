@@ -35,13 +35,15 @@ public static class Platforms
 }
 
 
-public static class NextSteps
+public static class SignUpNextSteps
 {
     public const string VerifyContact = "VERIFY_CONTACT";
     public const string SetupTransactionPin = "SETUP_TRANSACTION_PIN";
     public const string CompleteProfile = "COMPLETE_PROFILE";
-    public const string UploadId = "UPLOAD_ID";
-    public const string EnterBvn = "ENTER_BVN";
-    public const string VerifyBvn = "VERIFY_BVN";
+}
+public static class IdentityNextSteps
+{
+    public const string EnterIdentity = "ENTER_IDENTITY";
+    public const string VerifyIdentity = "VERIFY_IDENTITY";
     public const string Done = "DONE";
 }

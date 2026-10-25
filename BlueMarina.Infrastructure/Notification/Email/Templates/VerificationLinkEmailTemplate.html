@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlueMarina – Forgot Password OTP</title>
+    <title>BlueMarina – Confirm Your Email</title>
     <style>
-        /* Reset and base styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background-color: #f0f4f9;
@@ -26,7 +25,6 @@
             overflow: hidden;
             border: 1px solid #e9edf4;
         }
-        /* Header – Blue Marina gradient */
         .header {
             background: linear-gradient(145deg, #1A3A6B 0%, #2B5BAE 100%);
             padding: 28px 30px;
@@ -40,10 +38,7 @@
             letter-spacing: -0.5px;
             margin: 0;
         }
-        .header h1 span {
-            opacity: 0.85;
-            font-weight: 300;
-        }
+        .header h1 span { opacity: 0.85; font-weight: 300; }
         .header .brand-icon {
             display: inline-block;
             background: rgba(255,255,255,0.12);
@@ -56,97 +51,66 @@
             vertical-align: middle;
             color: #fff;
         }
-        /* Body */
-        .body {
-            padding: 35px 30px 30px;
-        }
+        .body { padding: 35px 30px 30px; }
         .greeting {
             font-size: 18px;
             color: #1E2F4A;
             font-weight: 600;
             margin-bottom: 8px;
         }
-        .greeting span {
-            color: #2B5BAE;
-        }
+        .greeting span { color: #2B5BAE; }
         .message {
             color: #3E4F66;
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 25px;
         }
-        .warning-box {
-            background: #FFF8F0;
-            border-left: 4px solid #E67E22;
-            padding: 14px 18px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            color: #5D4A2E;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .warning-box strong {
-            color: #D35400;
-        }
-        /* OTP Box */
-        .otp-box {
-            background: #F5F9FF;
-            border-radius: 14px;
-            padding: 22px 20px;
+        .cta-wrapper {
             text-align: center;
-            border: 1px solid #DCE6F2;
-            margin: 25px 0;
+            margin: 30px 0;
         }
-        .otp-code {
-            font-size: 44px;
-            font-weight: 700;
-            letter-spacing: 12px;
-            color: #1A3A6B;
-            font-family: 'Inter', monospace;
-            background: #ffffff;
-            padding: 12px 16px;
-            border-radius: 12px;
+        .cta-button {
             display: inline-block;
-            box-shadow: 0 2px 8px rgba(26, 58, 107, 0.06);
-            border: 1px solid #CDDDF2;
-            min-width: 200px;
+            background: linear-gradient(145deg, #2B5BAE 0%, #1A3A6B 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 16px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(43, 91, 174, 0.35);
+            letter-spacing: 0.3px;
+        }
+        .link-fallback {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px dashed #DCE6F2;
+            color: #7087A0;
+            font-size: 13px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+        .link-fallback code {
+            display: block;
+            margin-top: 8px;
+            background: #F5F9FF;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #DCE6F2;
+            font-family: 'Inter', monospace;
+            color: #1A3A6B;
+            font-size: 12px;
         }
         .expiry-note {
             margin-top: 16px;
             color: #4A6479;
-            font-size: 15px;
-        }
-        .expiry-note strong {
-            color: #2B5BAE;
-            font-weight: 600;
-        }
-        .divider {
-            height: 1px;
-            background: #E2E9F2;
-            margin: 30px 0 25px;
-        }
-        .footer-note {
-            color: #5D738C;
             font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 8px;
+            text-align: center;
         }
-        .footer-note a {
-            color: #2B5BAE;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .footer-note a:hover {
-            text-decoration: underline;
-        }
-        .signature {
-            margin-top: 20px;
-            color: #3E4F66;
-            font-size: 15px;
-        }
-        .signature strong {
-            color: #1A3A6B;
-        }
+        .expiry-note strong { color: #2B5BAE; font-weight: 600; }
+        .divider { height: 1px; background: #E2E9F2; margin: 30px 0 25px; }
+        .signature { color: #3E4F66; font-size: 15px; }
+        .signature strong { color: #1A3A6B; }
         .security-badge {
             display: inline-block;
             background: #E8F0FE;
@@ -157,7 +121,6 @@
             font-weight: 500;
             margin-top: 5px;
         }
-        /* Footer bottom */
         .footer-bottom {
             background: #F8FAFE;
             padding: 18px 30px;
@@ -171,14 +134,10 @@
             text-decoration: none;
             margin: 0 8px;
         }
-        .footer-bottom a:hover {
-            text-decoration: underline;
-        }
         @media (max-width: 480px) {
             body { padding: 20px 10px; }
-            .otp-code { font-size: 32px; letter-spacing: 8px; min-width: 150px; }
+            .cta-button { padding: 14px 28px; font-size: 15px; }
             .header h1 { font-size: 22px; }
-            .warning-box { font-size: 13px; padding: 12px 14px; }
         }
     </style>
 </head>
@@ -186,43 +145,44 @@
 
 <div class="container">
 
-    <!-- HEADER -->
     <div class="header">
         <h1>
-            <span class="brand-icon">⚓</span>
+            <span class="brand-icon">BM</span>
             Blue<span style="font-weight:300;">Marina</span>
         </h1>
     </div>
 
-    <!-- BODY -->
     <div class="body">
 
         <p class="greeting">
-            Forgot Password? 🔐
+            Hello, <span>{{FirstName}}</span>
         </p>
 
         <p class="message">
-            We received a request to reset your BlueMarina account password. 
-            Use the one‑time verification code below to continue.
+            We received a request to confirm the email address associated with
+            your BlueMarina account. Please click the button below to verify
+            that this email belongs to you.
         </p>
 
-        <!-- Warning Box -->
-        <div class="warning-box">
-            <strong>⚠️ Important:</strong> 
-            If you didn't request a password reset, please ignore this email. 
-            Your account remains secure.
+        <div class="cta-wrapper">
+            <a href="{{VerificationLink}}" class="cta-button" target="_blank" rel="noopener">
+                Confirm Email Address
+            </a>
         </div>
 
-        <!-- OTP CODE -->
-        <div class="otp-box">
-            <div class="otp-code">{{OTP}}</div>
-            <div class="expiry-note">
-                ⏱️ This code expires in <strong>{{Expiry}}</strong>
-            </div>
+        <div class="expiry-note">
+            This link expires in <strong>{{Expiry}}</strong>.
         </div>
+
+        <div class="link-fallback">
+            If the button doesn't work, copy and paste this link into your browser:
+            <code>{{VerificationLink}}</code>
+        </div>
+
+        <div class="divider"></div>
 
         <div class="security-badge">
-            🛡️ For your security, never share this code with anyone
+            BlueMarina will never ask for your password
         </div>
 
         <div class="divider"></div>
@@ -234,11 +194,10 @@
 
     </div>
 
-    <!-- FOOTER -->
     <div class="footer-bottom">
-        &copy; 2026 BlueMarina. All rights reserved. &nbsp;·&nbsp;
-        <a href="#">Privacy</a> &nbsp;·&nbsp;
-        <a href="#">Help</a> &nbsp;·&nbsp;
+        &copy; 2026 BlueMarina. All rights reserved. &nbsp;&middot;&nbsp;
+        <a href="#">Privacy</a> &nbsp;&middot;&nbsp;
+        <a href="#">Help</a> &nbsp;&middot;&nbsp;
         <a href="#">Security</a>
     </div>
 

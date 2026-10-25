@@ -1,6 +1,5 @@
 using BlueMarina.Application.Interfaces.Notification;
 using BlueMarina.Application.Models;
-using BlueMarina.Infrastructure.Notification.Email;
 using BlueMarina.Shared.Logging;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -8,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace BlueMarina.Infrastructure.Notification;
+namespace BlueMarina.Infrastructure.Notification.Email;
 
 public sealed class EmailService : IEmailService
 {
@@ -49,22 +48,26 @@ public sealed class EmailService : IEmailService
             cancellationToken);
     }
 
-    public async Task SendForgotPasswordOtpAsync(
+    public async Task SendEmailVericationLinkAsync(
+        string firstName,
         string email,
-        string otp,
+        string link,
+        string expiry,
         CancellationToken cancellationToken = default)
     {
         var body = await _renderer.RenderAsync(
-            "ForgotPasswordOtpEmailTemplate.html",
+            "VerificationLinkEmailTemplate.html",
             new Dictionary<string, string>
             {
-                ["OTP"] = otp,
-                ["Expiry"] = "2 Minutes"
-            }, cancellationToken);
+                ["FirstName"] = string.IsNullOrWhiteSpace(firstName) ? "there" : firstName,
+                ["VerificationLink"] = link,
+                ["Expiry"] = expiry
+            },
+            cancellationToken);
 
         await SendEmailAsync(
             email,
-            "BlueMarina Forgot Password Verification Code",
+            "Verify your BlueMarina email address",
             body,
             cancellationToken);
     }
@@ -87,6 +90,11 @@ public sealed class EmailService : IEmailService
             body,
             cancellationToken);
     }
+
+
+
+
+    // Don't touch below code is a service implementation thanks.
 
     public async Task SendEmailAsync(
         string toEmail,

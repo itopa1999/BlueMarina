@@ -11,6 +11,7 @@ using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using static BlueMarina.Application.Interfaces.Security.IOtpService;
+using BlueMarina.Shared.Constants;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
@@ -32,6 +33,7 @@ public sealed class VerifyAccountCommand
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTimeOffset AccessTokenExpiresAt { get; set; }
+        public string NextStep { get; set; } = string.Empty;
     }
 
     public class Handler : IRequestHandler<Command, BaseResult<VerifyAccountResponseDto>>
@@ -124,6 +126,20 @@ public sealed class VerifyAccountCommand
 
             if (otp is null)
             {
+                var failResult = await _otpService.RegisterFailureAsync(
+                    user.PublicId,
+                    OtpPurpose.SignUpVerification,
+                    OtpChannel.Sms,
+                    cancellationToken);
+
+                if (failResult == OtpAttemptResult.LockedNow)
+                {
+                    op.Warning("OTP locked after max failed attempts.");
+                    return new BaseResult<VerifyAccountResponseDto>(
+                        HttpStatusCode.TooManyRequests,
+                        "Too many failed attempts. Your phone number has been temporarily locked.");
+                }
+                
                 op.Warning("No active OTP found.");
                 return new BaseResult<VerifyAccountResponseDto>(
                     HttpStatusCode.BadRequest,
@@ -198,7 +214,6 @@ public sealed class VerifyAccountCommand
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // 🔄 Reset failure tracker on success
             await _otpService.ResetAsync(
                 user.PublicId,
                 OtpPurpose.SignUpVerification,
@@ -236,7 +251,8 @@ public sealed class VerifyAccountCommand
                     IsAccountVerified = true,
                     AccessToken = jwtResult.AccessToken,
                     RefreshToken = rawRefreshToken,
-                    AccessTokenExpiresAt = jwtResult.ExpiresAt
+                    AccessTokenExpiresAt = jwtResult.ExpiresAt,
+                    NextStep = SignUpNextSteps.CompleteProfile
                 });
         }
     }
