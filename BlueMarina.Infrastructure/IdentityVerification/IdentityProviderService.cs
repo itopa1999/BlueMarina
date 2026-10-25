@@ -92,6 +92,14 @@ public sealed class IdentityProviderService : IIdentityProviderService
             user.NinEncrypted = identityNumber; 
         }
 
+        var progress = await _context.UserOnboardingProgresses
+            .FirstOrDefaultAsync(x => x.UserId == publicId, cancellationToken);
+
+        if (progress != null)
+        {
+            progress.Tier1_AccountDone = true;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return (true, string.Empty);
     }

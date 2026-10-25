@@ -21,7 +21,7 @@ public class IdDocumentConfiguration : IEntityTypeConfiguration<IdDocument>
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
-.HasPrincipalKey(x => x.PublicId)
+                .HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }

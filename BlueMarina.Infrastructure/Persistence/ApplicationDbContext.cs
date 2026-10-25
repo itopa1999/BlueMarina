@@ -50,6 +50,8 @@ public sealed class ApplicationDbContext
     public DbSet<TierLimit> TierLimits => Set<TierLimit>();
     public DbSet<TierUpgradeItem> TierUpgradeItems => Set<TierUpgradeItem>();
     public DbSet<TierUpgradeRequest> TierUpgradeRequests => Set<TierUpgradeRequest>();
+    public DbSet<UserOnboardingProgress> UserOnboardingProgresses => Set<UserOnboardingProgress>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

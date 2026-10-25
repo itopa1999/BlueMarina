@@ -15,6 +15,7 @@ using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Application.Interfaces.ExternalAPI;
+using BlueMarina.Domain.Entities.Onboarding;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
@@ -192,6 +193,13 @@ public sealed class RegisterCommand
                 IsUsed = false,
                 Attempts = 0
             }, cancellationToken);
+
+            var progress = new UserOnboardingProgress
+            {
+                UserId = publicId
+            };
+
+            await _unitOfWork.AddAsync(progress, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);

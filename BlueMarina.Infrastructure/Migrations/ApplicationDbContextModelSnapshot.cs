@@ -1145,6 +1145,95 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.ToTable("tier_upgrade_requests");
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.UserOnboardingProgress", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("Tier1_AccountDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier1_IdDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier1_IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier1_SelfieDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier1_SignatureDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier2_AccountDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier2_IdDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier2_IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier2_SelfieDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier2_SignatureDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_AccountDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_IdDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_SelfieDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Tier3_SignatureDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("user_onboarding_progress", (string)null);
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.Credential", b =>
                 {
                     b.Property<long>("Id")
@@ -2136,6 +2225,16 @@ namespace BlueMarina.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierUpgradeRequest", b =>
+                {
+                    b.HasOne("BlueMarina.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .HasPrincipalKey("PublicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.UserOnboardingProgress", b =>
                 {
                     b.HasOne("BlueMarina.Infrastructure.Identity.User", null)
                         .WithMany()
