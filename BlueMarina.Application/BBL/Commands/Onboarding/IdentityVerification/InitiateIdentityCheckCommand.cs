@@ -58,6 +58,14 @@ public sealed class InitiateIdentityCheckCommand
                     HttpStatusCode.Unauthorized, "User context is missing.");
             }
 
+            if (!Enum.IsDefined(typeof(IdentityCheckType), request.Type))
+            {
+                op.Warning($"Invalid identity type received: {request.Type}");
+                return new BaseResult<InitiateIdentityResponseDto>(
+                    HttpStatusCode.BadRequest, 
+                    "Invalid identity type. Please provide a valid BVN or NIN type.");
+            }
+
             var sanitizedIdentityNumber = request.IdentityNumber?.Trim() ?? string.Empty;
 
             if (sanitizedIdentityNumber.Length != 11 || !sanitizedIdentityNumber.All(char.IsDigit))

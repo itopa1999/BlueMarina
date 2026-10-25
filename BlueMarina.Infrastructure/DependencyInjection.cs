@@ -1,12 +1,16 @@
 using BlueMarina.Application.Common.Settings;
 using BlueMarina.Application.Interfaces.Caching;
 using BlueMarina.Application.Interfaces.ExternalAPI;
+using BlueMarina.Application.Interfaces.IdentityVerification;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Infrastructure.Caching;
 using BlueMarina.Infrastructure.ExternalAPI;
 using BlueMarina.Infrastructure.Identity;
+using BlueMarina.Infrastructure.IdentityVerification;
+using BlueMarina.Infrastructure.IdentityVerification.BVN;
+using BlueMarina.Infrastructure.IdentityVerification.NIN;
 using BlueMarina.Infrastructure.Notification;
 using BlueMarina.Infrastructure.Notification.Email;
 using BlueMarina.Infrastructure.Persistence;
@@ -84,6 +88,10 @@ public static class DependencyInjection
 
         services.AddHttpClient<IExternalApiClient, ExternalApiClient>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IBvnService, BvnService>();
+        services.AddScoped<INinService, NinService>();
+
+        services.AddScoped<IIdentityProviderService, IdentityProviderService>();
 
         services.AddScoped<DatabaseSeeder>();
 

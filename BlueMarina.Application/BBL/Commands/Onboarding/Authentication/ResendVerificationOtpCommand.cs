@@ -150,7 +150,7 @@ public sealed class ResendVerificationOtpCommand
                 {
                     UserId = user.PublicId,
                     Channel = OtpChannel.Sms.ToString(),
-                    NextStep = NextSteps.VerifyContact
+                    NextStep = SignUpNextSteps.VerifyContact
                 });
         }
     }

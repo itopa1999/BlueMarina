@@ -21,8 +21,12 @@ public interface IIdentityProviderService
         IdentityCheckType type,
         CancellationToken cancellationToken = default);
     
-    Task<(bool Success, string ErrorMessage, BvnDetailsDto? Details)> VerifyBvnOtpAsync(
-        string bvn, string otp, CancellationToken ct);
+    Task<(bool Success, string ErrorMessage, IdentityCheckErrorCode ErrorCode, BvnDetailsDto? Details)> VerifyOtpAsync(
+        string userId,
+        string identityNumber, 
+        string otp, 
+        IdentityCheckType type,
+        CancellationToken cancellationToken = default);
 }
 
 public class InitiateIdentityResult
