@@ -2,7 +2,7 @@ namespace BlueMarina.Application.Interfaces.Security
 {
     public interface IJwtTokenGenerator
     {
-        string GenerateToken(
+        JwtTokenResult GenerateToken(
             long userId,
             string userPublicId,
             string firstName,
@@ -10,9 +10,11 @@ namespace BlueMarina.Application.Interfaces.Security
             string lastName,
             string email,
             string phoneNumber,
-            decimal balance,
             string fullName,
-            string platform,
             IList<string> roles);
     }
+
+    public sealed record JwtTokenResult(
+    string AccessToken,
+    DateTimeOffset ExpiresAt);
 }

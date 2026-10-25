@@ -1,129 +1,129 @@
-// using System.ComponentModel.DataAnnotations;
-// using System.Net;
-// using BlueMarina.Application.Interfaces.Identity;
-// using BlueMarina.Application.Interfaces.Notification;
-// using BlueMarina.Application.Interfaces.Persistence;
-// using BlueMarina.Application.Interfaces.Security;
-// using BlueMarina.Domain.Entities;
-// using BlueMarina.Shared.Constants;
-// using BlueMarina.Shared.Logging;
-// using BlueMarina.Shared.Results;
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging;
+using MediatR;
+using System.Net;
+using System.ComponentModel.DataAnnotations;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Application.Interfaces.Notification;
+using BlueMarina.Domain.Entities.Security;
+using BlueMarina.Domain.Enums;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Constants;
+using BlueMarina.Shared.Logging;
+using Microsoft.Extensions.Logging;
 
-// namespace BlueMarina.Application.BBL.Commands.Authentication;
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
-// public sealed class ResendVerificationOtpCommand
-// {
-//     public class Command : IRequest<BaseResult<ResendVerificationOtpResponseDto>>
-//     {
-//         [EmailAddress]
-//         public string? Email { get; init; }
+public sealed class ResendVerificationOtpCommand
+{
+    public class Command : IRequest<BaseResult<ResendVerificationOtpResponseDto>>
+    {
+        [Required, MaxLength(100)]
+        public string UserId { get; set; } = string.Empty;
+    }
 
-//         public string? PhoneNumber { get; init; }
-//     }
+    public class ResendVerificationOtpResponseDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string Channel { get; set; } = string.Empty;
+        public string NextStep { get; set; } = string.Empty;
+    }
 
-//     public class ResendVerificationOtpResponseDto
-//     {
-//         public string UserId { get; set; } = string.Empty;
-//         public string Data { get; set; } = string.Empty;
-//     }
+    public class Handler : IRequestHandler<Command, BaseResult<ResendVerificationOtpResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOtpService _otpService;
+        private readonly INotificationQueue _notificationQueue;
+        private readonly ILogger<Handler> _logger;
 
-//     public class Handler : IRequestHandler<Command, BaseResult<ResendVerificationOtpResponseDto>>
-//     {
-//         private readonly IIdentityService _identityService;
-//         private readonly IUnitOfWork _unitOfWork;
-//         private readonly IOtpService _otpService;
-//         private readonly IEmailService _emailService;
-//         private readonly ISmsService _smsService;
-//         private readonly ILogger<Handler> _logger;
+        public Handler(
+            IIdentityService identityService,
+            IUnitOfWork unitOfWork,
+            IOtpService otpService,
+            INotificationQueue notificationQueue,
+            ILogger<Handler> logger)
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _otpService = otpService;
+            _notificationQueue = notificationQueue;
+            _logger = logger;
+        }
 
-//         public Handler(
-//             IIdentityService identityService,
-//             IUnitOfWork unitOfWork,
-//             IOtpService otpService,
-//             IEmailService emailService,
-//             ISmsService smsService,
-//             ILogger<Handler> logger)
-//         {
-//             _identityService = identityService;
-//             _unitOfWork = unitOfWork;
-//             _otpService = otpService;
-//             _emailService = emailService;
-//             _smsService = smsService;
-//             _logger = logger;
-//         }
+        public async Task<BaseResult<ResendVerificationOtpResponseDto>> Handle(
+            Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "ResendVerificationOtp",
+                ("UserId", request.UserId));
 
-//         public async Task<BaseResult<ResendVerificationOtpResponseDto>> Handle(Command request, CancellationToken cancellationToken)
-//         {
-//             var identifier = !string.IsNullOrWhiteSpace(request.Email) ? request.Email : request.PhoneNumber;
-//             using var op = OperationLogger.Start(_logger, "ResendVerificationOtp",
-//                 ("Identifier", identifier ?? "unknown")
-//             );
+            if (string.IsNullOrWhiteSpace(request.UserId))
+            {
+                op.Warning("Missing user id.");
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.BadRequest, "User id is required.");
+            }
 
-//             if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-//             {
-//                 op.Fail("Neither email nor phone number provided.");
-//                 return new BaseResult<ResendVerificationOtpResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Either Email or Phone Number must be provided.");
-//             }
+            var user = await _identityService.GetByIdentifierAsync(
+                request.UserId, cancellationToken);
 
-//             var userExists = await _unitOfWork.Query<UserProfile>()
-//                 .AsNoTracking()
-//                 .Where(up => up.Email == request.Email || up.PhoneNumber == request.PhoneNumber)
-//                 .Select(up => new { up.Id, up.Email, up.FirstName, up.PhoneNumber })
-//                 .FirstOrDefaultAsync(cancellationToken);
+            if (user is null)
+            {
+                op.Warning("User not found.");
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.NotFound, "User not found.");
+            }
 
-//             if (userExists == null)
-//             {
-//                 op.Fail("User not found.");
-//                 return new BaseResult<ResendVerificationOtpResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "User not found.");
-//             }
+            if (user.PhoneNumberConfirmed)
+            {
+                op.Warning("Phone already verified.");
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.Conflict, "Phone number is already verified.");
+            }
 
-//             await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+            {
+                op.Warning("No phone number on file.");
+                return new BaseResult<ResendVerificationOtpResponseDto>(
+                    HttpStatusCode.BadRequest, "No phone number on file.");
+            }
 
-//             try
-//             {
-//                 var otpCode = _otpService.GenerateOtp();
+            await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
-//                 var otp = new OtpVerification
-//                 {
-//                     UserProfileId = userExists.Id,
-//                     OtpCode = otpCode,
-//                     Purpose = OtpPurpose.AccountVerification,
-//                     ExpiresAt = DateTime.UtcNow.AddMinutes(2),
-//                     IsUsed = false
-//                 };
+            var otp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
 
-//                 await _unitOfWork.AddAsync(otp, cancellationToken);
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-//                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _unitOfWork.AddAsync(new OtpCode
+            {
+                UserId = user.PublicId,
+                CodeHash = otp.HashedOtp,
+                Channel = OtpChannel.Sms,
+                Purpose = OtpPurpose.SignUpVerification,
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+                CreatedAt = DateTimeOffset.UtcNow,
+                IsUsed = false,
+                Attempts = 0
+            }, cancellationToken);
 
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
 
-//                 await _emailService.SendOtpAsync(userExists?.FirstName ?? "Customer", userExists.Email, otpCode, cancellationToken);
-//                 await _smsService.SendOtpAsync(userExists.PhoneNumber, otpCode, cancellationToken);
+            _notificationQueue.QueueOtpDelivery(
+                string.Empty,
+                string.Empty,
+                user.PhoneNumber,
+                otp.RawOtp);
 
-//                 op.Success($"OTP resent successfully for user {userExists.Id}");
+            op.Success($"OTP resent via Sms for user {user.PublicId}.");
 
-//                 return new BaseResult<ResendVerificationOtpResponseDto>(
-//                     HttpStatusCode.OK,
-//                     "Verification OTP resent successfully.",
-//                     new ResendVerificationOtpResponseDto
-//                     {
-//                         UserId = userExists.Id,
-//                         Data = "Data from payload here"
-//                     });
-//             }
-//             catch (Exception ex)
-//             {
-//                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                 op.Fail($"Resend OTP failed for user {userExists.Id}", ex);
-//                 throw;
-//             }
-//         }
-//     }
-// }
+            return new BaseResult<ResendVerificationOtpResponseDto>(
+                HttpStatusCode.OK,
+                "Verification code resent via SMS.",
+                new ResendVerificationOtpResponseDto
+                {
+                    UserId = user.PublicId,
+                    Channel = OtpChannel.Sms.ToString(),
+                    NextStep = NextSteps.VerifyContact
+                });
+        }
+    }
+}

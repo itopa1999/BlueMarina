@@ -1,215 +1,243 @@
-// using System.ComponentModel.DataAnnotations;
-// using System.Net;
-// using BlueMarina.Application.Interfaces.Identity;
-// using BlueMarina.Application.Interfaces.Notification;
-// using BlueMarina.Application.Interfaces.Persistence;
-// using BlueMarina.Application.Interfaces.Security;
-// using BlueMarina.Domain.Entities;
-// using BlueMarina.Shared.Constants;
-// using BlueMarina.Shared.Logging;
-// using BlueMarina.Shared.Results;
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging;
+using MediatR;
+using System.Net;
+using System.ComponentModel.DataAnnotations;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Domain.Entities.Security;
+using BlueMarina.Domain.Enums;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Logging;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using static BlueMarina.Application.Interfaces.Security.IOtpService;
 
-// namespace BlueMarina.Application.BBL.Commands.Authentication;
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
-// public sealed class VerifyAccountCommand
-// {
-//     public class Command : IRequest<BaseResult<VerifyAccountResponseDto>>
-//     {
-//         [EmailAddress]
-//         public string? Email { get; init; }
+public sealed class VerifyAccountCommand
+{
+    public class Command : IRequest<BaseResult<VerifyAccountResponseDto>>
+    {
+        [Required, MaxLength(100)]
+        public string UserId { get; set; } = string.Empty;
 
-//         public string? PhoneNumber { get; init; }
+        [Required, MinLength(6), MaxLength(6)]
+        public string OtpCode { get; init; } = string.Empty;
+    }
 
-//         [MinLength(6), MaxLength(6)]
-//         public string OtpCode { get; init; } = string.Empty;
-//         public string Platform { get; init; } = Platforms.Mobile;
-//     }
+    public class VerifyAccountResponseDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public bool IsAccountVerified { get; set; }
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTimeOffset AccessTokenExpiresAt { get; set; }
+    }
 
-//     public class VerifyAccountResponseDto
-//     {
-//         public string UserId { get; set; } = string.Empty;
-//         public bool IsAccountVerified { get; set; }
-//         public string FullName { get; set; } = string.Empty;
-//         public string Platform { get; set; } = Platforms.Mobile;
-//         public string AccessToken { get; set; } = string.Empty;
-//         public string RefreshToken { get; set; } = string.Empty;
-//         public DateTime AccessTokenExpiresAt { get; set; }
-//     }
+    public class Handler : IRequestHandler<Command, BaseResult<VerifyAccountResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOtpService _otpService;
+        private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IRefreshTokenService _refreshTokenService;
+        private readonly ILogger<Handler> _logger;
 
-//     public class Handler : IRequestHandler<Command, BaseResult<VerifyAccountResponseDto>>
-//     {
-//         private readonly IUnitOfWork _unitOfWork;
-//         private readonly IIdentityService _identityService;
-//         private readonly ILogger<Handler> _logger;
-//         private readonly IEmailService _emailService;
-//         private readonly IJwtTokenGenerator _jwtTokenGenerator;
-//         private readonly IRefreshTokenService _refreshTokenService;
-//         private static readonly HashSet<string> ValidPlatforms =
-//         new(StringComparer.OrdinalIgnoreCase)
-//         {
-//             Platforms.Web,
-//             Platforms.Mobile,
-//             Platforms.Swagger
-//         };
+        public Handler(
+            IIdentityService identityService,
+            IUnitOfWork unitOfWork,
+            IOtpService otpService,
+            IJwtTokenGenerator jwtTokenGenerator,
+            IRefreshTokenService refreshTokenService,
+            ILogger<Handler> logger)
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _otpService = otpService;
+            _jwtTokenGenerator = jwtTokenGenerator;
+            _refreshTokenService = refreshTokenService;
+            _logger = logger;
+        }
 
-//         public Handler(IUnitOfWork unitOfWork, 
-//         IIdentityService identityService, 
-//         ILogger<Handler> logger,
-//         IEmailService emailService,
-//         IJwtTokenGenerator jwtTokenGenerator,
-//         IRefreshTokenService refreshTokenService)
-//         {
-//             _unitOfWork = unitOfWork;
-//             _identityService = identityService;
-//             _logger = logger;
-//             _emailService = emailService;
-//             _jwtTokenGenerator = jwtTokenGenerator;
-//             _refreshTokenService = refreshTokenService;
-//         }
+        public async Task<BaseResult<VerifyAccountResponseDto>> Handle(
+            Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "VerifyAccount",
+                ("UserId", request.UserId));
 
-//         public async Task<BaseResult<VerifyAccountResponseDto>> Handle(Command request, CancellationToken cancellationToken)
-//         {
-//             var identifier = !string.IsNullOrWhiteSpace(request.Email) ? request.Email : request.PhoneNumber;
-//             using var op = OperationLogger.Start(_logger, "VerifyAccount",
-//                 ("Identifier", identifier ?? "unknown")
-//             );
+            if (string.IsNullOrWhiteSpace(request.UserId) ||
+                string.IsNullOrWhiteSpace(request.OtpCode))
+            {
+                op.Warning("Missing user id or OTP code.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "User id and OTP code are required.");
+            }
 
-//             if (!ValidPlatforms.Contains(request.Platform))
-//             {
-//                 op.Fail($"Invalid platform: {request.Platform}");
+            var user = await _identityService.GetByIdentifierAsync(
+                request.UserId, cancellationToken);
 
-//                 return new BaseResult<VerifyAccountResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Invalid platform specified."
-//                 );
-//             }
+            if (user is null)
+            {
+                op.Warning("User not found.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.NotFound, "User not found.");
+            }
 
-//             if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-//             {
-//                 op.Fail("Neither email nor phone number provided.");
-//                 return new BaseResult<VerifyAccountResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Either Email or Phone Number must be provided.");
-//             }
+            if (user.PhoneNumberConfirmed)
+            {
+                op.Warning("Phone already verified.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.Conflict, "Account is already verified.");
+            }
 
-//             var user = await _unitOfWork.Query<UserProfile>()
-//                 .AsNoTracking()
-//                 .Where(up => up.Email == request.Email || up.PhoneNumber == request.PhoneNumber)
-//                 .Select(up => new { up.Id, up.UserId, up.Email, up.FirstName })
-//                 .FirstOrDefaultAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+            {
+                op.Warning("No phone number on file.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest, "No phone number on file.");
+            }
 
-//             if (user == null)
-//             {
-//                 op.Fail("User not found.");
-//                 return new BaseResult<VerifyAccountResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "User not found.");
-//             }
+            var lockout = await _otpService.CheckAsync(
+                user.PublicId,
+                OtpPurpose.SignUpVerification,
+                OtpChannel.Sms,
+                cancellationToken);
 
-//             await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            if (lockout == OtpAttemptResult.LockedOut)
+            {
+                op.Warning("OTP lockout active.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.TooManyRequests,
+                    "Too many failed attempts. Please try again later.");
+            }
 
-//             try
-//             {
-//                 var otpVerification = await _unitOfWork.Query<OtpVerification>()
-//                     .Where(x => x.UserProfileId == user.Id
-//                                 && x.Purpose == OtpPurpose.AccountVerification.ToString()
-//                                 && !x.IsUsed)
-//                     .OrderByDescending(x => x.CreatedAt)
-//                     .FirstOrDefaultAsync(cancellationToken);
+            // 2. Load most recent active OTP
+            var otp = await _unitOfWork
+                .Query<OtpCode>()
+                .Where(x => x.UserId == user.PublicId
+                            && x.Purpose == OtpPurpose.SignUpVerification
+                            && x.Channel == OtpChannel.Sms
+                            && !x.IsUsed)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
 
-//                 if (otpVerification is null)
-//                 {
-//                     op.Fail($"No valid OTP found for user {user.Id}");
-//                     return new BaseResult<VerifyAccountResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         "Invalid OTP. Please request a new one.");
-//                 }
+            if (otp is null)
+            {
+                op.Warning("No active OTP found.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "No OTP found. Please request a new one.");
+            }
 
-//                 if (otpVerification.OtpCode != request.OtpCode)
-//                 {
-//                     op.Fail($"Invalid OTP code provided for user {user.Id}");
-//                     return new BaseResult<VerifyAccountResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         "Invalid OTP code.");
-//                 }
+            if (otp.ExpiresAt < DateTimeOffset.UtcNow)
+            {
+                op.Warning("OTP expired.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "OTP has expired. Please request a new one.");
+            }
 
-//                 if (otpVerification.ExpiresAt < DateTime.UtcNow)
-//                 {
-//                     op.Fail($"OTP expired for user {user.Id}");
-//                     return new BaseResult<VerifyAccountResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         "OTP has expired. Please request a new one.");
-//                 }
+            // 3. Hash submitted code and compare
+            var submittedHash = _otpService.Hash(
+                request.OtpCode,
+                OtpPurpose.SignUpVerification.ToString());
 
-//                 if (otpVerification.IsUsed)
-//                 {
-//                     op.Fail($"OTP already used for user {user.Id}");
-//                     return new BaseResult<VerifyAccountResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         "This OTP has already been used.");
-//                 }
+            var matches = string.Equals(
+                otp.CodeHash, submittedHash, StringComparison.OrdinalIgnoreCase);
 
-//                 var (markSuccess, markError) = await _identityService.MarkEmailAndPhoneAsVerifiedAsync(user.UserId);
-//                 if (!markSuccess)
-//                 {
-//                     op.Fail($"Failed to mark account as verified for user {user.Id}: {markError}");
-//                     return new BaseResult<VerifyAccountResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         markError);
-//                 }
+            if (!matches)
+            {
+                var failResult = await _otpService.RegisterFailureAsync(
+                    user.PublicId,
+                    OtpPurpose.SignUpVerification,
+                    OtpChannel.Sms,
+                    cancellationToken);
 
-//                 otpVerification.IsUsed = true;
-//                 otpVerification.UsedAt = DateTime.UtcNow;
-//                 _unitOfWork.Update(otpVerification);
+                if (failResult == OtpAttemptResult.LockedNow)
+                {
+                    op.Warning("OTP locked after max failed attempts.");
+                    return new BaseResult<VerifyAccountResponseDto>(
+                        HttpStatusCode.TooManyRequests,
+                        "Too many failed attempts. Your phone number has been temporarily locked.");
+                }
 
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-//                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                op.Warning("Invalid OTP.");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest, "Invalid OTP code.");
+            }
 
-//                 var userProfile = await _unitOfWork.Query<UserProfile>()
-//                     .AsNoTracking()
-//                     .Where(up => up.UserId == user.UserId)
-//                     .Select(up => new { up.FirstName, })
-//                     .FirstOrDefaultAsync(cancellationToken);
+            // 4. OTP valid — begin verification inside a transaction
+            await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
-//                 await _emailService.SendWelcomeEmailAsync(userProfile?.FirstName ?? "Customer", user.Email, cancellationToken);
+            var (markSuccess, markError) = await _identityService.MarkPhoneAsVerifiedAsync(
+                user.Id);
 
+            if (!markSuccess)
+            {
+                op.Warning($"Failed to mark account verified: {markError}");
+                return new BaseResult<VerifyAccountResponseDto>(
+                    HttpStatusCode.BadRequest, markError);
+            }
 
-//                 var roles = await _identityService.GetRolesAsync(user.UserId);
+            otp.IsUsed = true;
+            otp.UsedAt = DateTimeOffset.UtcNow;
+            otp.ConsumedAt = DateTimeOffset.UtcNow;
 
-//                 var accessToken = _jwtTokenGenerator.GenerateToken(
-//                     user.Id,
-//                     user.Email,
-//                     roles);
+            var now = DateTimeOffset.UtcNow;
+            await _unitOfWork
+                .Query<OtpCode>()
+                .Where(x => x.UserId == user.PublicId
+                            && x.Purpose == OtpPurpose.SignUpVerification
+                            && !x.IsUsed
+                            && x.Id != otp.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.IsUsed, true)
+                    .SetProperty(p => p.UsedAt, now)
+                    .SetProperty(p => p.ConsumedAt, now), cancellationToken);
 
-//                 var (refreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.Id, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-//                 await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // 🔄 Reset failure tracker on success
+            await _otpService.ResetAsync(
+                user.PublicId,
+                OtpPurpose.SignUpVerification,
+                OtpChannel.Sms,
+                cancellationToken);
 
-//                 op.Success($"Account verified successfully for user {user.Id}");
-//                 return new BaseResult<VerifyAccountResponseDto>(
-//                     HttpStatusCode.OK,
-//                     "Account verified successfully.",
-//                     new VerifyAccountResponseDto
-//                     {
-//                         UserId = user.Id,
-//                         IsAccountVerified = true,
-//                         FullName = userProfile?.FirstName ?? string.Empty,
-//                         Platform = request.Platform,
-//                         AccessToken = accessToken,
-//                         RefreshToken = refreshToken,
-//                         AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
-//                     });
-//             }
-//             catch (Exception ex)
-//             {
-//                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                 op.Fail($"Account verification failed for user {user.Id}", ex);
-//                 throw;
-//             }
-//         }
-//     }
-// }
+            var roles = await _identityService.GetRolesAsync(user.Id);
+
+            var jwtResult = _jwtTokenGenerator.GenerateToken(
+                user.Id,
+                user.PublicId,
+                user.FirstName,
+                user.OtherNames,
+                user.LastName,
+                user.Email,
+                user.PhoneNumber,
+                user.FullName,
+                roles);
+
+            var (rawRefreshToken, refreshTokenEntity) = await _refreshTokenService
+                .CreateAsync(user.PublicId, cancellationToken);
+
+            await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            op.Success($"Account verified successfully for user {user.PublicId}.");
+
+            return new BaseResult<VerifyAccountResponseDto>(
+                HttpStatusCode.OK,
+                "Account verified successfully.",
+                new VerifyAccountResponseDto
+                {
+                    UserId = user.PublicId,
+                    IsAccountVerified = true,
+                    AccessToken = jwtResult.AccessToken,
+                    RefreshToken = rawRefreshToken,
+                    AccessTokenExpiresAt = jwtResult.ExpiresAt
+                });
+        }
+    }
+}

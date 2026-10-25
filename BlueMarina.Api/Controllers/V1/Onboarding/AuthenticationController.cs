@@ -1,16 +1,18 @@
 using System.Net;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
-using BlueMarina.Application.BBL.Commands.Authentication;
+using BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Shared.Common.Results;
-using BlueMarina.Shared.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
-using static BlueMarina.Application.BBL.Commands.Authentication.RegisterCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.ChangePendingPhoneCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.RegisterCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.ResendVerificationOtpCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.VerifyAccountCommand;
 
 namespace BlueMarina.Api.Controllers.V1;
 
@@ -38,31 +40,47 @@ public class AuthenticationController(
             result);
     }
 
-//     [HttpPost("verify-account")]
-//     [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-//     public async Task<IActionResult> VerifyEmailToken(
-//         [FromBody] VerifyAccountCommand.Command command, CancellationToken cancellationToken)
-//     {
-//         var result = await _mediator.Send(command, cancellationToken);
+    [HttpPost("change-pending-phone")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<ChangePendingPhoneResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Conflict)]
+    public async Task<IActionResult> ChangePendingPhone(
+        [FromBody] ChangePendingPhoneCommand.Command command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
 
-//         return StatusCode(
-//             (int)result.StatusCode,
-//             result);
-//     }
+    [HttpPost("resend-otp")]
+    [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> ResendVerificationToken(
+        [FromBody] ResendVerificationOtpCommand.Command command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
 
-//     [HttpPost("resend-verification-token")]
-//     [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-//     public async Task<IActionResult> ResendVerificationToken(
-//         [FromBody] ResendVerificationOtpCommand.Command command, CancellationToken cancellationToken)
-//     {
-//         var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode(
+            (int)result.StatusCode,
+            result);
+    }
 
-//         return StatusCode(
-//             (int)result.StatusCode,
-//             result);
-//     }
+
+
+    [HttpPost("verify-account")]
+    [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> VerifyEmailToken(
+        [FromBody] VerifyAccountCommand.Command command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return StatusCode(
+            (int)result.StatusCode,
+            result);
+    }
 
 //     [HttpPost("login")]
 //     [ProducesResponseType(typeof(BaseResult<LoginResponseDto>), (int)HttpStatusCode.OK)]

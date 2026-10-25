@@ -67,6 +67,9 @@ public static class DependencyInjection
         var hmacKey = configuration["Security:HmacKey"]
             ?? throw new InvalidOperationException("HMAC Key is missing.");
 
+        services.Configure<OtpSecuritySettings>(
+            configuration.GetSection(OtpSecuritySettings.SectionName));
+
         services.AddSingleton(new SensitiveIdentifierHasher(hmacKey));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

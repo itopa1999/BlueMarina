@@ -3,6 +3,7 @@ using BlueMarina.Domain.Enums;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using static BlueMarina.Application.Interfaces.Identity.IIdentityService;
 
 namespace BlueMarina.Infrastructure.Identity;
 
@@ -27,12 +28,14 @@ public sealed class IdentityService : IIdentityService
         long? referredByUserId = null,
         string? referredByCode = null)
     {
+        var publicId = await GenerateUniquePublicIdAsync();
+        
         var user = new User
         {
             Email = email,
             UserName = email,
             PhoneNumber = phoneNumber,
-            PublicId = string.Empty,
+            PublicId = publicId,
             Status = UserStatus.PendingVerification,
             ReferredByUserId = referredByUserId,
             ReferredByCode = referredByCode,
@@ -48,7 +51,6 @@ public sealed class IdentityService : IIdentityService
             return (false, errors, string.Empty, 0);
         }
 
-        user.PublicId = user.Id.ToString("D4");
         user.OwnReferralCode = $"{user.PublicId}{Random.Shared.Next(1000, 9999)}";
 
         var updateResult = await _userManager.UpdateAsync(user);
@@ -60,6 +62,25 @@ public sealed class IdentityService : IIdentityService
         }
 
         return (true, string.Empty, user.PublicId, user.Id);
+    }
+
+    private async Task<string> GenerateUniquePublicIdAsync()
+    {
+        const int maxAttempts = 5;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var candidate = $"BM{Random.Shared.Next(100_000, 1_000_000)}";
+
+            var exists = await _userManager.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.PublicId == candidate);
+
+            if (!exists) return candidate;
+        }
+
+        throw new InvalidOperationException(
+            "Could not generate a unique PublicId after 5 attempts.");
     }
 
     public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(long userId, string role)
@@ -95,6 +116,26 @@ public sealed class IdentityService : IIdentityService
         {
             return (false, string.Join(", ", result.Errors.Select(x => x.Description)));
         }
+
+        return (true, string.Empty);
+    }
+
+    public async Task<(bool Success, string ErrorMessage)> MarkPhoneAsVerifiedAsync(long userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null)
+            return (false, "User not found.");
+
+        existingUser.PhoneNumberConfirmed = true;
+
+        // if (existingUser.EmailConfirmed && existingUser.PhoneNumberConfirmed)
+        existingUser.Status = UserStatus.Active;
+
+        existingUser.SecurityStamp = Guid.NewGuid().ToString();
+
+        var result = await _userManager.UpdateAsync(existingUser);
+        if (!result.Succeeded)
+            return (false, string.Join(", ", result.Errors.Select(x => x.Description)));
 
         return (true, string.Empty);
     }
@@ -238,5 +279,108 @@ public sealed class IdentityService : IIdentityService
             .FirstOrDefaultAsync(cancellationToken);
 
         return user is null ? (false, 0) : (true, user.Id);
+    }
+    public async Task<bool> IsPhoneNumberVerifiedAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x => x.PublicId == userId)
+            .Select(x => x.PhoneNumberConfirmed)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<(bool Success, string ErrorMessage)> UpdatePendingPhoneAsync(
+        string userId,
+        string newPhoneNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.PublicId == userId, cancellationToken);
+
+        if (user is null)
+            return (false, "User not found.");
+
+        if (user.PhoneNumberConfirmed)
+            return (false, "Phone number is already verified and cannot be changed.");
+
+        user.PhoneNumber = newPhoneNumber;
+        user.PhoneNumberConfirmed = false;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+
+        var now = DateTimeOffset.UtcNow;
+
+        await _context.OtpCodes
+            .Where(x => x.UserId == userId
+                        && x.Purpose == OtpPurpose.SignUpVerification
+                        && x.Channel == OtpChannel.Sms
+                        && !x.IsUsed)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.IsUsed, true)
+                .SetProperty(p => p.UsedAt, now)
+                .SetProperty(p => p.ConsumedAt, now), cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return (true, string.Empty);
+    }
+
+    public async Task<UserIdentityDto?> GetByIdentifierAsync(
+        string identifier,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return null;
+        }
+
+        identifier = identifier.Trim();
+
+        var user = await FindUserByIdentifierAsync(identifier, cancellationToken);
+        if (user is null)
+        {
+            return null;
+        }
+
+        return await GetByIdAsync(user.Id, cancellationToken);
+    }
+
+    private async Task<User?> FindUserByIdentifierAsync(
+        string identifier,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = identifier.ToUpperInvariant();
+
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.PublicId == identifier ||
+                x.NormalizedEmail == normalizedEmail ||
+                x.PhoneNumber == identifier)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<UserIdentityDto?> GetByIdAsync(
+        long userId,
+        CancellationToken cancellationToken)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x => x.Id == userId)
+            .Select(x => new UserIdentityDto(
+                x.Id,
+                x.PublicId,
+                x.Email,
+                x.EmailConfirmed,
+                x.PhoneNumber,
+                x.PhoneNumberConfirmed,
+                x.FirstName,
+                x.OtherName,
+                x.LastName))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

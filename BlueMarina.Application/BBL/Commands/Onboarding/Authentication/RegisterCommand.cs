@@ -13,7 +13,7 @@ using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Constants;
 
-namespace BlueMarina.Application.BBL.Commands.Authentication;
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
 public sealed class RegisterCommand
 {
@@ -34,7 +34,7 @@ public sealed class RegisterCommand
 
     public class RegistrationResponseDto
     {
-        public string UserPublicId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string NextStep { get; set; } = string.Empty;
@@ -174,18 +174,6 @@ public sealed class RegisterCommand
                 Attempts = 0
             }, cancellationToken);
 
-            var emailOtp = _otpService.GenerateOtp(OtpPurpose.SignUpVerification.ToString());
-            await _unitOfWork.AddAsync(new OtpCode
-            {
-                UserId = publicId,
-                CodeHash = emailOtp.HashedOtp,
-                Channel = OtpChannel.Email,
-                Purpose = OtpPurpose.SignUpVerification,
-                ExpiresAt = DateTimeOffset.UtcNow.AddHours(24),
-                CreatedAt = DateTimeOffset.UtcNow,
-                IsUsed = false,
-                Attempts = 0
-            }, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -195,12 +183,7 @@ public sealed class RegisterCommand
                 string.Empty,
                 normalizedPhoneNumber,
                 smsOtp.RawOtp);
-
-            _notificationQueue.QueueOtpDelivery(
-                string.Empty,
-                string.Empty,
-                normalizedEmail,
-                emailOtp.RawOtp);
+                
 
             op.Success($"User {publicId} registered successfully.");
 
@@ -209,7 +192,7 @@ public sealed class RegisterCommand
                 "Account created successfully.",
                 new RegistrationResponseDto
                 {
-                    UserPublicId = publicId,
+                    UserId = publicId,
                     Email = normalizedEmail,
                     Phone = normalizedPhoneNumber,
                     NextStep = NextSteps.VerifyContact

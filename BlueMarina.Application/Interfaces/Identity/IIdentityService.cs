@@ -24,6 +24,15 @@ public interface IIdentityService
         long? excludeUserId = null,
         CancellationToken cancellationToken = default);
 
+    Task<bool> IsPhoneNumberVerifiedAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Success, string ErrorMessage)> UpdatePendingPhoneAsync(
+        string userId,
+        string newPhoneNumber,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Found, long UserId)> FindUserByReferralCodeAsync(
         string referralCode,
         CancellationToken cancellationToken = default);
@@ -32,6 +41,8 @@ public interface IIdentityService
         long userId,
         string role);
     Task<(bool Success, string ErrorMessage)> MarkEmailAndPhoneAsVerifiedAsync(long userId);
+
+    Task<(bool Success, string ErrorMessage)> MarkPhoneAsVerifiedAsync(long userId);
 
     Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(long userId, string newPassword);
 
@@ -45,4 +56,33 @@ public interface IIdentityService
     Task<bool> IsAccountVerifiedAsync(long userId);
 
     Task<IList<string>> GetRolesAsync(long userId);
+
+    Task<UserIdentityDto?> GetByIdentifierAsync(
+        string identifier,
+        CancellationToken cancellationToken);
+
+    public sealed record UserIdentityDto(
+        long Id,
+        string PublicId,
+        string? Email,
+        bool EmailConfirmed,
+        string? PhoneNumber,
+        bool PhoneNumberConfirmed,
+        string FirstName,
+        string? OtherNames,
+        string LastName
+    )
+    {
+
+    public string FullName =>
+        string.Join(
+            " ",
+            new[]
+            {
+                FirstName,
+                OtherNames,
+                LastName
+            }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    }
 }

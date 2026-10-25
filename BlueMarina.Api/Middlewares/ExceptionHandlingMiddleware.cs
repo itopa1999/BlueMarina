@@ -71,6 +71,13 @@ public class ExceptionHandlingMiddleware
         }
         else
         {
+            _logger.LogWarning(
+            exception,
+            "Handled {StatusCode}: {ExceptionType} - {ExceptionMessage}",
+            statusCode,
+            exception.GetType().Name,
+            exception.Message);
+
             op.Warning($"Handled {statusCode}: {exception.GetType().Name}");
         }
 

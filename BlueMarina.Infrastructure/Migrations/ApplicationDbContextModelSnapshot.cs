@@ -1435,6 +1435,70 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.ToTable("otp_codes", (string)null);
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Security.OtpLockout", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastFailedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Purpose", "Channel")
+                        .IsUnique();
+
+                    b.ToTable("otp_lockouts");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.RefreshToken", b =>
                 {
                     b.Property<long>("Id")
@@ -1718,6 +1782,10 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<string>("Occupation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OtherName")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OwnReferralCode")

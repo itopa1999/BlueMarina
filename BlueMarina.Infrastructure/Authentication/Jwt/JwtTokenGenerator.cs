@@ -20,7 +20,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         _jwtSettings = jwtOptions.Value;
     }
 
-    public string GenerateToken(
+    public JwtTokenResult  GenerateToken(
         long userId,
         string userPublicId,
         string firstName,
@@ -28,14 +28,14 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         string lastName,
         string email,
         string phoneNumber,
-        decimal balance,
         string fullName,
-        string platform,
         IList<string> roles)
     {
         ArgumentNullException.ThrowIfNull(roles);
 
         var now = DateTimeOffset.UtcNow;
+
+        var expiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
 
         var claims = new List<Claim>
         {
@@ -57,12 +57,6 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new("UserLastName", lastName ?? string.Empty),
             new("UserPhoneNumber", phoneNumber ?? string.Empty),
             new("UserFullName", fullName ?? string.Empty),
-            new("Platform", string.IsNullOrWhiteSpace(platform) ? "web" : platform),
-
-            new(
-                "UserBalance",
-                balance.ToString(CultureInfo.InvariantCulture),
-                ClaimValueTypes.String)
         };
 
         foreach (var role in roles)
@@ -94,6 +88,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             expires: expires.UtcDateTime,
             signingCredentials: signingCredentials);
 
-        return TokenHandler.WriteToken(token);
+        var accessToken =  TokenHandler.WriteToken(token);
+        return new JwtTokenResult(accessToken, expiresAt);
     }
 }

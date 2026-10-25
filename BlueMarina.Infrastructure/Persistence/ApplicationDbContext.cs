@@ -25,6 +25,7 @@ public sealed class ApplicationDbContext
     // --- Security Entities ---
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<OtpLockout> OtpLockouts => Set<OtpLockout>();
     public DbSet<Credential> Credentials => Set<Credential>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceApprovalRequest> DeviceApprovalRequests => Set<DeviceApprovalRequest>();
@@ -98,14 +99,14 @@ public sealed class ApplicationDbContext
 
                 case EntityState.Modified:
                     entry.Entity.ModifiedAt = DateTimeOffset.UtcNow;
-                    entry.Entity.ModifiedBy = _currentUser?.UserEmail.ToString();
+                    entry.Entity.ModifiedBy = _currentUser?.UserEmail?.ToString();
                     break;
 
                 case EntityState.Deleted:
                     entry.State = EntityState.Modified;
                     entry.Entity.IsDeleted = true;
                     entry.Entity.DeletedAt = DateTimeOffset.UtcNow;
-                    entry.Entity.DeletedBy = _currentUser?.UserEmail.ToString();
+                    entry.Entity.DeletedBy = _currentUser?.UserEmail?.ToString();
                     break;
             }
         }
