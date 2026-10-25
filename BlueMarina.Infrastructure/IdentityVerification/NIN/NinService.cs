@@ -3,8 +3,8 @@ using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Infrastructure.Persistence;
-using BlueMarina.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
+using BlueMarina.Application.Interfaces.Security;
 
 namespace BlueMarina.Infrastructure.IdentityVerification.NIN;
 
@@ -70,7 +70,7 @@ public sealed class NinService : INinService
         // var response = await _apiClient.PostAsync<NinRequest, NinResponse>(url, new { nin }, ct: ct);
         
         var apiSuccess = true;
-        var maskedPhone = "*** ** *4321";
+        var maskedPhone = "*** ** *4321"; 
         var providerRef = Guid.NewGuid().ToString();
 
         if (!apiSuccess)
@@ -109,6 +109,7 @@ public sealed class NinService : INinService
         string userId, string nin, string otp, CancellationToken ct)
     {
         var identityCheck = await _context.IdentityChecks
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.UserId == userId, ct);
 
         if (identityCheck != null && identityCheck.Status == IdentityCheckStatus.Matched)
@@ -116,52 +117,32 @@ public sealed class NinService : INinService
             return (false, "Your NIN is already verified.", IdentityCheckErrorCode.ValidationFailed, null);
         }
 
-        // 2. Call External Provider to verify OTP
         // var response = await _apiClient.PostAsync<VerifyOtpRequest, VerifyOtpResponse>(url, new { nin, otp }, ct: ct);
         
-        var isValid = true; 
+        var isValid = true;
 
         if (!isValid)
         {
-            if (identityCheck != null)
-            {
-                identityCheck.Status = IdentityCheckStatus.Mismatch;
-                identityCheck.FailureReason = "Invalid OTP code provided.";
-                identityCheck.CheckedAt = DateTimeOffset.UtcNow;
-                await _context.SaveChangesAsync(ct);
-            }
-
             return (false, "Invalid OTP code.", IdentityCheckErrorCode.InvalidOtp, null);
         }
 
-        // 3. Save verified NIN to User profile
-        var user = await _context.Users.FirstOrDefaultAsync(x => x.PublicId == userId, ct);
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.PublicId == userId, ct);
+            
         if (user == null)
         {
             return (false, "User not found.", IdentityCheckErrorCode.NotFound, null);
         }
 
-        user.NinEncrypted = _hasher.Hash(nin, "NIN");
-        // user.NinEncrypted = _encryptionService.Encrypt(nin); // Add when encryption service is ready
-        // user.PhoneNumber = "+2348030000043"; // Update phone if NIN provider returns it
-
-        if (identityCheck != null)
-        {
-            identityCheck.Status = IdentityCheckStatus.Matched;
-            identityCheck.FailureReason = null;
-            identityCheck.CheckedAt = DateTimeOffset.UtcNow;
-        }
-
-        await _context.SaveChangesAsync(ct);
-
-        // 4. Return details for the UI
         var details = new BvnDetailsDto(
             FirstName: $"NIN_User_{userId}",
             LastName: $"Test_{userId}",
             OtherNames: $"Chukwuemeka_{userId}",
-            DateOfBirth: new DateOnly(1995, 8, 20), // Mock DOB for NIN
+            DateOfBirth: new DateOnly(1995, 8, 20),
             PhoneNumber: user.PhoneNumber ?? "+2348030000021",
-            Gender: Gender.Female.ToString()
+            Gender: Gender.Female.ToString(),
+            ProviderReference: identityCheck?.ProviderReference ?? Guid.NewGuid().ToString()
         );
 
         return (true, string.Empty, IdentityCheckErrorCode.None, details);

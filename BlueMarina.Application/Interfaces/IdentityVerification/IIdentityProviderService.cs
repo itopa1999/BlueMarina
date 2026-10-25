@@ -27,6 +27,16 @@ public interface IIdentityProviderService
         string otp, 
         IdentityCheckType type,
         CancellationToken cancellationToken = default);
+
+    Task<(bool Success, string ErrorMessage)> SaveVerifiedIdentityAsync(
+        string publicId,
+        IdentityCheckType type,
+        string identityNumber,
+        string firstName,
+        string lastName,
+        DateOnly dateOfBirth,
+        string phoneNumber,
+        CancellationToken cancellationToken = default);
 }
 
 public class InitiateIdentityResult
@@ -43,5 +53,6 @@ public record BvnDetailsDto(
     string OtherNames,
     DateOnly DateOfBirth,
     string PhoneNumber,
-    string Gender
+    string Gender,
+    string ProviderReference
 );

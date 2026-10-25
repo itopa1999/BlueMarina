@@ -4,7 +4,6 @@ namespace BlueMarina.Application.Helpers;
 
 public static partial class ExtensionHelpers
 {
-
     [GeneratedRegex(
         @"^\+234(?:70|71|80|81|90|91)\d{8}$",
         RegexOptions.Compiled)]
@@ -17,14 +16,12 @@ public static partial class ExtensionHelpers
 
         var value = phoneNumber.Trim();
 
-        // Remove common formatting characters.
         value = value
             .Replace(" ", "")
             .Replace("-", "")
             .Replace("(", "")
             .Replace(")", "");
 
-        // 08012345678
         if (value.StartsWith("0"))
         {
             if (value.Length != 11)
@@ -32,8 +29,6 @@ public static partial class ExtensionHelpers
 
             value = "+234" + value[1..];
         }
-
-        // 2348012345678
         else if (value.StartsWith("234"))
         {
             if (value.Length != 13)
@@ -41,14 +36,11 @@ public static partial class ExtensionHelpers
 
             value = "+" + value;
         }
-
-        // +2348012345678
         else if (value.StartsWith("+234"))
         {
             if (value.Length != 14)
                 return null;
         }
-
         else
         {
             return null;
@@ -61,4 +53,43 @@ public static partial class ExtensionHelpers
 
     public static bool IsValid(string? phoneNumber)
         => Normalize(phoneNumber) is not null;
+
+    public static (bool IsWeak, string ErrorMessage) IsWeakPin(string pin)
+    {
+        if (pin.Distinct().Count() == 1)
+        {
+            return (true, "Your PIN cannot be all the same digits.");
+        }
+
+        if (pin == "123456" || pin == "654321")
+        {
+            return (true, "Your PIN cannot be a simple sequence.");
+        }
+
+        var firstHalf = pin.Substring(0, 3);
+        var secondHalf = pin.Substring(3, 3);
+        if (firstHalf == secondHalf)
+        {
+            return (true, "Your PIN cannot be a repeating pattern.");
+        }
+
+        var digits = pin.Select(c => c - '0').ToArray();
+        if ((digits[1] - digits[0]) == (digits[3] - digits[2]) && (digits[2] - digits[1]) == (digits[4] - digits[3]))
+        {
+            return (true, "Your PIN cannot be a patterned sequence.");
+        }
+
+        var commonPins = new HashSet<string>
+        {
+            "000000", "111111", "121212", "123123", "112233", "696969",
+            "101010", "111222", "121314", "131313", "147258", "159753"
+        };
+
+        if (commonPins.Contains(pin))
+        {
+            return (true, "That PIN is too common and easy to guess — try another.");
+        }
+
+        return (false, string.Empty);
+    }
 }

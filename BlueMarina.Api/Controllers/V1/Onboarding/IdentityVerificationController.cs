@@ -2,6 +2,7 @@ using System.Net;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.IdentityVerification;
+using BlueMarina.Application.Interfaces.IdentityVerification;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
@@ -42,11 +43,26 @@ public class IdentityVerificationController(
 
     [HttpPost("verify-otp")]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
-    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult<BvnDetailsDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.TooManyRequests)]
     public async Task<IActionResult> VerifyIdentityOtp(
         [FromBody] VerifyIdentityOtpCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    [HttpPost("confirm")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> ConfirmIdentityDetails(
+        [FromBody] ConfirmIdentityDetailsCommand.Command command,
         CancellationToken cancellationToken)
     {
         command.UserId = UserPublicId ?? string.Empty;

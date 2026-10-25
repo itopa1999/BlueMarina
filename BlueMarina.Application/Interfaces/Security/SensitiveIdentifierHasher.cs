@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace BlueMarina.Infrastructure.Security;
+namespace BlueMarina.Application.Interfaces.Security;
 
 public sealed class SensitiveIdentifierHasher
 {
