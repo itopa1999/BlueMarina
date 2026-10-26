@@ -12,7 +12,7 @@ public interface IEmailService
         CancellationToken cancellationToken = default
     );
 
-    Task SendEmailVericationLinkAsync(
+    Task SendEmailVerificationLinkAsync(
         string firstName,
         string email,
         string link,

@@ -1,4 +1,5 @@
 using System.Net;
+using Asp.Versioning;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
@@ -22,8 +23,8 @@ namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
 [Authorize(Roles = Roles.Customer)]
-[Route("api/v1/kyc")]
-[ApiExplorerSettings(GroupName = "v1")]
+[Route("api/v{version:apiVersion}/kyc")]
+[ApiVersion("1.0")]
 public class IdentityVerificationController(
     IMediator mediator) : BaseController
 {
@@ -168,6 +169,7 @@ public class IdentityVerificationController(
     }
 
     [HttpGet("locations/states")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(BaseResult<List<StateDto>>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> GetStates(CancellationToken cancellationToken)
     {

@@ -1,4 +1,5 @@
 using System.Net;
+using Asp.Versioning;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
@@ -18,8 +19,8 @@ using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.Verif
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
-[Route("api/v1/auth")]
-[ApiExplorerSettings(GroupName = "v1")]
+[Route("api/v{version:apiVersion}/auth")]
+[ApiVersion("1.0")]
 public class AuthenticationController(
     IMediator mediator,
     IOptions<JwtSettings> jwtOptions) : BaseController

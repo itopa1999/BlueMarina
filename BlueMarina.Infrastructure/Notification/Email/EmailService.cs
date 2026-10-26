@@ -48,7 +48,7 @@ public sealed class EmailService : IEmailService
             cancellationToken);
     }
 
-    public async Task SendEmailVericationLinkAsync(
+    public async Task SendEmailVerificationLinkAsync(
         string firstName,
         string email,
         string link,

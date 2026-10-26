@@ -28,7 +28,7 @@ public sealed class NotificationQueue : INotificationQueue
         {
         TryEnqueue(
             "QueueOtpDelivery.Email",
-            () => _backgroundJobClient.Enqueue<BackgroundNotificationJob>(
+            () => _backgroundJobClient.Enqueue<BackgroundJobs>(
                 job => job.SendOtpEmailAsync(
                     firstName, email, otp, CancellationToken.None)),
             ("Email", email));
@@ -39,7 +39,7 @@ public sealed class NotificationQueue : INotificationQueue
         {
             TryEnqueue(
                 "QueueOtpDelivery.Sms",
-                () => _backgroundJobClient.Enqueue<BackgroundNotificationJob>(
+                () => _backgroundJobClient.Enqueue<BackgroundJobs>(
                     job => job.SendOtpSmsAsync(
                         phoneNumber, otp, CancellationToken.None)),
                 ("Phone", phoneNumber));
@@ -54,8 +54,8 @@ public sealed class NotificationQueue : INotificationQueue
     {
         TryEnqueue(
             "QueueEmailVerificationLink",
-            () => _backgroundJobClient.Enqueue<BackgroundNotificationJob>(
-                job => job.SendEmailVericationLinkAsync(
+            () => _backgroundJobClient.Enqueue<BackgroundJobs>(
+                job => job.SendEmailVerificationLinkAsync(
                     firstName,
                     email,
                     verificationLink,

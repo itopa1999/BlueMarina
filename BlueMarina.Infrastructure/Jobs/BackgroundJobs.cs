@@ -5,17 +5,17 @@ using Microsoft.Extensions.Logging;
 
 namespace BlueMarina.Infrastructure.Jobs;
 
-public sealed class BackgroundNotificationJob
+public sealed class BackgroundJobs
 {
     private readonly IEmailService _emailService;
     private readonly ISmsService _smsService;
-    private readonly ILogger<BackgroundNotificationJob> _logger;
+    private readonly ILogger<BackgroundJobs> _logger;
     private readonly ApplicationDbContext _context;
 
-    public BackgroundNotificationJob(
+    public BackgroundJobs(
         IEmailService emailService,
         ISmsService smsService,
-        ILogger<BackgroundNotificationJob> logger,
+        ILogger<BackgroundJobs> logger,
         ApplicationDbContext context)
     {
         _emailService = emailService;
@@ -23,37 +23,6 @@ public sealed class BackgroundNotificationJob
         _logger = logger;
         _context = context;
     }
-
-    // [AutomaticRetry(Attempts = 3)]
-    // public async Task SendOtpAsync(
-    //     string? firstName,
-    //     string email,
-    //     string? phoneNumber,
-    //     string otp,
-    //     string purpose,
-    //     CancellationToken cancellationToken)
-    // {
-    //     var failures = new List<Exception>();
-
-    //     try
-    //     {
-    //         await _emailService.SendOtpAsync(
-    //             string.IsNullOrWhiteSpace(firstName) ? "Customer" : firstName,
-    //             email,
-    //             otp,
-    //             purpose,
-    //             cancellationToken);
-    //     }
-    //     catch (Exception exception)
-    //     {
-    //         failures.Add(exception);
-    //         using var op = OperationLogger.Start(_logger, "BackgroundOtpEmail", ("Email", email));
-    //         op.Error("Background OTP email failed.", exception);
-    //     }
-
-    //     if (failures.Count > 0)
-    //         throw new AggregateException("One or more OTP notifications failed.", failures);
-    // }
 
     [AutomaticRetry(Attempts = 3)]
     public Task SendOtpEmailAsync(
@@ -70,14 +39,14 @@ public sealed class BackgroundNotificationJob
     }
 
     [AutomaticRetry(Attempts = 3)]
-    public Task SendEmailVericationLinkAsync(
+    public Task SendEmailVerificationLinkAsync(
         string? firstName,
         string email,
         string link,
         string expiresAt,
         CancellationToken cancellationToken)
     {
-        return _emailService.SendEmailVericationLinkAsync(
+        return _emailService.SendEmailVerificationLinkAsync(
             string.IsNullOrWhiteSpace(firstName) ? "Customer" : firstName,
             email,
             link,
@@ -144,15 +113,6 @@ public sealed class BackgroundNotificationJob
 
     //     if (failures.Count > 0)
     //         throw new AggregateException("One or more password-reset notifications failed.", failures);
-    // }
-
-    // [AutomaticRetry(Attempts = 3)]
-    // public Task SendForgotPasswordEmailAsync(
-    //     string email,
-    //     string otp,
-    //     CancellationToken cancellationToken)
-    // {
-    //     return _emailService.SendForgotPasswordOtpAsync(email, otp, cancellationToken);
     // }
 
     // [AutomaticRetry(Attempts = 2)]

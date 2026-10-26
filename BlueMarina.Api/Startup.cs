@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Asp.Versioning;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.Middlewares;
 using BlueMarina.Api.RateLimiting;
@@ -22,7 +23,10 @@ public class Startup(IConfiguration configuration)
     public void ConfigureServices(IServiceCollection services)
     {
         // Controllers
-        services.AddControllers()
+        services.AddControllers(options =>
+            {
+                options.Filters.Add<ApiVersionResultFilter>();
+            })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -90,6 +94,20 @@ public class Startup(IConfiguration configuration)
         });
 
         services.AddAppRateLimiting();
+
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true; 
+        })
+        .AddMvc()
+        .AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
+        
 
         // Swagger
         services.AddEndpointsApiExplorer();

@@ -14,10 +14,6 @@ public interface INotificationQueue
         string link,
         string expiry);
 
-    // void QueueForgotPasswordOtp(
-    //     string email,
-    //     string? phoneNumber,
-    //     string otp);
 
     // void QueueWelcomeEmail(
     //     string firstName,
