@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddSingleton(new SensitiveIdentifierHasher(hmacKey));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IAuthAuditService, AuthAuditService>();
 
         services.AddScoped<IOtpService, OtpService>();
 

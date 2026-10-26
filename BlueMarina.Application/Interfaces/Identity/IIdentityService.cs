@@ -74,6 +74,22 @@ public interface IIdentityService
 
     Task<IList<string>> GetRolesAsync(long userId);
 
+    Task<bool> IsLockedOutAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
+    Task<DateTimeOffset?> GetLockoutEndAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
+    Task RecordFailedAccessAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
+    Task ResetFailedAccessAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
     Task<UserIdentityDto?> GetByIdentifierAsync(
         string identifier,
         CancellationToken cancellationToken);
@@ -88,8 +104,8 @@ public interface IIdentityService
         string FirstName,
         string? OtherNames,
         string LastName,
-        AccountTier Tier
-
+        AccountTier Tier,
+        UserStatus Status
     )
     {
 

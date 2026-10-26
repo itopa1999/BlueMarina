@@ -15,6 +15,7 @@ public class SignInAttempt : BaseEntity
     public long? DeviceId { get; set; }
     public SignInMethod Method { get; set; }
     public SignInStatus Status { get; set; }
+    public string? FullReason { get; set; }
     public string? IpAddress { get; set; }
     public string? Location { get; set; }
 }

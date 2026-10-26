@@ -5,7 +5,6 @@ using BlueMarina.Application.Interfaces.Persistence;
 using System.ComponentModel.DataAnnotations;
 using BlueMarina.Application.Interfaces.Security;
 using BlueMarina.Application.Interfaces.Notification;
-using BlueMarina.Application.Common.Settings;
 using BlueMarina.Shared.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

@@ -30,7 +30,7 @@ public enum SignInMethod
 {
     Pin,
     FaceId,
-    PasswordWithOtp,
+    Password,
     PasswordWithAuthenticator,
     TrustedDeviceApproval
 }

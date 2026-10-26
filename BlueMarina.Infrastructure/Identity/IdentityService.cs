@@ -273,6 +273,56 @@ public sealed class IdentityService : IIdentityService
     // READ
     // ==========================================
 
+    public async Task<bool> IsLockedOutAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return false;
+
+        return await _userManager.IsLockedOutAsync(user);
+    }
+
+    public async Task<DateTimeOffset?> GetLockoutEndAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return null;
+
+        return await _userManager.GetLockoutEndDateAsync(user);
+    }
+
+    public async Task RecordFailedAccessAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return;
+
+        await _userManager.AccessFailedAsync(user);
+    }
+
+    public async Task ResetFailedAccessAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return;
+
+        await _userManager.ResetAccessFailedCountAsync(user);
+
+        await _userManager.SetLockoutEndDateAsync(user, null);
+    }
+
     public async Task<bool> CheckPasswordAsync(long userId, string password)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
@@ -432,7 +482,8 @@ public sealed class IdentityService : IIdentityService
                 x.FirstName,
                 x.OtherName,
                 x.LastName,
-                x.Tier))
+                x.Tier,
+                x.Status))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

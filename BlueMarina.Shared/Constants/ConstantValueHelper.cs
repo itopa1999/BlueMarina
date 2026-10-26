@@ -32,6 +32,9 @@ public static class Platforms
     public const string Web = "Web";
     public const string Mobile = "Mobile";
     public const string Swagger = "Swagger";
+    public const string External = "External";
+    public const string Internal = "Internal";
+
 }
 
 

@@ -12,6 +12,10 @@ public class BaseResult
     [JsonPropertyOrder(2)]
     public string? Version { get; set; }
 
+    [JsonPropertyName("platform")]
+    [JsonPropertyOrder(3)]
+    public string? Platform { get; set; }
+
     [JsonPropertyName("message")]
     [JsonPropertyOrder(2)]
     public string Message { get; set; }

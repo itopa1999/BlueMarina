@@ -169,7 +169,6 @@ public class IdentityVerificationController(
     }
 
     [HttpGet("locations/states")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(BaseResult<List<StateDto>>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> GetStates(CancellationToken cancellationToken)
     {

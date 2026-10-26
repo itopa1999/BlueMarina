@@ -1785,6 +1785,9 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<long?>("DeviceId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("FullReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("IpAddress")
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)");

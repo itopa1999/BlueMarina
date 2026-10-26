@@ -16,6 +16,15 @@ public class ApiVersionResultFilter : IResultFilter
             {
                 baseResult.Version = $"v{version.MajorVersion}";
             }
+
+            if (context.HttpContext.Items.TryGetValue("Platform", out var platform) && platform is string platformStr)
+            {
+                baseResult.Platform = platformStr;
+            }
+            else
+            {
+                baseResult.Platform = "Unknown";
+            }
         }
     }
 

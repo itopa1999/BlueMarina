@@ -33,6 +33,7 @@ public sealed class VerifyAccountCommand
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTimeOffset AccessTokenExpiresAt { get; set; }
+        public DateTimeOffset RefreshTokenExpiresAt { get; set; }
         public string NextStep { get; set; } = string.Empty;
     }
 
@@ -252,6 +253,7 @@ public sealed class VerifyAccountCommand
                     AccessToken = jwtResult.AccessToken,
                     RefreshToken = rawRefreshToken,
                     AccessTokenExpiresAt = jwtResult.ExpiresAt,
+                    RefreshTokenExpiresAt = refreshTokenEntity.ExpiresAt,
                     NextStep = SignUpNextSteps.CompleteProfile
                 });
         }

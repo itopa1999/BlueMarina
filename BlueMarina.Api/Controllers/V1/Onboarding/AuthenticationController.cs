@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.ChangePendingPhoneCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.LoginUserCommand;
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.RegisterCommand;
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.ResendVerificationOtpCommand;
 using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.VerifyAccountCommand;
@@ -133,28 +134,17 @@ public class AuthenticationController(
             result);
     }
 
-//     [HttpPost("login")]
-//     [ProducesResponseType(typeof(BaseResult<LoginResponseDto>), (int)HttpStatusCode.OK)]
-//     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
-//     public async Task<IActionResult> LoginUser(
-//         [FromBody] LoginUserCommand.Command command, CancellationToken cancellationToken)
-//     {
-//         var result = await _mediator.Send(command, cancellationToken);
-
-//         if (result.IsSuccess &&
-//             result.Data is not null &&
-//             // !result.Data.Requires2Fa &&
-//             string.Equals(result.Data.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
-//         {
-//             SetAuthenticationCookies(
-//                 result.Data.AccessToken,
-//                 result.Data.RefreshToken);
-//         }
-
-//         return StatusCode(
-//             (int)result.StatusCode,
-//             result);
-//     }
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(BaseResult<LoginResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> LoginUser(
+        [FromBody] LoginUserCommand.Command command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode(
+            (int)result.StatusCode,
+            result);
+    }
 
 //     [HttpPost("refresh-token")]
 //     [ProducesResponseType(typeof(BaseResult<RefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
