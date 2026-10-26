@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using BlueMarina.Domain.Common;
-using BlueMarina.Domain.Enums;
 
 namespace BlueMarina.Domain.Entities.Onboarding;
 

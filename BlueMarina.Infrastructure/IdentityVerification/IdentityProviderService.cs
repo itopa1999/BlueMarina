@@ -128,6 +128,7 @@ public sealed class IdentityProviderService : IIdentityProviderService
         if (progress != null)
         {
             progress.Tier1_AccountDone = true;
+            progress.Tier1_IsCompleted = true; 
         }
 
         identityCheck.Status = IdentityCheckStatus.Matched;

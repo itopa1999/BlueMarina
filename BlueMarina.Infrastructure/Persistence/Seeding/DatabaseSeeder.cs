@@ -1,3 +1,4 @@
+using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Shared.Logging;
 using Microsoft.AspNetCore.Identity;
@@ -28,11 +29,24 @@ public sealed class DatabaseSeeder
     public async Task SeedAsync(
         CancellationToken cancellationToken = default)
     {
-        await SeedFeatureFlagsAsync(cancellationToken);
+        await SeedAgreementVersionsAsync(cancellationToken);
     }
-    private async Task SeedFeatureFlagsAsync(
-        CancellationToken cancellationToken)
+
+    private async Task SeedAgreementVersionsAsync(CancellationToken cancellationToken)
     {
-        using var op = OperationLogger.Start(_logger, "SeedFeatureFlags");
+        using var op = OperationLogger.Start(_logger, "SeedAgreementVersions");
+
+        if (await _dbContext.AgreementVersions.AnyAsync(cancellationToken))
+        {
+            op.Success("Agreement versions already seeded.");
+            return;
+        }
+
+        var versions = DefaultAgreementVersion.Create();
+        
+        await _dbContext.AgreementVersions.AddRangeAsync(versions, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        op.Success($"Seeded {versions.Count} agreement versions.");
     }
 }

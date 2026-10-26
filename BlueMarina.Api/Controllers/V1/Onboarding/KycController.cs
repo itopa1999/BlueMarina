@@ -2,6 +2,7 @@ using System.Net;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
+using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2;
 using BlueMarina.Application.BBL.Queries.Kyc;
 using BlueMarina.Application.Interfaces.IdentityVerification;
 using BlueMarina.Shared.Common.Results;
@@ -10,6 +11,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2.SubmitIdDocumentCommand;
+using static BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2.SubmitSelfieCommand;
 
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
@@ -22,7 +25,7 @@ public class IdentityVerificationController(
 {
     private readonly IMediator _mediator = mediator;
 
-    [HttpPost("identity-check/initiate")]
+    [HttpPost("tier1/identity/initiate")]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
     [ProducesResponseType(typeof(BaseResult<InitiateIdentityCheckCommand.InitiateIdentityResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
@@ -38,7 +41,7 @@ public class IdentityVerificationController(
         return StatusCode((int)result.StatusCode, result);
     }
 
-    [HttpPost("identity-check/verify-otp")]
+    [HttpPost("tier1/identity/verify-otp")]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
     [ProducesResponseType(typeof(BaseResult<BvnDetailsDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
@@ -53,7 +56,7 @@ public class IdentityVerificationController(
         return StatusCode((int)result.StatusCode, result);
     }
 
-    [HttpPost("identity-check/confirm")]
+    [HttpPost("tier1/identity/confirm")]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
@@ -64,6 +67,30 @@ public class IdentityVerificationController(
     {
         command.UserId = UserPublicId ?? string.Empty;
 
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    [HttpPost("tier2/selfie/start")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<SelfieCheckResponseDto>), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> SubmitSelfie(
+        [FromBody] SubmitSelfieCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    [HttpPost("tier2/id/start")]
+    [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(BaseResult<IdDocumentResponseDto>), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> SubmitSelfie(
+        [FromBody] SubmitIdDocumentCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = UserPublicId ?? string.Empty;
         var result = await _mediator.Send(command, cancellationToken);
         return StatusCode((int)result.StatusCode, result);
     }

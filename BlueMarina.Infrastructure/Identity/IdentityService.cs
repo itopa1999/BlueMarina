@@ -21,6 +21,10 @@ public sealed class IdentityService : IIdentityService
         _context = context;
     }
 
+    // ==========================================
+    // WRITE
+    // ==========================================
+
     public async Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
         string phoneNumber,
@@ -40,7 +44,6 @@ public sealed class IdentityService : IIdentityService
             ReferredByUserId = referredByUserId,
             ReferredByCode = referredByCode,
             Tier = AccountTier.Tier1
-
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -64,28 +67,9 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty, user.PublicId, user.Id);
     }
 
-    private async Task<string> GenerateUniquePublicIdAsync()
-    {
-        const int maxAttempts = 5;
-
-        for (var attempt = 0; attempt < maxAttempts; attempt++)
-        {
-            var candidate = $"BM{Random.Shared.Next(100_000, 1_000_000)}";
-
-            var exists = await _userManager.Users
-                .AsNoTracking()
-                .AnyAsync(u => u.PublicId == candidate);
-
-            if (!exists) return candidate;
-        }
-
-        throw new InvalidOperationException(
-            "Could not generate a unique PublicId after 5 attempts.");
-    }
-
     public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(long userId, string role)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString()); // ✅ Works now!
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
             return (false, "User not found.");
@@ -119,6 +103,29 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
+    public async Task<(bool Success, string ErrorMessage)> UpdateUserTierAsync(
+        string publicId,
+        AccountTier newTier,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
+
+        if (user is null)
+        {
+            return (false, "User not found.");
+        }
+
+        if (user.Tier >= newTier)
+        {
+            return (true, string.Empty);
+        }
+
+        user.Tier = newTier;
+        
+        return (true, string.Empty);
+    }
+
     public async Task<(bool Success, string ErrorMessage)> MarkPhoneAsVerifiedAsync(long userId)
     {
         var existingUser = await _userManager.FindByIdAsync(userId.ToString());
@@ -127,7 +134,6 @@ public sealed class IdentityService : IIdentityService
 
         existingUser.PhoneNumberConfirmed = true;
 
-        // if (existingUser.EmailConfirmed && existingUser.PhoneNumberConfirmed)
         existingUser.Status = UserStatus.Active;
 
         existingUser.SecurityStamp = Guid.NewGuid().ToString();
@@ -137,30 +143,6 @@ public sealed class IdentityService : IIdentityService
             return (false, string.Join(", ", result.Errors.Select(x => x.Description)));
 
         return (true, string.Empty);
-    }
-
-    public async Task<bool> CheckPasswordAsync(long userId, string password)
-    {
-        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (existingUser is null) return false;
-
-        return await _userManager.CheckPasswordAsync(existingUser, password);
-    }
-
-    public async Task<bool> IsAccountVerifiedAsync(long userId)
-    {
-        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (existingUser is null) return false;
-
-        return existingUser.EmailConfirmed && existingUser.PhoneNumberConfirmed;
-    }
-
-    public async Task<IList<string>> GetRolesAsync(long userId)
-    {
-        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (existingUser is null) return new List<string>();
-
-        return await _userManager.GetRolesAsync(existingUser);
     }
 
     public async Task<(bool Success, string ErrorMessage)> ResetPasswordAsync(long userId, string newPassword)
@@ -208,7 +190,87 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
-    //  EXITENCE CHECKS
+    public async Task<(bool Success, string ErrorMessage)> UpdatePendingPhoneAsync(
+        string userId,
+        string newPhoneNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.PublicId == userId, cancellationToken);
+
+        if (user is null)
+            return (false, "User not found.");
+
+        if (user.PhoneNumberConfirmed)
+            return (false, "Phone number is already verified and cannot be changed.");
+
+        user.PhoneNumber = newPhoneNumber;
+        user.PhoneNumberConfirmed = false;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+
+        var now = DateTimeOffset.UtcNow;
+
+        await _context.OtpCodes
+            .Where(x => x.UserId == userId
+                        && x.Purpose == OtpPurpose.SignUpVerification
+                        && x.Channel == OtpChannel.Sms
+                        && !x.IsUsed)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.IsUsed, true)
+                .SetProperty(p => p.UsedAt, now)
+                .SetProperty(p => p.ConsumedAt, now), cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return (true, string.Empty);
+    }
+
+    private async Task<string> GenerateUniquePublicIdAsync()
+    {
+        const int maxAttempts = 5;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var candidate = $"BM{Random.Shared.Next(100_000, 1_000_000)}";
+
+            var exists = await _userManager.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.PublicId == candidate);
+
+            if (!exists) return candidate;
+        }
+
+        throw new InvalidOperationException(
+            "Could not generate a unique PublicId after 5 attempts.");
+    }
+
+    // ==========================================
+    // READ
+    // ==========================================
+
+    public async Task<bool> CheckPasswordAsync(long userId, string password)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null) return false;
+
+        return await _userManager.CheckPasswordAsync(existingUser, password);
+    }
+
+    public async Task<bool> IsAccountVerifiedAsync(long userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null) return false;
+
+        return existingUser.EmailConfirmed && existingUser.PhoneNumberConfirmed;
+    }
+
+    public async Task<IList<string>> GetRolesAsync(long userId)
+    {
+        var existingUser = await _userManager.FindByIdAsync(userId.ToString());
+        if (existingUser is null) return new List<string>();
+
+        return await _userManager.GetRolesAsync(existingUser);
+    }
 
     public async Task<bool> EmailExistsAsync(
         string email,
@@ -266,7 +328,7 @@ public sealed class IdentityService : IIdentityService
     }
 
     public async Task<(bool Found, long UserId)> FindUserByReferralCodeAsync(
-    string referralCode,
+        string referralCode,
         CancellationToken cancellationToken = default)
     {
         var normalized = referralCode.Trim().ToUpperInvariant();
@@ -279,53 +341,18 @@ public sealed class IdentityService : IIdentityService
 
         return user is null ? (false, 0) : (true, user.Id);
     }
+
     public async Task<bool> IsPhoneNumberVerifiedAsync(
         string userId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         
-
         return await _context.Users
             .AsNoTracking()
             .Where(x => x.PublicId == userId)
             .Select(x => x.PhoneNumberConfirmed)
             .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public async Task<(bool Success, string ErrorMessage)> UpdatePendingPhoneAsync(
-        string userId,
-        string newPhoneNumber,
-        CancellationToken cancellationToken = default)
-    {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(x => x.PublicId == userId, cancellationToken);
-
-        if (user is null)
-            return (false, "User not found.");
-
-        if (user.PhoneNumberConfirmed)
-            return (false, "Phone number is already verified and cannot be changed.");
-
-        user.PhoneNumber = newPhoneNumber;
-        user.PhoneNumberConfirmed = false;
-        user.SecurityStamp = Guid.NewGuid().ToString();
-
-        var now = DateTimeOffset.UtcNow;
-
-        await _context.OtpCodes
-            .Where(x => x.UserId == userId
-                        && x.Purpose == OtpPurpose.SignUpVerification
-                        && x.Channel == OtpChannel.Sms
-                        && !x.IsUsed)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(p => p.IsUsed, true)
-                .SetProperty(p => p.UsedAt, now)
-                .SetProperty(p => p.ConsumedAt, now), cancellationToken);
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return (true, string.Empty);
     }
 
     public async Task<UserIdentityDto?> GetByIdentifierAsync(
@@ -379,7 +406,8 @@ public sealed class IdentityService : IIdentityService
                 x.PhoneNumberConfirmed,
                 x.FirstName,
                 x.OtherName,
-                x.LastName))
+                x.LastName,
+                x.Tier))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

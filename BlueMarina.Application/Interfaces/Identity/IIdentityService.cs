@@ -1,3 +1,5 @@
+using BlueMarina.Domain.Enums;
+
 namespace BlueMarina.Application.Interfaces.Identity;
 
 public interface IIdentityService
@@ -37,6 +39,11 @@ public interface IIdentityService
         string referralCode,
         CancellationToken cancellationToken = default);
 
+    Task<(bool Success, string ErrorMessage)> UpdateUserTierAsync(
+        string publicId,
+        AccountTier newTier,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string ErrorMessage)> AddToRoleAsync(
         long userId,
         string role);
@@ -70,7 +77,9 @@ public interface IIdentityService
         bool PhoneNumberConfirmed,
         string FirstName,
         string? OtherNames,
-        string LastName
+        string LastName,
+        AccountTier Tier
+
     )
     {
 

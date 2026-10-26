@@ -18,5 +18,6 @@ public class IdDocument : BaseEntity
     public DateOnly? ExpiryDate { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public IdDocumentStatus Status { get; set; }
+    public int AttemptNumber { get; set; }
     public string? RejectionReason { get; set; }
 }

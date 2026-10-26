@@ -69,7 +69,7 @@ public enum AgreementType
 {
     TermsOfUse,
     PrivacyPolicy,
-    AccountAgreement
+    AccountAgreement,
 }
 
 public enum NextOfKinRelationship
@@ -180,4 +180,12 @@ public enum CompanyDocumentStatus
     InReview,
     Accepted,
     Rejected
+}
+
+public enum ConsentType
+{
+    MarketingUpdates,
+    AccountAgreement,
+    PrivacyPolicy,
+    TermsOfService
 }
