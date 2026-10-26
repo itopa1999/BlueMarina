@@ -559,6 +559,9 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -717,6 +720,52 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("identity_checks");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Lga", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("StateId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StateId");
+
+                    b.ToTable("lgas");
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.NextOfKin", b =>
@@ -901,6 +950,50 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("signatures");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.State", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("states", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TaxResidency", b =>
@@ -2172,6 +2265,17 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Lga", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.Onboarding.State", "State")
+                        .WithMany("Lgas")
+                        .HasForeignKey("StateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("State");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.NextOfKin", b =>
                 {
                     b.HasOne("BlueMarina.Infrastructure.Identity.User", null)
@@ -2357,6 +2461,11 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Navigation("Documents");
 
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.State", b =>
+                {
+                    b.Navigation("Lgas");
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierUpgradeRequest", b =>

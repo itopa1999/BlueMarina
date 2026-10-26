@@ -74,11 +74,14 @@ public sealed class SubmitSignatureCommand
                     on new { VersionId = av.Id, request.UserId } 
                     equals new { VersionId = aa.AgreementVersionId, aa.UserId } into accepted
                 from aa in accepted.DefaultIfEmpty()
-                where (av.Type == AgreementType.AccountAgreement || av.Type == AgreementType.PrivacyPolicy) 
+                where (av.Type == AgreementType.AccountAgreement || 
+                       av.Type == AgreementType.PrivacyPolicy || 
+                       av.Type == AgreementType.TermsOfUse) 
                       && av.IsCurrent
                 select new 
                 {
                     av.Type,
+                    av.Version,
                     VersionId = av.Id,
                     IsAccepted = aa != null
                 }
@@ -86,11 +89,12 @@ public sealed class SubmitSignatureCommand
 
             var accountAgreement = activeAgreements.FirstOrDefault(x => x.Type == AgreementType.AccountAgreement);
             var privacyPolicy = activeAgreements.FirstOrDefault(x => x.Type == AgreementType.PrivacyPolicy);
+            var termsOfUse = activeAgreements.FirstOrDefault(x => x.Type == AgreementType.TermsOfUse);
 
-            if (accountAgreement == null || privacyPolicy == null)
+            if (accountAgreement == null || privacyPolicy == null || termsOfUse == null)
                 return new BaseResult(HttpStatusCode.InternalServerError, "Agreements are not configured correctly.");
 
-            if (accountAgreement.IsAccepted || privacyPolicy.IsAccepted)
+            if (accountAgreement.IsAccepted || privacyPolicy.IsAccepted || termsOfUse.IsAccepted)
                 return new BaseResult(HttpStatusCode.Conflict, "Agreements have already been accepted.");
 
             await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
@@ -130,6 +134,13 @@ public sealed class SubmitSignatureCommand
                 AcceptedAt = signatureTimestamp
             }, cancellationToken);
 
+            await _unitOfWork.AddAsync(new AgreementAcceptance
+            {
+                UserId = request.UserId,
+                AgreementVersionId = termsOfUse.VersionId,
+                AcceptedAt = signatureTimestamp
+            }, cancellationToken);
+
             if (request.OptInMarketUpdates)
             {
                 var existingConsent = await _unitOfWork.Query<Consent>()
@@ -141,13 +152,14 @@ public sealed class SubmitSignatureCommand
                     {
                         UserId = request.UserId,
                         Type = ConsentType.MarketingUpdates,
-                        Version = accountAgreement.VersionId.ToString(),
+                        Version = accountAgreement.Version, // Saving "v1"
                         Granted = true
                     }, cancellationToken);
                 }
                 else
                 {
                     existingConsent.Granted = true;
+                    existingConsent.Version = accountAgreement.Version;
                     _unitOfWork.Update(existingConsent);
                 }
             }

@@ -48,11 +48,6 @@ public sealed class ExternalApiClient : IExternalApiClient
             (int)response.StatusCode,
             body);
 
-        // ── Only throw for transport-level failures ──
-        // 5xx (server errors) and 401/403 (auth) are genuine "we couldn't
-        // talk to the provider" cases. 4xx like 400/404 are often
-        // *semantic* errors — e.g., Flutterwave returns 400 for "not found".
-        // Deserialize those too, so the caller can inspect the body.
         if (response.StatusCode >= HttpStatusCode.InternalServerError)
         {
             throw new HttpRequestException(
@@ -72,6 +67,11 @@ public sealed class ExternalApiClient : IExternalApiClient
 
         if (string.IsNullOrWhiteSpace(body))
             return default;
+
+        if (typeof(T) == typeof(string))
+        {
+            return (T)(object)body;
+        }
 
         try
         {
@@ -114,7 +114,6 @@ public sealed class ExternalApiClient : IExternalApiClient
             (int)response.StatusCode,
             body);
 
-        // Same policy as GET.
         if (response.StatusCode >= HttpStatusCode.InternalServerError)
         {
             throw new HttpRequestException(
@@ -134,6 +133,11 @@ public sealed class ExternalApiClient : IExternalApiClient
 
         if (string.IsNullOrWhiteSpace(body))
             return default;
+
+        if (typeof(TResponse) == typeof(string))
+        {
+            return (TResponse)(object)body;
+        }
 
         try
         {

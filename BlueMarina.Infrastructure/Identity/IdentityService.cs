@@ -244,6 +244,31 @@ public sealed class IdentityService : IIdentityService
             "Could not generate a unique PublicId after 5 attempts.");
     }
 
+    public async Task<(bool Success, string ErrorMessage)> UpdatePersonalDetailsAsync(
+        string publicId,
+        string title,
+        string nationality,
+        string stateOfOrigin,
+        string lgaOfOrigin,
+        string mothersMaidenName,
+        string? passportPhotoUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
+
+        if (user is null)
+            return (false, "User not found.");
+
+        user.Title = title;
+        user.Nationality = nationality;
+        user.StateOfOrigin = stateOfOrigin;
+        user.LgaOfOrigin = lgaOfOrigin;
+        user.MothersMaidenName = mothersMaidenName;
+        user.PassportPhotoUrl = passportPhotoUrl;
+        
+        return (true, string.Empty);
+    }
+
     // ==========================================
     // READ
     // ==========================================

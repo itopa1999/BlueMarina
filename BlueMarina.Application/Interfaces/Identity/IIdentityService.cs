@@ -44,6 +44,16 @@ public interface IIdentityService
         AccountTier newTier,
         CancellationToken cancellationToken = default);
 
+    Task<(bool Success, string ErrorMessage)> UpdatePersonalDetailsAsync(
+        string publicId,
+        string title,
+        string nationality,
+        string stateOfOrigin,
+        string lgaOfOrigin,
+        string mothersMaidenName,
+        string? passportPhotoUrl,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string ErrorMessage)> AddToRoleAsync(
         long userId,
         string role);

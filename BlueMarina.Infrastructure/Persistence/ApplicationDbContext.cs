@@ -14,6 +14,7 @@ public sealed class ApplicationDbContext
     : IdentityDbContext<User, IdentityRole<long>, long>
 {
     private readonly ICurrentUserService? _currentUser;
+
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
         ICurrentUserService? currentUser)
@@ -51,7 +52,8 @@ public sealed class ApplicationDbContext
     public DbSet<TierUpgradeItem> TierUpgradeItems => Set<TierUpgradeItem>();
     public DbSet<TierUpgradeRequest> TierUpgradeRequests => Set<TierUpgradeRequest>();
     public DbSet<UserOnboardingProgress> UserOnboardingProgresses => Set<UserOnboardingProgress>();
-
+    public DbSet<State> States => Set<State>();
+    public DbSet<Lga> Lgas => Set<Lga>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
