@@ -12,7 +12,7 @@ namespace BlueMarina.Domain.Entities.Security;
 public class TwoFactorMethod : BaseEntity
 {
     public string UserId { get; set; } = string.Empty;
-    public TwoFactorType Type { get; set; }
+    public TwoFactorType? Type { get; set; }
     public string? SecretEncrypted { get; set; }
     public bool IsPrimary { get; set; }
     public DateTimeOffset EnabledAt { get; set; }

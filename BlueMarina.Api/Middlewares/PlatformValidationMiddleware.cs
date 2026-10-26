@@ -25,7 +25,7 @@ public class PlatformValidationMiddleware
     private static readonly string[] InternalPaths = 
     { 
         "/health", 
-        "/api/v1/internal", 
+        "/swagger", 
         "/hangfire" 
     };
 

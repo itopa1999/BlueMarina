@@ -142,6 +142,14 @@ public class Startup(IConfiguration configuration)
                 Description = "Enter JWT Token. Example: eyJhbGciOiJIUzI1NiIs..."
             });
 
+            options.AddSecurityDefinition("X-Platform", new OpenApiSecurityScheme
+            {
+                Name = "X-Platform",
+                Type = SecuritySchemeType.ApiKey,
+                In = ParameterLocation.Header,
+                Description = "Required platform identifier. Allowed values: Web, Mobile, Swagger"
+            });
+
             options.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 {
@@ -151,6 +159,19 @@ public class Startup(IConfiguration configuration)
                         {
                             Type = ReferenceType.SecurityScheme,
                             Id = "Bearer"
+                        }
+                        
+                    },
+                    Array.Empty<string>()
+                },
+
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "X-Platform"
                         }
                     },
                     Array.Empty<string>()
@@ -208,6 +229,7 @@ public class Startup(IConfiguration configuration)
 
         // ExceptionsHandlerMiddleWare
         app.UseMiddleware<ExceptionHandlingMiddleware>();
+        app.UseMiddleware<PlatformValidationMiddleware>();
 
 
         if (!app.Environment.IsDevelopment())

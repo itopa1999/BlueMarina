@@ -4,11 +4,13 @@ using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
@@ -29,6 +31,7 @@ public sealed class LoginUserCommand
         public string UserId { get; set; } = string.Empty;
         public bool IsAccountVerified { get; set; }
         public string? NextStep { get; set; }
+        public TwoFactorType? RequiredTwoFactor { get; set; }
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTimeOffset AccessTokenExpiresAt { get; set; }
@@ -88,7 +91,7 @@ public sealed class LoginUserCommand
 
             if (user is null)
             {
-                op.Warning($"User not found for identifier: {identifierToUse}");             
+                op.Warning($"User not found for identifier: {identifierToUse}");                
                 return new BaseResult<LoginResponseDto>(HttpStatusCode.BadRequest, "Invalid credentials.");
             }
 
@@ -206,6 +209,33 @@ public sealed class LoginUserCommand
             }
 
             await _identityService.ResetFailedAccessAsync(user.Id, cancellationToken);
+
+            var twoFactorMethod = await _unitOfWork.Query<TwoFactorMethod>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == user.PublicId && x.IsPrimary, cancellationToken);
+
+            if (twoFactorMethod != null)
+            {
+                var signInMethod = twoFactorMethod.Type == TwoFactorType.Authenticator 
+                    ? SignInMethod.PasswordWithAuthenticator 
+                    : SignInMethod.Password;
+
+                await _authAuditService.LogAttemptAsync(
+                    resolvedPublicId, signInMethod, SignInStatus.AwaitingDeviceApproval, 
+                    $"Password verified. Awaiting {twoFactorMethod.Type} two-factor authentication.", cancellationToken: cancellationToken);
+
+                return new BaseResult<LoginResponseDto>(
+                    HttpStatusCode.OK,
+                    $"Two-factor authentication required. Please verify with {twoFactorMethod.Type}.",
+                    new LoginResponseDto
+                    {
+                        UserId = user.PublicId,
+                        IsAccountVerified = true,
+                        RequiredTwoFactor = twoFactorMethod.Type,
+                        NextStep = "Verify2FA"
+                    }
+                );
+            }
 
             var roles = await _identityService.GetRolesAsync(user.Id);
 
