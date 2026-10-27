@@ -42,9 +42,12 @@ public class AdminAuthenticationController(
         {
             SetAuthenticationCookies(loginData.AccessToken!, loginData.RefreshToken!);
 
-            loginData.AccessToken = null;
-            loginData.RefreshToken = null;
-            loginData.AccessTokenExpiresAt = null;
+            if (!IsSwaggerPlatform())
+            {
+                loginData.AccessToken = null;
+                loginData.RefreshToken = null;
+                loginData.AccessTokenExpiresAt = null;
+            }
         }
 
         return StatusCode((int)result.StatusCode, result);
@@ -72,9 +75,12 @@ public class AdminAuthenticationController(
         {
             SetAuthenticationCookies(refreshData.AccessToken!, refreshData.RefreshToken!);
 
-            refreshData.AccessToken = null;
-            refreshData.RefreshToken = null;
-            refreshData.AccessTokenExpiresAt = default;
+            if (!IsSwaggerPlatform())
+            {
+                refreshData.AccessToken = null;
+                refreshData.RefreshToken = null;
+                refreshData.AccessTokenExpiresAt = default;
+            }
         }
 
         return StatusCode((int)result.StatusCode, result);
@@ -199,5 +205,12 @@ public class AdminAuthenticationController(
         Response.Cookies.Delete(
             "refresh_token",
             refreshTokenOptions);
+    }
+
+    private bool IsSwaggerPlatform()
+    {
+        return HttpContext.Items.TryGetValue("Platform", out var platform)
+               && platform is string platformValue
+               && string.Equals(platformValue, Platforms.Swagger, StringComparison.OrdinalIgnoreCase);
     }
 }

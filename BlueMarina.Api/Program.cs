@@ -49,10 +49,10 @@ startup.ConfigureServices(builder.Services);
 
 var app = builder.Build();
 
-await app.Services.SeedIdentityAsync();
-
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    await app.Services.SeedIdentityAsync();
+    
     var seeder = scope.ServiceProvider
         .GetRequiredService<DatabaseSeeder>();
 
