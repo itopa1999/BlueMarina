@@ -1,6 +1,6 @@
 namespace BlueMarina.Shared.Constants;
 
-public static class Roles
+public static class RolesConstants
 {
     public const string Customer = "Customer";
 
@@ -11,21 +11,6 @@ public static class Roles
     public const string ComplianceOfficer = "ComplianceOfficer";
 
 }
-
-// public static class OtpPurpose
-// {
-//     public const string AccountVerification = "ACCOUNT_VERIF-CATION";
-
-//     public const string PasswordReset =
-//         "PASSWORD_RESET";
-
-//     public const string Login =
-//         "LOGIN";
-
-//     public const string TransactionPin =
-//         "TRANSACTION_PIN";
-// }
-
 
 public static class Platforms
 {
@@ -45,8 +30,8 @@ public static class SignUpNextSteps
     public const string CompleteProfile = "COMPLETE_PROFILE";
     public const string VerifyPasswordResetOtp = "VERIFY_PASSWORD_RESET_OTP";
     public const string VerifyPinResetOtp = "VERIFY_LOGIN_PIN";
-    
 }
+
 public static class IdentityNextSteps
 {
     public const string EnterIdentity = "ENTER_IDENTITY";

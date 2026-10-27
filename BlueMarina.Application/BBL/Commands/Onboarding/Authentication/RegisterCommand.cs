@@ -150,7 +150,7 @@ public sealed class RegisterCommand
             }
 
             var (roleSuccess, roleError) = await _identityService.AddToRoleAsync(
-                userId, Roles.Customer);
+                userId, RolesConstants.Customer);
             if (!roleSuccess)
             {
                 op.Warning($"Role assignment failed: {roleError}");

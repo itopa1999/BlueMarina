@@ -22,7 +22,7 @@ using static BlueMarina.Application.BBL.Queries.Kyc.GetStatesQuery;
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
-[Authorize(Roles = Roles.Customer)]
+[Authorize(Roles = RolesConstants.Customer)]
 [Route("api/v{version:apiVersion}/kyc")]
 [ApiVersion("1.0")]
 public class IdentityVerificationController(

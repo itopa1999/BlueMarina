@@ -103,7 +103,7 @@ public class AuthenticationController(
     /// Requires a valid JWT Bearer token.
     /// </remarks>
     [HttpPost("resend-email-verification-link")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ResendEmailVerificationLink(
@@ -168,7 +168,7 @@ public class AuthenticationController(
     /// Weak PINs (e.g., 123456, 111111) will be rejected.
     /// </remarks>
     [HttpPost("set-login-pin")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
@@ -255,7 +255,7 @@ public class AuthenticationController(
     /// The current Access Token will remain valid until its natural expiration, but the user will be fully logged out once they attempt to refresh.
     /// </remarks>
     [HttpPost("logout")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Unauthorized)]
@@ -297,7 +297,7 @@ public class AuthenticationController(
     /// If correct, a 6-digit OTP is sent to both SMS and Email.
     /// </remarks>
     [HttpPost("forget-pin")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [ProducesResponseType(typeof(BaseResult<ForgotLoginPinResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ForgetPin(
@@ -354,7 +354,7 @@ public class AuthenticationController(
     /// Revokes all active sessions upon successful reset.
     /// </remarks>
     [HttpPost("reset-pin")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ResetPin(
@@ -374,7 +374,7 @@ public class AuthenticationController(
     /// Revokes all active sessions upon successful change.
     /// </remarks>
     [HttpPost("change-password")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = RolesConstants.Customer)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ChangePassword(

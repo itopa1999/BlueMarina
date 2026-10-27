@@ -10,10 +10,10 @@ public static class IdentitySeeder
     {
         var roles = new[]
         {
-            Roles.Customer,
-            Roles.Admin,
-            Roles.SuperAdmin,
-            Roles.ComplianceOfficer
+            RolesConstants.Customer,
+            RolesConstants.Admin,
+            RolesConstants.SuperAdmin,
+            RolesConstants.ComplianceOfficer
         };
 
         foreach (var role in roles)
