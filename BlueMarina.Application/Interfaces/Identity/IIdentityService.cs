@@ -127,4 +127,24 @@ public interface IIdentityService
             }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     }
+
+
+    // ─────────────────────────────────────────────────────
+    // Permissions / feature gates
+    // ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a snapshot of the user's current permissions, or null if the
+    /// user does not exist.
+    /// </summary>
+    Task<UserPermissionsDto?> GetPermissionsAsync(
+        string userPublicId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> CloseAccountAsync(
+        string userPublicId,
+        AccountRestrictionReason reason,
+        string details,
+        string performedBy,
+        CancellationToken cancellationToken = default);
 }

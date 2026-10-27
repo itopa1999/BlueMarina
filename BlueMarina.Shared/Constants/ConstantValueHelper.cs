@@ -10,6 +10,9 @@ public static class RolesConstants
 
     public const string ComplianceOfficer = "ComplianceOfficer";
 
+    public const string All = $"{Customer},{Admin},{SuperAdmin},{ComplianceOfficer}";
+    public const string AllAdmins = $"{Admin},{SuperAdmin}";
+
 }
 
 public static class Platforms

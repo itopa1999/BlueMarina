@@ -66,6 +66,34 @@ public sealed class ForgotLoginPinCommand
                     "User context is missing.");
             }
 
+            var permissions = await _identityService.GetPermissionsAsync(
+                request.UserId,
+                cancellationToken);
+
+            if (permissions is null)
+            {
+                op.Error($"Permissions unavailable for user {request.UserId}.");
+                return new BaseResult<ForgotLoginPinResponseDto>(
+                    HttpStatusCode.InternalServerError,
+                    "We couldn't verify your account permissions right now. Please try again in a moment.");
+            }
+
+            if (!permissions.CanPerformSensitiveOperations)
+            {
+                op.Warning(
+                    $"PIN reset blocked for user {request.UserId}. " +
+                    $"Status: {permissions.StatusLabel}, " +
+                    $"Reason: {permissions.RestrictionReason}");
+
+                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently restricted from performing this action. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult<ForgotLoginPinResponseDto>(
+                    HttpStatusCode.Locked,
+                    userMessage);
+            }
+
             var user = await _identityService.GetByIdentifierAsync(request.UserId, cancellationToken);
 
             if (user is null)
@@ -87,14 +115,6 @@ public sealed class ForgotLoginPinCommand
                 return new BaseResult<ForgotLoginPinResponseDto>(
                     HttpStatusCode.TooManyRequests,
                     $"Account is temporarily locked. Please try again in {minutes} minute(s).");
-            }
-
-            if (user.Status == UserStatus.Suspended || user.Status == UserStatus.Closed)
-            {
-                op.Warning($"User {user.PublicId} attempted PIN reset but status is {user.Status}.");
-                return new BaseResult<ForgotLoginPinResponseDto>(
-                    HttpStatusCode.Forbidden,
-                    "This account has been suspended or closed. Please contact support.");
             }
 
             var passwordIsValid = await _identityService.CheckPasswordAsync(user.Id, request.Password);

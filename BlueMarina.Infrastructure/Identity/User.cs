@@ -32,6 +32,45 @@ public class User : IdentityUser<long>
     public string? ReferredByCode { get; set; }
     public long? ReferredByUserId { get; set; }
     public AccountTier Tier { get; set; }
-    public UserStatus Status { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
+
+
+    
+    public UserStatus Status { get; set; }
+    public AccountRestrictionReason? RestrictionReason { get; set; } = AccountRestrictionReason.None;
+
+    [MaxLength(1000)]
+    public string? RestrictionReasonDetails { get; set; }
+
+    public DateTimeOffset? RestrictedAt { get; set; }
+
+    [MaxLength(100)]
+    public string? RestrictedBy { get; set; }
+
+    public DateTimeOffset? RestrictionExpiresAt { get; set; }
+
+    public DateTimeOffset? ReactivatedAt { get; set; }
+
+
+
+    // ─────────────────────────────────────────────────────────
+    // Audit
+    // ─────────────────────────────────────────────────────────
+
+    public DateTimeOffset? CreatedAt { get; set; }
+
+    public DateTimeOffset? ModifiedAt { get; set; }
+
+    public bool IsDeleted { get; set; }
+
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    [MaxLength(100)]
+    public string? CreatedBy { get; set; }
+
+    [MaxLength(100)]
+    public string? ModifiedBy { get; set; }
+
+    [MaxLength(100)]
+    public string? DeletedBy { get; set; }
 }

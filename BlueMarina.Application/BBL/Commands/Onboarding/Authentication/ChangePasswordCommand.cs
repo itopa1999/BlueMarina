@@ -67,6 +67,32 @@ public sealed class ChangePasswordCommand
                     "New password cannot be the same as the old password.");
             }
 
+            var permissions = await _identityService.GetPermissionsAsync(
+                request.UserId,
+                cancellationToken);
+
+            if (permissions is null)
+            {
+                op.Error($"Permissions unavailable for user {request.UserId}.");
+                return new BaseResult(
+                    HttpStatusCode.InternalServerError,
+                    "We couldn't verify your account permissions right now. Please try again in a moment.");
+            }
+
+            if (!permissions.CanPerformSensitiveOperations)
+            {
+                op.Warning(
+                    $"Password change blocked for user {request.UserId}. " +
+                    $"Status: {permissions.StatusLabel}, " +
+                    $"Reason: {permissions.RestrictionReason}");
+
+                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently restricted from performing this action. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult(HttpStatusCode.Locked, userMessage);
+            }
+
             var user = await _identityService.GetByIdentifierAsync(request.UserId, cancellationToken);
             
             if (user is null)

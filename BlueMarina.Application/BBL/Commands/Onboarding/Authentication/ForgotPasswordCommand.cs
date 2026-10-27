@@ -90,6 +90,34 @@ public sealed class ForgotPasswordCommand
                     new ForgotPasswordResponseDto { NextStep = "VerifyPasswordResetOtp" });
             }
 
+            var permissions = await _identityService.GetPermissionsAsync(
+                user.PublicId,
+                cancellationToken);
+
+            if (permissions is null)
+            {
+                op.Warning($"Password reset attempted on closed/soft-deleted account {user.PublicId}.");
+                return new BaseResult<ForgotPasswordResponseDto>(
+                    HttpStatusCode.Forbidden,
+                    "This account has been permanently closed. Please contact support if you believe this is a mistake.");
+            }
+
+            if (permissions.AccountStatus == UserStatus.Suspended)
+            {
+                op.Warning(
+                    $"Password reset blocked for user {user.PublicId}. " +
+                    $"Status: {permissions.StatusLabel}, " +
+                    $"Reason: {permissions.RestrictionReason}");
+
+                var suspendedMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently suspended. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult<ForgotPasswordResponseDto>(
+                    HttpStatusCode.Forbidden,
+                    suspendedMessage);
+            }
+
             if (await _identityService.IsLockedOutAsync(user.Id, cancellationToken))
             {
                 var lockoutEnd = await _identityService.GetLockoutEndAsync(user.Id, cancellationToken);
@@ -101,14 +129,6 @@ public sealed class ForgotPasswordCommand
                 return new BaseResult<ForgotPasswordResponseDto>(
                     HttpStatusCode.TooManyRequests,
                     $"Account is temporarily locked. Please try again in {minutes} minute(s).");
-            }
-
-            if (user.Status == UserStatus.Suspended || user.Status == UserStatus.Closed)
-            {
-                op.Warning($"User {user.PublicId} attempted password reset but status is {user.Status}.");
-                return new BaseResult<ForgotPasswordResponseDto>(
-                    HttpStatusCode.Forbidden,
-                    "This account has been suspended or closed. Please contact support.");
             }
 
             if (isEmail && !user.EmailConfirmed)
@@ -184,7 +204,7 @@ public sealed class ForgotPasswordCommand
                 new ForgotPasswordResponseDto {
                     UserId = user.PublicId,
                     NextStep = SignUpNextSteps.VerifyPasswordResetOtp
-                    });
+                });
         }
     }
 }

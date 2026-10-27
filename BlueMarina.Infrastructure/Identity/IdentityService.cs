@@ -1,5 +1,6 @@
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Domain.Enums;
+using BlueMarina.Infrastructure.Identity.Extensions;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -242,9 +243,7 @@ public sealed class IdentityService : IIdentityService
                 .SetProperty(p => p.IsUsed, true)
                 .SetProperty(p => p.UsedAt, now)
                 .SetProperty(p => p.ConsumedAt, now), cancellationToken);
-
-        await _context.SaveChangesAsync(cancellationToken);
-
+                
         return (true, string.Empty);
     }
 
@@ -509,4 +508,75 @@ public sealed class IdentityService : IIdentityService
                 x.Status))
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+
+    // ─────────────────────────────────────────────────────
+    // Permissions / feature gates
+    // ─────────────────────────────────────────────────────
+
+    public async Task<UserPermissionsDto?> GetPermissionsAsync(
+        string userPublicId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await FindUserEntityByPublicIdAsync(userPublicId, cancellationToken);
+        if (user is null) return null;
+
+        return BuildPermissions(user);
+    }
+
+    public async Task<bool> CloseAccountAsync(
+        string userPublicId,
+        AccountRestrictionReason reason,
+        string details,
+        string performedBy,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await FindUserEntityByPublicIdAsync(userPublicId, cancellationToken);
+        if (user is null) return false;
+
+        user.ClosePermanently(reason, details, performedBy);
+
+        _context.Users.Update(user);
+
+        return await _context.SaveChangesAsync(cancellationToken) > 0;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // Private helpers used by the two methods above
+    // ─────────────────────────────────────────────────────
+
+    private async Task<User?> FindUserEntityByPublicIdAsync(
+        string userPublicId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userPublicId)) return null;
+
+        var normalized = userPublicId.Trim();
+
+        return await _context.Users
+            .FirstOrDefaultAsync(
+                u => u.PublicId == normalized && !u.IsDeleted,
+                cancellationToken);
+    }
+
+    private static UserPermissionsDto BuildPermissions(User user) =>
+        new(
+            user.PublicId,
+            user.Status,
+            user.GetStatusLabel(),
+            user.GetStatusDescription(),
+            user.CanLogin(),
+            user.CanCreateWallets(),
+            user.CanPerformSensitiveOperations(),
+            user.CanReceivePayouts(),
+            user.CanTopUp(),
+            user.RestrictionReason?.ToString(),
+            user.RestrictionReasonDetails,
+            user.RestrictedAt,
+            user.RestrictionExpiresAt);
+
 }

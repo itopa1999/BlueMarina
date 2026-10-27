@@ -1,6 +1,7 @@
 using System.Net;
 using Asp.Versioning;
 using BlueMarina.Api.Configurations;
+using BlueMarina.Api.Filters;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 using BlueMarina.Infrastructure.Authentication.Jwt;
@@ -24,6 +25,7 @@ using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.Verif
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
+[RestrictPlatform(Platforms.Mobile, Platforms.Swagger)]
 [Route("api/v{version:apiVersion}/auth")]
 [ApiVersion("1.0")]
 public class AuthenticationController(
@@ -404,51 +406,4 @@ public class AuthenticationController(
 //         );
 //     }
 
-//     private void SetAuthenticationCookies(
-//         string accessToken,
-//         string refreshToken)
-//     {
-
-//         var accessTokenOptions = new CookieOptions
-//         {
-//             HttpOnly = true,
-//             Secure = HttpContext.Request.IsHttps,
-//             SameSite = SameSiteMode.Strict,
-//             Path = "/",
-//             Expires = DateTimeOffset.UtcNow.AddMinutes(
-//                 _jwt.AccessTokenExpiryMinutes),
-//             MaxAge = TimeSpan.FromMinutes(_jwt.AccessTokenExpiryMinutes)
-//         };
-
-//         Response.Cookies.Append("access_token", accessToken, accessTokenOptions);
-
-//         var refreshTokenOptions = new CookieOptions
-//         {
-//             HttpOnly = true,
-//             Secure = HttpContext.Request.IsHttps,
-//             SameSite = SameSiteMode.Strict,
-//             Path = "/",
-//             Expires = DateTimeOffset.UtcNow.AddDays(
-//                 _jwt.RefreshTokenExpiryDays),
-//             MaxAge = TimeSpan.FromDays(_jwt.RefreshTokenExpiryDays)
-//         };
-
-//         Response.Cookies.Append("refresh_token", refreshToken, refreshTokenOptions);
-
-//     }
-//     private void ClearAuthenticationCookies()
-//     {
-//         var cookieOptions = new CookieOptions
-//         {
-//             HttpOnly = true,
-//             Secure = HttpContext.Request.IsHttps,
-//             SameSite = SameSiteMode.Strict,
-//             Path = "/",
-//             Expires = DateTimeOffset.UtcNow.AddYears(-1),
-//             MaxAge = TimeSpan.Zero
-//         };
-
-//         Response.Cookies.Append("access_token", string.Empty, cookieOptions);
-//         Response.Cookies.Append("refresh_token", string.Empty, cookieOptions);
-//     }
 }

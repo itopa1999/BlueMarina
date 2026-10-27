@@ -1,6 +1,7 @@
 using System.Net;
 using Asp.Versioning;
 using BlueMarina.Api.Configurations;
+using BlueMarina.Api.Filters;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier1;
 using BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2;
@@ -22,10 +23,11 @@ using static BlueMarina.Application.BBL.Queries.Kyc.GetStatesQuery;
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
+[RestrictPlatform(Platforms.Mobile, Platforms.Swagger)]
 [Authorize(Roles = RolesConstants.Customer)]
 [Route("api/v{version:apiVersion}/kyc")]
 [ApiVersion("1.0")]
-public class IdentityVerificationController(
+public class KycController(
     IMediator mediator) : BaseController
 {
     private readonly IMediator _mediator = mediator;

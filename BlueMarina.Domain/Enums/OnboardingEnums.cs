@@ -12,6 +12,7 @@ public enum UserStatus
     PendingVerification,
     Active,
     Locked,
+    Restricted,
     Suspended,
     Closed
 }
