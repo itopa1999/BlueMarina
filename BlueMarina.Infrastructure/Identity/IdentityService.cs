@@ -1,9 +1,11 @@
+using BlueMarina.Application.BBL.Queries.Administrator;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Infrastructure.Identity.Extensions;
 using BlueMarina.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using static BlueMarina.Application.BBL.Queries.Administrator.GetAdminUserQuery;
 using static BlueMarina.Application.Interfaces.Identity.IIdentityService;
 
 namespace BlueMarina.Infrastructure.Identity;
@@ -45,9 +47,53 @@ public sealed class IdentityService : IIdentityService
         return (true, string.Empty);
     }
 
+    public async Task<AdminUserDto?> GetAdminUserAsync(string publicId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.PublicId == publicId, cancellationToken);
+
+        if (user is null) return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new AdminUserDto
+        {
+            PublicId = user.PublicId,
+            Email = user.Email ?? string.Empty,
+            PhoneNumber = user.PhoneNumber,
+            Status = user.Status.ToString(),
+            Roles = [.. roles]
+        };
+    }
+
     // ==========================================
     // WRITE
     // ==========================================
+
+    public async Task<(bool Success, string ErrorMessage)> AddToRolesAsync(long userId, IEnumerable<string> roles, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return (false, "User not found.");
+
+        var result = await _userManager.AddToRolesAsync(user, roles);
+        if (!result.Succeeded)
+            return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+
+        return (true, string.Empty);
+    }
+
+    public async Task<(bool Success, string ErrorMessage)> RemoveFromRolesAsync(long userId, IEnumerable<string> roles, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return (false, "User not found.");
+
+        var result = await _userManager.RemoveFromRolesAsync(user, roles);
+        if (!result.Succeeded)
+            return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+
+        return (true, string.Empty);
+    }
 
     public async Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateUserAsync(
         string email,
@@ -90,6 +136,47 @@ public sealed class IdentityService : IIdentityService
 
         return (true, string.Empty, user.PublicId, user.Id);
     }
+
+    public async Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateAdminUserAsync(
+        string email,
+        string phoneNumber,
+        string password)
+    {
+        var publicId = await GenerateUniquePublicIdAsync();
+        
+        var user = new User
+        {
+            Email = email,
+            UserName = email,
+            PhoneNumber = phoneNumber,
+            PublicId = publicId,
+            Status = UserStatus.Active,
+            Tier = AccountTier.Tier1,
+            EmailConfirmed = true,
+            PhoneNumberConfirmed = true
+        };
+
+        var result = await _userManager.CreateAsync(user, password);
+
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return (false, errors, string.Empty, 0);
+        }
+
+        user.OwnReferralCode = $"{user.PublicId}{Random.Shared.Next(1000, 9999)}";
+
+        var updateResult = await _userManager.UpdateAsync(user);
+
+        if (!updateResult.Succeeded)
+        {
+            var errors = string.Join(", ", updateResult.Errors.Select(x => x.Description));
+            return (false, errors, string.Empty, 0);
+        }
+
+        return (true, string.Empty, user.PublicId, user.Id);
+    }
+
 
     public async Task<(bool Success, string ErrorMessage)> AddToRoleAsync(long userId, string role)
     {

@@ -91,12 +91,30 @@ public sealed class RefreshTokenCommand
                     "User not found.");
             }
 
-            if (user.Status != UserStatus.Active)
+            var permissions = await _identityService.GetPermissionsAsync(
+                user.PublicId,
+                cancellationToken);
+
+            if (permissions is null)
             {
-                op.Warning($"User {user.PublicId} attempted to refresh token but account status is {user.Status}.");
+                op.Warning($"Refresh attempted on closed/soft-deleted account {user.PublicId}.");
                 return new BaseResult<RefreshTokenResponseDto>(
                     HttpStatusCode.Unauthorized,
-                    "Your account is not active. Please contact support.");
+                    "This account has been closed. Please contact support.");
+            }
+
+            if (!permissions.CanLogin)
+            {
+                op.Warning(
+                    $"Token refresh blocked for user {user.PublicId}. " +
+                    $"Status: {permissions.StatusLabel}, " +
+                    $"Reason: {permissions.RestrictionReason}");
+
+                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently blocked from refreshing sessions. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult<RefreshTokenResponseDto>(HttpStatusCode.Unauthorized, userMessage);
             }
 
             await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);

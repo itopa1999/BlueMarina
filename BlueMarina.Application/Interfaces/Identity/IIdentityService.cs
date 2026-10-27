@@ -1,4 +1,5 @@
 using BlueMarina.Domain.Enums;
+using static BlueMarina.Application.BBL.Queries.Administrator.GetAdminUserQuery;
 
 namespace BlueMarina.Application.Interfaces.Identity;
 
@@ -10,6 +11,12 @@ public interface IIdentityService
         string password,
         long? referredByUserId = null,
         string? referredByCode = null);
+        
+    
+    Task<(bool Success, string ErrorMessage, string UserId, long Id)> CreateAdminUserAsync(
+        string email,
+        string phoneNumber,
+        string password);
 
     Task<bool> EmailExistsAsync(
         string email,
@@ -128,6 +135,10 @@ public interface IIdentityService
 
     }
 
+    Task<(bool Success, string ErrorMessage)> AddToRolesAsync(long userId, IEnumerable<string> roles, CancellationToken cancellationToken = default);
+    Task<(bool Success, string ErrorMessage)> RemoveFromRolesAsync(long userId, IEnumerable<string> roles, CancellationToken cancellationToken = default);
+
+    Task<AdminUserDto?> GetAdminUserAsync(string publicId, CancellationToken cancellationToken = default);
 
     // ─────────────────────────────────────────────────────
     // Permissions / feature gates

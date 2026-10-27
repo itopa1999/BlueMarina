@@ -15,12 +15,13 @@ using Microsoft.OpenApi.Models;
 
 namespace BlueMarina.Api;
 
-public class Startup(IConfiguration configuration)
+public class Startup(
+    IConfiguration configuration,
+    IWebHostEnvironment environment)
 {
     private readonly IConfiguration _configuration = configuration;
+    private readonly IWebHostEnvironment _environment = environment;
 
-
-    // Register services
     public void ConfigureServices(IServiceCollection services)
     {
         // Controllers
@@ -133,52 +134,53 @@ public class Startup(IConfiguration configuration)
                 }
             });
 
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            if (_environment.IsDevelopment())
             {
-                Name = "Authorization",
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = ParameterLocation.Header,
-                Description = "Enter JWT Token. Example: eyJhbGciOiJIUzI1NiIs..."
-            });
-
-            options.AddSecurityDefinition("X-Platform", new OpenApiSecurityScheme
-            {
-                Name = "X-Platform",
-                Type = SecuritySchemeType.ApiKey,
-                In = ParameterLocation.Header,
-                Description = "Required platform identifier. Allowed values: Web, Mobile, Swagger"
-            });
-
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                        
-                    },
-                    Array.Empty<string>()
-                },
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter JWT Token. Example: eyJhbGciOiJIUzI1NiIs..."
+                });
 
+                options.AddSecurityDefinition("X-Platform", new OpenApiSecurityScheme
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "X-Platform"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
-            });
+                    Name = "X-Platform",
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Header,
+                    Description = "Required platform identifier. Allowed values: Web, Mobile, Swagger"
+                });
 
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    },
+
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "X-Platform"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            }
 
             options.SwaggerDoc("v2", new OpenApiInfo
             {
@@ -186,7 +188,6 @@ public class Startup(IConfiguration configuration)
                 Version = "v2",
                 Description = "BlueMarina Fintech Platform API V2"
             });
-
 
             options.SwaggerDoc("v3", new OpenApiInfo
             {
@@ -210,9 +211,7 @@ public class Startup(IConfiguration configuration)
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
             options.IncludeXmlComments(xmlPath);
-
         });
-
 
         // Later add:
         services.AddInfrastructure(_configuration);
@@ -224,7 +223,6 @@ public class Startup(IConfiguration configuration)
         services.AddDataProtection();
     }
 
-    
     // Configure middleware pipeline
     public void Configure(WebApplication app)
     {
@@ -236,12 +234,10 @@ public class Startup(IConfiguration configuration)
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<PlatformValidationMiddleware>();
 
-
         if (!app.Environment.IsDevelopment())
         {
             app.UseHttpsRedirection();
         }
-
 
         app.UseCors("AllowSpecificOrigin");
 
@@ -259,35 +255,26 @@ public class Startup(IConfiguration configuration)
                 "/swagger/v1/swagger.json",
                 "BlueMarina API v1");
 
-
             options.SwaggerEndpoint(
                 "/swagger/v2/swagger.json",
                 "BlueMarina API v2");
 
-
             options.SwaggerEndpoint(
                 "/swagger/v3/swagger.json",
                 "BlueMarina API v3");
-
 
             options.DocumentTitle =
                 "BlueMarina API Documentation";
         });
 
         app.UseAuthentication();
-
         app.UseAuthorization();
-
         app.UseRateLimiter();
-
         app.UseMiddleware<HangfireAuthMiddleware>();
-
         app.UseHangfireDashboard("/hangfire");
-
         app.UseStaticFiles();
 
         app.MapHealthChecks("/health/live");
-
         app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains("ready")
@@ -295,5 +282,4 @@ public class Startup(IConfiguration configuration)
 
         app.MapControllers();
     }
-
 }

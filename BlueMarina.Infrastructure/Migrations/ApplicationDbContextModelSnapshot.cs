@@ -1867,7 +1867,6 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("Type")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
@@ -1907,8 +1906,22 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -1926,6 +1939,9 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.Property<int?>("Gender")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsPep")
                         .HasColumnType("boolean");
@@ -1945,6 +1961,13 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("MothersMaidenName")
                         .HasColumnType("text");
@@ -1991,11 +2014,31 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTimeOffset?>("ReactivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ReferredByCode")
                         .HasColumnType("text");
 
                     b.Property<long?>("ReferredByUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("RestrictedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RestrictedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("RestrictionExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RestrictionReason")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RestrictionReasonDetails")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");

@@ -15,6 +15,24 @@ public static class RolesConstants
 
 }
 
+public static class RoleExtensions
+{
+    public static bool IsCustomer(this IEnumerable<string> roles) =>
+        roles.Contains(RolesConstants.Customer, StringComparer.OrdinalIgnoreCase);
+
+    public static bool IsAdmin(this IEnumerable<string> roles) =>
+        roles.Contains(RolesConstants.Admin, StringComparer.OrdinalIgnoreCase);
+
+    public static bool IsSuperAdmin(this IEnumerable<string> roles) =>
+        roles.Contains(RolesConstants.SuperAdmin, StringComparer.OrdinalIgnoreCase);
+
+    public static bool IsComplianceOfficer(this IEnumerable<string> roles) =>
+        roles.Contains(RolesConstants.ComplianceOfficer, StringComparer.OrdinalIgnoreCase);
+
+    public static bool IsAllAdmin(this IEnumerable<string> roles) =>
+        roles.IsAdmin() || roles.IsSuperAdmin() || roles.IsComplianceOfficer();
+}
+
 public static class Platforms
 {
     public const string Web = "Web";

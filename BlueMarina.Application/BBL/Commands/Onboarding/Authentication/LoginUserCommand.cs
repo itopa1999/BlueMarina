@@ -91,7 +91,7 @@ public sealed class LoginUserCommand
 
             if (user is null)
             {
-                op.Warning($"User not found for identifier: {identifierToUse}");                
+                op.Warning($"User not found for identifier: {identifierToUse}");
                 return new BaseResult<LoginResponseDto>(HttpStatusCode.BadRequest, "Invalid credentials.");
             }
 
@@ -125,16 +125,38 @@ public sealed class LoginUserCommand
                     "Account is temporarily locked. Please try again later.");
             }
 
-            if (user.Status == UserStatus.Suspended || user.Status == UserStatus.Closed)
+            var permissions = await _identityService.GetPermissionsAsync(
+                user.PublicId,
+                cancellationToken);
+
+            if (permissions is null)
             {
-                op.Warning($"User {user.PublicId} attempted to log in but account is {user.Status}.");
+                op.Warning($"Login attempted on closed/soft-deleted account {user.PublicId}.");
                 await _authAuditService.LogAttemptAsync(
                     resolvedPublicId, SignInMethod.Password, SignInStatus.Blocked, 
-                    $"Account is {user.Status}.", cancellationToken: cancellationToken);
+                    "Account is closed.", cancellationToken: cancellationToken);
 
                 return new BaseResult<LoginResponseDto>(
                     HttpStatusCode.Forbidden,
-                    "This account has been suspended or closed. Please contact support.");
+                    "This account has been closed. Please contact support if you believe this is a mistake.");
+            }
+
+            if (!permissions.CanLogin)
+            {
+                op.Warning(
+                    $"Login blocked for user {user.PublicId}. " +
+                    $"Status: {permissions.StatusLabel}, " +
+                    $"Reason: {permissions.RestrictionReason}");
+
+                await _authAuditService.LogAttemptAsync(
+                    resolvedPublicId, SignInMethod.Password, SignInStatus.Blocked, 
+                    $"Account status: {permissions.StatusLabel}.", cancellationToken: cancellationToken);
+
+                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently blocked from logging in. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult<LoginResponseDto>(HttpStatusCode.Forbidden, userMessage);
             }
 
             if (isEmail && !user.EmailConfirmed)

@@ -3,6 +3,7 @@ using Asp.Versioning;
 using BlueMarina.Api.Configurations;
 using BlueMarina.Api.Filters;
 using BlueMarina.Api.RateLimiting;
+using BlueMarina.Application.BBL.Commands.Administrator.Authentication;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
@@ -11,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
+using static BlueMarina.Application.BBL.Commands.Administrator.Authentication.AdminLoginUserCommand;
+using static BlueMarina.Application.BBL.Commands.Administrator.Authentication.AdminRefreshTokenCommand;
 
 namespace BlueMarina.Api.Controllers.Administrator;
 
@@ -30,69 +33,52 @@ public class AdminAuthenticationController(
     [ProducesResponseType(typeof(BaseResult<LoginResultDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> LoginUser(
-        [FromBody] LoginUserCommand.Command command,
+        [FromBody] AdminLoginUserCommand.Command command,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
 
-        var loginData = result.Data?.Data;
-
-        if (result.IsSuccess && loginData is not null)
+        if (result.IsSuccess && result.Data?.Data is { } loginData)
         {
-            RemoveAuthenticationTokensFromResponse(
-                loginData.AccessToken,
-                loginData.RefreshToken,
-                SetAuthenticationCookies,
-                () =>
-                {
-                    loginData.AccessToken = null;
-                    loginData.RefreshToken = null;
-                    loginData.AccessTokenExpiresAt = null;
-                });
+            SetAuthenticationCookies(loginData.AccessToken!, loginData.RefreshToken!);
+
+            loginData.AccessToken = null;
+            loginData.RefreshToken = null;
+            loginData.AccessTokenExpiresAt = null;
         }
 
-        return StatusCode(
-            (int)result.StatusCode,
-            result);
+        return StatusCode((int)result.StatusCode, result);
     }
 
     [HttpPost("refresh-token")]
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.AuthMedium)]
-    [ProducesResponseType(typeof(BaseResult<RefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult<AdminRefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Unauthorized)]
     public async Task<IActionResult> RefreshToken(
-        [FromBody] RefreshTokenCommand.Command command, CancellationToken cancellationToken)
+        [FromBody] AdminRefreshTokenCommand.Command command, 
+        CancellationToken cancellationToken)
     {
-        if (string.Equals(command.Platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
+        var cookieToken = GetRefreshTokenFromCookie();
+        if (!string.IsNullOrEmpty(cookieToken))
         {
-            var refreshTokenFromCookie = Request.Cookies["refresh_token"];
-            if (!string.IsNullOrEmpty(refreshTokenFromCookie))
-            {
-                command.RefreshToken = refreshTokenFromCookie;
-            }
+            command.RefreshToken = cookieToken;
         }
+
         var result = await _mediator.Send(command, cancellationToken);
-        if (result.IsSuccess && result.Data is not null)
+
+        if (result.IsSuccess && result.Data is { } refreshData)
         {
-            RemoveAuthenticationTokensFromResponse(
-                result.Data.AccessToken,
-                result.Data.RefreshToken,
-                SetAuthenticationCookies,
-                () =>
-                {
-                    result.Data.AccessToken = null;
-                    result.Data.RefreshToken = null;
-                    result.Data.AccessTokenExpiresAt = null;
-                });
+            SetAuthenticationCookies(refreshData.AccessToken!, refreshData.RefreshToken!);
+
+            refreshData.AccessToken = null;
+            refreshData.RefreshToken = null;
+            refreshData.AccessTokenExpiresAt = default;
         }
 
-        return StatusCode(
-            (int)result.StatusCode,
-            result
-        );
+        return StatusCode((int)result.StatusCode, result);
     }
-
 
     [HttpPost("logout")]
     [Authorize(Roles = RolesConstants.AllAdmins)]
@@ -100,16 +86,17 @@ public class AdminAuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> Logout(
-        [FromBody] LogoutCommand.Command command,
+        [FromBody] AdminLogoutCommand.Command command,
         CancellationToken cancellationToken)
     {
-        command.UserPublicId = UserPublicId ?? string.Empty;
-        var refreshTokenFromCookie = Request.Cookies["refresh_token"];
-
-        if (!string.IsNullOrWhiteSpace(refreshTokenFromCookie))
+        command.UserId = UserPublicId ?? string.Empty;
+        
+        var cookieToken = GetRefreshTokenFromCookie();
+        if (!string.IsNullOrWhiteSpace(cookieToken))
         {
-            command.RefreshToken = refreshTokenFromCookie;
+            command.RefreshToken = cookieToken;
         }
+
         var result = await _mediator.Send(command, cancellationToken);
 
         if (result.IsSuccess)
@@ -117,10 +104,7 @@ public class AdminAuthenticationController(
             ClearAuthenticationCookies();
         }
 
-        return StatusCode(
-            (int)result.StatusCode,
-            result
-        );
+        return StatusCode((int)result.StatusCode, result);
     }
 
     [HttpPost("change-password")]
@@ -129,16 +113,18 @@ public class AdminAuthenticationController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> ChangePassword(
-        [FromBody] ChangePasswordCommand.Command command, CancellationToken cancellationToken)
+        [FromBody] AdminChangePasswordCommand.Command command, 
+        CancellationToken cancellationToken)
     {
-        command.UserPublicId = UserPublicId ?? string.Empty;
+        command.UserId = UserPublicId ?? string.Empty;
         var result = await _mediator.Send(command, cancellationToken);
-        return StatusCode(
-            (int)result.StatusCode,
-            result
-        );
+        return StatusCode((int)result.StatusCode, result);
     }
 
+    private string? GetRefreshTokenFromCookie()
+    {
+        return Request.Cookies["refresh_token"];
+    }
 
     private CookieOptions CreateAuthenticationCookieOptions()
     {
@@ -213,22 +199,5 @@ public class AdminAuthenticationController(
         Response.Cookies.Delete(
             "refresh_token",
             refreshTokenOptions);
-    }
-
-    private void RemoveAuthenticationTokensFromResponse(
-        string? accessToken,
-        string? refreshToken,
-        Action<string, string> setCookies,
-        Action removeTokens)
-    {
-        if (string.IsNullOrWhiteSpace(accessToken) ||
-            string.IsNullOrWhiteSpace(refreshToken))
-        {
-            throw new InvalidOperationException(
-                "Authentication tokens are required to establish web cookies.");
-        }
-
-        setCookies(accessToken, refreshToken);
-        removeTokens();
     }
 }
