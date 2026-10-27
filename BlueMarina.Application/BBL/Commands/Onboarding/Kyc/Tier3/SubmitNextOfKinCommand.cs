@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json.Serialization;
+using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Enums;
@@ -51,6 +52,26 @@ public sealed class SubmitNextOfKinCommand
             if (string.IsNullOrWhiteSpace(request.UserId))
                 return new BaseResult(HttpStatusCode.Unauthorized, "User context is missing.");
 
+            var normalizedPhone = ExtensionHelpers.Normalize(request.Phone);
+            if (normalizedPhone is null)
+            {
+                op.Warning("Invalid phone number format for next of kin.");
+                return new BaseResult(HttpStatusCode.BadRequest, "Please provide a valid Nigerian phone number.");
+            }
+
+            string? normalizedEmail = null;
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                var emailAttribute = new EmailAddressAttribute();
+                
+                if (!emailAttribute.IsValid(normalizedEmail))
+                {
+                    op.Warning("Invalid email format for next of kin.");
+                    return new BaseResult(HttpStatusCode.BadRequest, "Please provide a valid email address.");
+                }
+            }
+
             var progress = await _unitOfWork.Query<UserOnboardingProgress>()
                 .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
 
@@ -70,11 +91,9 @@ public sealed class SubmitNextOfKinCommand
 
             nextOfKin.FullName = request.FullName;
             nextOfKin.Relationship = request.Relationship;
-            nextOfKin.Phone = request.Phone;
-            nextOfKin.Email = request.Email;
+            nextOfKin.Phone = normalizedPhone;
+            nextOfKin.Email = normalizedEmail;
             nextOfKin.LivesAtSameAddress = request.LivesAtSameAddress;
-
-            _unitOfWork.Update(nextOfKin);
 
             progress.Tier3_NextOfKinDone = true;
             _unitOfWork.Update(progress);

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
@@ -205,6 +206,10 @@ public class Startup(IConfiguration configuration)
                     .Replace(",", "_")
                     .Replace(" ", "_");
             });
+
+            var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+            options.IncludeXmlComments(xmlPath);
 
         });
 

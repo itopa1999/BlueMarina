@@ -4,11 +4,13 @@ using System.Text.Json.Serialization;
 using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +27,7 @@ public sealed class SubmitIdDocumentCommand
         public IdDocumentType Type { get; set; }
 
         [Required]
-        public string DocumentBase64 { get; set; } = string.Empty;
+        public IFormFile DocumentFile { get; set; } = null!;
     }
 
     public class IdDocumentResponseDto
@@ -38,15 +40,18 @@ public sealed class SubmitIdDocumentCommand
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IExternalApiClient _externalApiClient;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<Handler> _logger;
 
         public Handler(
             IUnitOfWork unitOfWork,
             IExternalApiClient externalApiClient,
+            IFileStorageService fileStorageService,
             ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _externalApiClient = externalApiClient;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -59,6 +64,17 @@ public sealed class SubmitIdDocumentCommand
             {
                 return new BaseResult<IdDocumentResponseDto>(
                     HttpStatusCode.Unauthorized, "User context is missing.");
+            }
+
+            var (isValid, Message) = _fileStorageService.ValidateFile(
+                request.DocumentFile.FileName, 
+                request.DocumentFile.ContentType, 
+                request.DocumentFile.Length);
+
+            if (!isValid)
+            {
+                return new BaseResult<IdDocumentResponseDto>(
+                    HttpStatusCode.BadRequest, Message);
             }
 
             var progress = await _unitOfWork.Query<UserOnboardingProgress>()
@@ -81,7 +97,7 @@ public sealed class SubmitIdDocumentCommand
                 {
                     UserId = request.UserId,
                     Type = request.Type,
-                    ImageUrl = request.DocumentBase64,
+                    ImageUrl = "http://localhost:5014/swagger/index.html",
                     Status = IdDocumentStatus.Captured,
                     AttemptNumber = 1
                 };
@@ -96,7 +112,7 @@ public sealed class SubmitIdDocumentCommand
                 }
 
                 idDocument.Type = request.Type;
-                idDocument.ImageUrl = request.DocumentBase64;
+                idDocument.ImageUrl = "http://localhost:5014/swagger/index.html";
                 idDocument.Status = IdDocumentStatus.Captured;
                 idDocument.RejectionReason = null;
                 idDocument.AttemptNumber++;

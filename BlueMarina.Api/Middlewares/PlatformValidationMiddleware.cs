@@ -26,7 +26,8 @@ public class PlatformValidationMiddleware
     { 
         "/health", 
         "/swagger", 
-        "/hangfire" 
+        "/hangfire",
+        "/api/v1/auth/verify-email" 
     };
 
     public PlatformValidationMiddleware(RequestDelegate next)

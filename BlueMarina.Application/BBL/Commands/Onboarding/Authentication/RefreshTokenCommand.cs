@@ -1,162 +1,144 @@
-// using System.Net;
-// using System.Text.Json.Serialization;
-// using BlueMarina.Application.Interfaces.Identity;
-// using BlueMarina.Application.Interfaces.Persistence;
-// using BlueMarina.Application.Interfaces.Security;
-// using BlueMarina.Shared.Constants;
-// using BlueMarina.Shared.Logging;
-// using BlueMarina.Shared.Results;
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging;
-// using BlueMarina.Domain.Entities;
+using System.Net;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Domain.Enums;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Logging;
+using MediatR;
+using Microsoft.Extensions.Logging;
 
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
-// namespace BlueMarina.Application.BBL.Commands.Authentication;
+public sealed class RefreshTokenCommand
+{
+    public class Command : IRequest<BaseResult<RefreshTokenResponseDto>>
+    {
+        public string RefreshToken { get; set; } = string.Empty;
+    }
 
-// public sealed class RefreshTokenCommand
-// {
-//     public class Command : IRequest<BaseResult<RefreshTokenResponseDto>>
-//     {
-//         public string RefreshToken { get; set; } = string.Empty;
-//         public string Platform { get; init; } = Platforms.Mobile;
-//     }
+    public class RefreshTokenResponseDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public bool IsAccountVerified { get; set; }
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTimeOffset AccessTokenExpiresAt { get; set; }
+        public DateTimeOffset RefreshTokenExpiresAt { get; set; }
+    }
 
-//     public class RefreshTokenResponseDto
-//     {
-//         public string AccessToken { get; set; } = string.Empty;
-//         public string RefreshToken { get; set; } = string.Empty;
-//         public string Platform { get; set; } = Platforms.Mobile;
-//         public DateTime AccessTokenExpiresAt { get; set; }
-//     }
+    public class Handler : IRequestHandler<Command, BaseResult<RefreshTokenResponseDto>>
+    {
+        private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IRefreshTokenService _refreshTokenService;
+        private readonly ILogger<Handler> _logger;
 
-//     public class Handler : IRequestHandler<Command, BaseResult<RefreshTokenResponseDto>>
-//     {
-//         private readonly IIdentityService _identityService;
-//         private readonly IUnitOfWork _unitOfWork;
-//         private readonly IJwtTokenGenerator _jwtTokenGenerator;
-//         private readonly IRefreshTokenService _refreshTokenService;
-//         private readonly ILogger<Handler> _logger;
-//         private static readonly HashSet<string> ValidPlatforms =
-//         new(StringComparer.OrdinalIgnoreCase)
-//         {
-//             Platforms.Web,
-//             Platforms.Mobile,
-//             Platforms.Swagger
-//         };
+        public Handler(
+            IIdentityService identityService,
+            IUnitOfWork unitOfWork,
+            IJwtTokenGenerator jwtTokenGenerator,
+            IRefreshTokenService refreshTokenService,
+            ILogger<Handler> logger)
+        {
+            _identityService = identityService;
+            _unitOfWork = unitOfWork;
+            _jwtTokenGenerator = jwtTokenGenerator;
+            _refreshTokenService = refreshTokenService;
+            _logger = logger;
+        }
 
-//         public Handler(
-//             IIdentityService identityService,
-//             IUnitOfWork unitOfWork,
-//             IJwtTokenGenerator jwtTokenGenerator,
-//             IRefreshTokenService refreshTokenService,
-//             ILogger<Handler> logger)
-//         {
-//             _identityService = identityService;
-//             _unitOfWork = unitOfWork;
-//             _jwtTokenGenerator = jwtTokenGenerator;
-//             _refreshTokenService = refreshTokenService;
-//             _logger = logger;
-//         }
+        public async Task<BaseResult<RefreshTokenResponseDto>> Handle(Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "RefreshToken",
+                ("RefreshToken", request.RefreshToken)
+            );
 
-//         public async Task<BaseResult<RefreshTokenResponseDto>> Handle(Command request, CancellationToken cancellationToken)
-//         {
-//             using var op = OperationLogger.Start(_logger, "RefreshToken",
-//                 ("RefreshToken", request.RefreshToken),
-//                 ("Platform", request.Platform)
-//             );
+            var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken, cancellationToken);
 
-//             if (!ValidPlatforms.Contains(request.Platform))
-//             {
-//                 op.Fail($"Invalid platform: {request.Platform}");
+            if (refreshToken is null)
+            {
+                op.Warning("Invalid refresh token provided.");
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.BadRequest,
+                    "Invalid refresh token.");
+            }
 
-//                 return new BaseResult<RefreshTokenResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Invalid platform specified."
-//                 );
-//             }
+            if (refreshToken.IsExpired)
+            {
+                op.Warning($"Refresh token expired (UserId: {refreshToken.UserId})");
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.Unauthorized,
+                    "Refresh token has expired.");
+            }
 
-//             var refreshToken = await _refreshTokenService.ValidateAsync(request.RefreshToken, cancellationToken);
+            if (refreshToken.IsRevoked)
+            {
+                op.Warning($"Refresh token already revoked (UserId: {refreshToken.UserId})");
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.Unauthorized,
+                    "Refresh token has been revoked.");
+            }
 
-//             if (refreshToken is null)
-//             {
-//                 op.Fail("Invalid refresh token provided.");
-//                 return new BaseResult<RefreshTokenResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Invalid refresh token.");
-//             }
+            var user = await _identityService.GetByIdentifierAsync(refreshToken.UserId, cancellationToken);
 
-//             if (refreshToken.IsExpired)
-//             {
-//                 op.Fail($"Refresh token expired (UserId: {refreshToken.UserProfileId})");
-//                 return new BaseResult<RefreshTokenResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Refresh token has expired.");
-//             }
+            if (user is null)
+            {
+                op.Warning($"User not found for refresh token (UserId: {refreshToken.UserId})");
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.NotFound,
+                    "User not found.");
+            }
 
-//             if (refreshToken.IsRevoked)
-//             {
-//                 op.Fail($"Refresh token already revoked (UserId: {refreshToken.UserProfileId})");
-//                 return new BaseResult<RefreshTokenResponseDto>(
-//                     HttpStatusCode.BadRequest,
-//                     "Refresh token has been revoked.");
-//             }
+            if (user.Status != UserStatus.Active)
+            {
+                op.Warning($"User {user.PublicId} attempted to refresh token but account status is {user.Status}.");
+                return new BaseResult<RefreshTokenResponseDto>(
+                    HttpStatusCode.Unauthorized,
+                    "Your account is not active. Please contact support.");
+            }
 
-//             await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
-//             try
-//             {
-//                 refreshToken.RevokedAt = DateTime.UtcNow;
-//                 refreshToken.RevocationReason = "Token refreshed";
-//                 _unitOfWork.Update(refreshToken);
+            refreshToken.RevokedAt = DateTimeOffset.UtcNow;
+            refreshToken.RevocationReason = "Token refreshed";
+            _unitOfWork.Update(refreshToken);
 
-//                 var roles = await _identityService.GetRolesAsync(refreshToken.UserProfileId);
+            var roles = await _identityService.GetRolesAsync(user.Id);
 
-//                 var userProfile = await _unitOfWork.Query<UserProfile>()
-//                     .AsNoTracking()
-//                     .Where(up => up.Id == refreshToken.UserProfileId)
-//                     .Select(up => new { up.Email })
-//                     .FirstOrDefaultAsync(cancellationToken);
+            var jwtResult = _jwtTokenGenerator.GenerateToken(
+                user.Id,
+                user.PublicId,
+                user.FirstName ?? string.Empty,
+                user.OtherNames ?? string.Empty,
+                user.LastName ?? string.Empty,
+                user.Email ?? string.Empty,
+                user.PhoneNumber ?? string.Empty,
+                user.FullName ?? $"{user.FirstName} {user.LastName}".Trim(),
+                roles);
 
-//                 if (userProfile is null)
-//                 {
-//                     op.Fail($"User profile not found for refresh token user {refreshToken.UserProfileId}");
-//                     return new BaseResult<RefreshTokenResponseDto>(
-//                         HttpStatusCode.BadRequest,
-//                         "User profile not found."
-//                     );
-//                 }
+            var (rawRefreshToken, refreshTokenEntity) = await _refreshTokenService.CreateAsync(user.PublicId, cancellationToken);
 
-//                 var accessToken = _jwtTokenGenerator.GenerateToken(
-//                     refreshToken.UserProfileId,
-//                     userProfile.Email,
-//                     roles);
+            await _unitOfWork.AddAsync(refreshTokenEntity, cancellationToken);
+            
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
 
-//                 var (newToken, newRefreshToken) = await _refreshTokenService.CreateAsync(refreshToken.UserProfileId, cancellationToken);
+            op.Success($"Token refreshed successfully for user {user.PublicId}");
 
-//                 await _unitOfWork.AddAsync(newRefreshToken, cancellationToken);
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-//                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
-
-//                 op.Success($"Token refreshed successfully for user {refreshToken.UserProfileId}");
-
-//                 return new BaseResult<RefreshTokenResponseDto>(
-//                     HttpStatusCode.OK,
-//                     "Token refreshed successfully.",
-//                     new RefreshTokenResponseDto
-//                     {
-//                         AccessToken = accessToken,
-//                         RefreshToken = newToken,
-//                         Platform = request.Platform,
-//                         AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
-//                     });
-//             }
-//             catch (Exception ex)
-//             {
-//                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                 op.Fail($"Refresh token failed for user {refreshToken.UserProfileId}", ex);
-//                 throw;
-//             }
-//         }
-//     }
-// }
+            return new BaseResult<RefreshTokenResponseDto>(
+                HttpStatusCode.OK,
+                "Token refreshed successfully.",
+                new RefreshTokenResponseDto
+                {
+                    UserId = user.PublicId,
+                    IsAccountVerified = user.EmailConfirmed && user.PhoneNumberConfirmed,
+                    AccessToken = jwtResult.AccessToken,
+                    RefreshToken = rawRefreshToken,
+                    AccessTokenExpiresAt = jwtResult.ExpiresAt,
+                    RefreshTokenExpiresAt = refreshTokenEntity.ExpiresAt
+                });
+        }
+    }
+}

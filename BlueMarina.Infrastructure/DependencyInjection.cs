@@ -4,6 +4,7 @@ using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Application.Interfaces.IdentityVerification;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Infrastructure.Caching;
 using BlueMarina.Infrastructure.ExternalAPI;
@@ -17,6 +18,7 @@ using BlueMarina.Infrastructure.Persistence;
 using BlueMarina.Infrastructure.Persistence.Seeding;
 using BlueMarina.Infrastructure.Security;
 using BlueMarina.Infrastructure.Service;
+using BlueMarina.Infrastructure.Storage;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
@@ -91,6 +93,8 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IBvnService, BvnService>();
         services.AddScoped<INinService, NinService>();
+        services.AddScoped<IFileStorageService, FileStorageService>();
+        
 
         services.AddScoped<IIdentityProviderService, IdentityProviderService>();
 

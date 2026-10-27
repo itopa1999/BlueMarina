@@ -3,10 +3,12 @@ using System.Net;
 using System.Text.Json.Serialization;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -34,22 +36,25 @@ public sealed class SubmitPersonalDetailsCommand
         [Required]
         public string MothersMaidenName { get; set; } = string.Empty;
 
-        public string? PassportPhotoBase64 { get; set; }
+        public IFormFile? PassportPhotoFile { get; set; }
     }
 
     public class Handler : IRequestHandler<Command, BaseResult>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IIdentityService _identityService;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<Handler> _logger;
 
         public Handler(
             IUnitOfWork unitOfWork, 
             IIdentityService identityService,
+            IFileStorageService fileStorageService,
             ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -59,6 +64,20 @@ public sealed class SubmitPersonalDetailsCommand
 
             if (string.IsNullOrWhiteSpace(request.UserId))
                 return new BaseResult(HttpStatusCode.Unauthorized, "User context is missing.");
+
+            if (request.PassportPhotoFile != null)
+            {
+                var (isValid, errorMessage) = _fileStorageService.ValidateFile(
+                    request.PassportPhotoFile.FileName, 
+                    request.PassportPhotoFile.ContentType, 
+                    request.PassportPhotoFile.Length);
+
+                if (!isValid)
+                {
+                    return new BaseResult(
+                        HttpStatusCode.BadRequest, errorMessage);
+                }
+            }
 
             var progress = await _unitOfWork.Query<UserOnboardingProgress>()
                 .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
@@ -75,7 +94,7 @@ public sealed class SubmitPersonalDetailsCommand
                 stateOfOrigin: request.StateOfOrigin,
                 lgaOfOrigin: request.LgaOfOrigin,
                 mothersMaidenName: request.MothersMaidenName,
-                passportPhotoUrl: request.PassportPhotoBase64,
+                passportPhotoUrl: "http://localhost:5014/swagger/index.html",
                 cancellationToken: cancellationToken);
 
             if (!updateSuccess)

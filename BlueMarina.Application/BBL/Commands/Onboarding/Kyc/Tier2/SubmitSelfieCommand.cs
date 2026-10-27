@@ -4,11 +4,13 @@ using System.Text.Json.Serialization;
 using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -22,7 +24,7 @@ public sealed class SubmitSelfieCommand
         public string UserId { get; set; } = string.Empty;
 
         [Required]
-        public string SelfieBase64 { get; set; } = string.Empty;
+        public IFormFile SelfieFile { get; set; } = null!;
     }
 
     public class SelfieCheckResponseDto
@@ -36,16 +38,19 @@ public sealed class SubmitSelfieCommand
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IExternalApiClient _externalApiClient;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<Handler> _logger;
         private const int MaxAttempts = 5;
 
         public Handler(
             IUnitOfWork unitOfWork,
             IExternalApiClient externalApiClient,
+            IFileStorageService fileStorageService,
             ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _externalApiClient = externalApiClient;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -58,6 +63,17 @@ public sealed class SubmitSelfieCommand
             {
                 return new BaseResult<SelfieCheckResponseDto>(
                     HttpStatusCode.Unauthorized, "User context is missing.");
+            }
+
+            var (isValid, Message) = _fileStorageService.ValidateFile(
+                request.SelfieFile.FileName, 
+                request.SelfieFile.ContentType, 
+                request.SelfieFile.Length);
+
+            if (!isValid)
+            {
+                return new BaseResult<SelfieCheckResponseDto>(
+                    HttpStatusCode.BadRequest, Message);
             }
 
             var progress = await _unitOfWork.Query<UserOnboardingProgress>()
@@ -80,7 +96,7 @@ public sealed class SubmitSelfieCommand
                 {
                     UserId = request.UserId,
                     AttemptNumber = 1,
-                    MediaUrl = request.SelfieBase64
+                    MediaUrl = "http://localhost:5014/swagger/index.html"
                 };
                 await _unitOfWork.AddAsync(selfieCheck, cancellationToken);
             }
@@ -93,7 +109,7 @@ public sealed class SubmitSelfieCommand
                 }
 
                 selfieCheck.AttemptNumber++;
-                selfieCheck.MediaUrl = request.SelfieBase64;
+                selfieCheck.MediaUrl = "http://localhost:5014/swagger/index.html";
                 _unitOfWork.Update(selfieCheck);
             }
 

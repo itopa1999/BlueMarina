@@ -4,12 +4,14 @@ using System.Text.Json.Serialization;
 using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Entities.Security;
 using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Logging;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +25,7 @@ public sealed class SubmitSignatureCommand
         public string UserId { get; set; } = string.Empty;
 
         [Required]
-        public string SignatureBase64 { get; set; } = string.Empty;
+        public IFormFile SignatureFile { get; set; } = null!;
 
         [Required]
         public bool AcceptAccountAgreement { get; set; }
@@ -38,15 +40,18 @@ public sealed class SubmitSignatureCommand
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IIdentityService _identityService;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<Handler> _logger;
 
         public Handler(
             IUnitOfWork unitOfWork, 
             IIdentityService identityService,
+            IFileStorageService fileStorageService,
             ILogger<Handler> logger)
         {
             _unitOfWork = unitOfWork;
             _identityService = identityService;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -56,6 +61,17 @@ public sealed class SubmitSignatureCommand
 
             if (string.IsNullOrWhiteSpace(request.UserId))
                 return new BaseResult(HttpStatusCode.Unauthorized, "User context is missing.");
+
+            var (isValid, Message) = _fileStorageService.ValidateFile(
+                request.SignatureFile.FileName, 
+                request.SignatureFile.ContentType, 
+                request.SignatureFile.Length);
+
+            if (!isValid)
+            {
+                return new BaseResult(
+                    HttpStatusCode.BadRequest, Message);
+            }
 
             if (!request.AcceptAccountAgreement || !request.AcceptPrivacyPolicy)
                 return new BaseResult(HttpStatusCode.BadRequest, "You must accept both agreements to proceed.");
@@ -107,13 +123,13 @@ public sealed class SubmitSignatureCommand
                 await _unitOfWork.AddAsync(new Signature
                 {
                     UserId = request.UserId,
-                    SpecimenImageUrl = request.SignatureBase64,
+                    SpecimenImageUrl = "http://localhost:5014/swagger/index.html",
                     SignedAt = DateTimeOffset.UtcNow
                 }, cancellationToken);
             }
             else
             {
-                existingSignature.SpecimenImageUrl = request.SignatureBase64;
+                existingSignature.SpecimenImageUrl = "http://localhost:5014/swagger/index.html";
                 existingSignature.SignedAt = DateTimeOffset.UtcNow;
                 _unitOfWork.Update(existingSignature);
             }

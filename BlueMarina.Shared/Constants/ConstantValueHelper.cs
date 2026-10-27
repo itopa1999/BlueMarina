@@ -43,6 +43,9 @@ public static class SignUpNextSteps
     public const string VerifyContact = "VERIFY_CONTACT";
     public const string SetupTransactionPin = "SETUP_TRANSACTION_PIN";
     public const string CompleteProfile = "COMPLETE_PROFILE";
+    public const string VerifyPasswordResetOtp = "VERIFY_PASSWORD_RESET_OTP";
+    public const string VerifyPinResetOtp = "VERIFY_LOGIN_PIN";
+    
 }
 public static class IdentityNextSteps
 {

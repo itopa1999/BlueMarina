@@ -1,125 +1,114 @@
-// using System.ComponentModel.DataAnnotations;
-// using System.Net;
-// using System.Text.Json.Serialization;
-// using BlueMarina.Application.Interfaces.Identity;
-// using BlueMarina.Application.Interfaces.Persistence;
-// using BlueMarina.Shared.Common.Results;
-// using BlueMarina.Shared.Logging;
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text.Json.Serialization;
+using BlueMarina.Application.Interfaces.Identity;
+using BlueMarina.Application.Interfaces.Persistence;
+using BlueMarina.Domain.Entities.Security;
+using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Logging;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-// namespace BlueMarina.Application.BBL.Commands.Authentication;
+namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
-// public sealed class ChangePasswordCommand
-// {
-//     public class Command : IRequest<BaseResult>
-//     {
-//         [JsonIgnore]
-//         public string UserId { get; set; } = string.Empty;
+public sealed class ChangePasswordCommand
+{
+    public class Command : IRequest<BaseResult>
+    {
+        [JsonIgnore]
+        public string UserId { get; set; } = string.Empty;
 
-//         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
-//         public string OldPassword { get; init; } = string.Empty;
+        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        public string OldPassword { get; init; } = string.Empty;
 
-//         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
-//         public string NewPassword { get; init; } = string.Empty;
+        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        public string NewPassword { get; init; } = string.Empty;
 
-//         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
-//         public string ConfirmPassword { get; init; } = string.Empty;
-//     }
+        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        public string ConfirmPassword { get; init; } = string.Empty;
+    }
 
-//     public class Handler : IRequestHandler<Command, BaseResult>
-//     {
-//         private readonly IUnitOfWork _unitOfWork;
-//         private readonly IIdentityService _identityService;
-//         private readonly ILogger<Handler> _logger;
+    public class Handler : IRequestHandler<Command, BaseResult>
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IIdentityService _identityService;
+        private readonly ILogger<Handler> _logger;
 
-//         public Handler(
-//             IUnitOfWork unitOfWork,
-//             IIdentityService identityService,
-//             ILogger<Handler> logger)
-//         {
-//             _unitOfWork = unitOfWork;
-//             _identityService = identityService;
-//             _logger = logger;
-//         }
+        public Handler(
+            IUnitOfWork unitOfWork,
+            IIdentityService identityService,
+            ILogger<Handler> logger)
+        {
+            _unitOfWork = unitOfWork;
+            _identityService = identityService;
+            _logger = logger;
+        }
 
-//         public async Task<BaseResult> Handle(Command request, CancellationToken cancellationToken)
-//         {
-//             using var op = OperationLogger.Start(_logger, "ChangePassword",
-//                 ("UserId", request.UserId.ToString())
-//             );
+        public async Task<BaseResult> Handle(Command request, CancellationToken cancellationToken)
+        {
+            using var op = OperationLogger.Start(_logger, "ChangePassword",
+                ("UserId", request.UserId)
+            );
 
-//             if (request.NewPassword != request.ConfirmPassword)
-//             {
-//                 op.Fail("New password and confirmation password do not match.");
-//                 return new BaseResult(
-//                     HttpStatusCode.BadRequest,
-//                     "New password and confirmation password do not match.");
-//             }
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                op.Warning("New password and confirmation password do not match.");
+                return new BaseResult(
+                    HttpStatusCode.BadRequest,
+                    "New password and confirmation password do not match.");
+            }
 
-//             if (request.OldPassword == request.NewPassword)
-//             {
-//                 op.Fail("New password cannot be the same as old password.");
-//                 return new BaseResult(
-//                     HttpStatusCode.BadRequest,
-//                     "New password cannot be the same as the old password.");
-//             }
+            if (request.OldPassword == request.NewPassword)
+            {
+                op.Warning("New password cannot be the same as old password.");
+                return new BaseResult(
+                    HttpStatusCode.BadRequest,
+                    "New password cannot be the same as the old password.");
+            }
 
-//             var user = await _unitOfWork.Query<UserProfile>()
-//                 .AsNoTracking()
-//                 .Where(u => u.Id == request.UserId)
-//                 .Select(u => new { u.Id, u.Email, u.PhoneNumber, u.UserId })
-//                 .FirstOrDefaultAsync(cancellationToken);
-//             if (user == null)
-//             {
-//                 op.Fail($"User not found (UserId: {request.UserId})");
-//                 return new BaseResult(
-//                     HttpStatusCode.BadRequest,
-//                     "User not found.");
-//             }
+            var user = await _identityService.GetByIdentifierAsync(request.UserId, cancellationToken);
+            
+            if (user is null)
+            {
+                op.Warning($"User not found (UserId: {request.UserId})");
+                return new BaseResult(
+                    HttpStatusCode.BadRequest,
+                    "User not found.");
+            }
 
-//             await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await using var tx = await _unitOfWork.BeginAtomicAsync(cancellationToken);
 
-//             try
-//             {
-//                 var (success, errorMessage) = await _identityService.ChangePasswordAsync(
-//                     user.UserId,
-//                     request.OldPassword,
-//                     request.NewPassword);
+            var (success, errorMessage) = await _identityService.ChangePasswordAsync(
+                user.Id,
+                request.OldPassword,
+                request.NewPassword);
 
-//                 if (!success)
-//                 {
-//                     op.Fail($"Password change failed: {errorMessage}");
-//                     return new BaseResult(HttpStatusCode.BadRequest, errorMessage);
-//                 }
+            if (!success)
+            {
+                op.Warning($"Password change failed: {errorMessage}");
+                return new BaseResult(HttpStatusCode.BadRequest, errorMessage);
+            }
 
-//                 var refreshTokens = await _unitOfWork.Query<RefreshToken>()
-//                     .Where(rt => rt.UserProfileId == user.Id && rt.RevokedAt == null)
-//                     .ToListAsync(cancellationToken);
+            var refreshTokens = await _unitOfWork.Query<RefreshToken>()
+                .Where(rt => rt.UserId == user.PublicId && rt.RevokedAt == null)
+                .ToListAsync(cancellationToken);
 
-//                 foreach (var token in refreshTokens)
-//                 {
-//                     token.RevokedAt = DateTime.UtcNow;
-//                     token.RevocationReason = "Password changed by user";
-//                     _unitOfWork.Update(token);
-//                 }
+            foreach (var token in refreshTokens)
+            {
+                token.RevokedAt = DateTimeOffset.UtcNow;
+                token.RevocationReason = "Password changed by user";
+                _unitOfWork.Update(token);
+            }
 
-//                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-//                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
 
-//                 op.Success($"Password changed successfully for user {user.UserId}");
+            op.Success($"Password changed successfully for user {user.PublicId}");
 
-//                 return new BaseResult(
-//                     HttpStatusCode.OK,
-//                     "Password changed successfully.");
-//             }
-//             catch (Exception ex)
-//             {
-//                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-//                 op.Fail($"Password change failed with exception", ex);
-//                 throw;
-//             }
-//         }
-//     }
-// }
+            return new BaseResult(
+                HttpStatusCode.OK,
+                "Password changed successfully.");
+        }
+    }
+}

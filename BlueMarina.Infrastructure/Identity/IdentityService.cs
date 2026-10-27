@@ -21,6 +21,29 @@ public sealed class IdentityService : IIdentityService
         _context = context;
     }
 
+
+    public async Task<(bool Success, string ErrorMessage)> UpdateFinalDetailsAsync(
+        string publicId,
+        string occupation,
+        string? employer,
+        bool isPep,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
+
+        if (user is null)
+        {
+            return (false, "User not found.");
+        }
+
+        user.Occupation = occupation;
+        user.Employer = employer;
+        user.IsPep = isPep;
+
+        return (true, string.Empty);
+    }
+
     // ==========================================
     // WRITE
     // ==========================================

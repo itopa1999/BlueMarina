@@ -68,6 +68,13 @@ public interface IIdentityService
         string oldPassword,
         string newPassword);
 
+    Task<(bool Success, string ErrorMessage)> UpdateFinalDetailsAsync(
+        string publicId, 
+        string occupation, 
+        string? employer, 
+        bool isPep, 
+        CancellationToken cancellationToken = default);
+
     Task<bool> CheckPasswordAsync(long userId, string password);
 
     Task<bool> IsAccountVerifiedAsync(long userId);
