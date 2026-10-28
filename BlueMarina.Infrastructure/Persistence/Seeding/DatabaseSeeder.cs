@@ -1,4 +1,4 @@
-using BlueMarina.Application.Common.Settings;
+using BlueMarina.Application.BBL.Commands.Administrator;
 using BlueMarina.Application.Helpers;
 using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Domain.Entities.Onboarding;
@@ -6,6 +6,7 @@ using BlueMarina.Domain.Enums;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,7 @@ public sealed class DatabaseSeeder
     private readonly ExternalApiSettings _settings;
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
+    private readonly ISender _mediator;
     private readonly ILogger<DatabaseSeeder> _logger;
 
     public DatabaseSeeder(
@@ -34,6 +36,7 @@ public sealed class DatabaseSeeder
         IOptions<ExternalApiSettings> settings,
         IConfiguration configuration,
         IHostEnvironment environment,
+        ISender mediator,
         ILogger<DatabaseSeeder> logger)
     {
         _dbContext = dbContext;
@@ -43,6 +46,7 @@ public sealed class DatabaseSeeder
         _settings = settings.Value;
         _configuration = configuration;
         _environment = environment;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -52,6 +56,7 @@ public sealed class DatabaseSeeder
         await SeedLocationsAsync(cancellationToken);
         await SeedTierLimitsAsync(cancellationToken);
         await SeedSuperAdminAsync(cancellationToken);
+        await SeedBanksIfMissingAsync(cancellationToken);
     }
 
     private async Task SeedAgreementVersionsAsync(CancellationToken cancellationToken)
@@ -65,7 +70,7 @@ public sealed class DatabaseSeeder
         }
 
         var versions = DefaultAgreementVersion.Create();
-        
+
         await _dbContext.AgreementVersions.AddRangeAsync(versions, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -91,7 +96,7 @@ public sealed class DatabaseSeeder
         try
         {
             var locations = await _externalApiClient.GetAsync<Dictionary<string, List<string>>>(
-                _settings.NigerianLocationsUrl, 
+                _settings.NigerianLocationsUrl,
                 cancellationToken: cancellationToken);
 
             if (locations == null || !locations.Any())
@@ -138,7 +143,7 @@ public sealed class DatabaseSeeder
         }
 
         var tierLimits = DefaultTierLimit.Create();
-        
+
         await _dbContext.TierLimits.AddRangeAsync(tierLimits, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -150,7 +155,7 @@ public sealed class DatabaseSeeder
         using var op = OperationLogger.Start(_logger, "SeedSuperAdmin");
 
         var superAdminRole = await _roleManager.FindByNameAsync(RolesConstants.SuperAdmin);
-        
+
         if (superAdminRole is null)
         {
             superAdminRole = new IdentityRole<long> { Name = RolesConstants.SuperAdmin };
@@ -240,5 +245,79 @@ public sealed class DatabaseSeeder
         }
 
         op.Success($"SuperAdmin {publicId} created successfully. Please change the password immediately.");
+    }
+
+    private async Task SeedBanksIfMissingAsync(
+        CancellationToken cancellationToken)
+    {
+        using var op = OperationLogger.Start(_logger, "SeedBanksIfMissing");
+
+        var bankCountBefore = await _dbContext.Banks
+            .CountAsync(cancellationToken);
+
+        if (bankCountBefore > 0)
+        {
+            op.Success($"Banks already present ({bankCountBefore}) — skipping refresh.");
+            return;
+        }
+
+        try
+        {
+            var result = await _mediator.Send(
+                new RefreshBanks.Command(),
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning(
+                    "Bank refresh returned {StatusCode}: {Message}",
+                    result.StatusCode,
+                    result.Message);
+
+                op.Warning(
+                    $"Bank refresh returned {result.StatusCode}. " +
+                    "/health/ready will stay unhealthy until banks are populated.");
+                return;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            // Local dev with no internet, or provider is down.
+            _logger.LogWarning(ex, "Bank refresh could not reach the provider.");
+            op.Warning(
+                "Bank refresh could not reach the payment provider. " +
+                "/health/ready will stay unhealthy until banks are populated.");
+            return;
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            // HttpClient timeout — treat the same as a network failure.
+            _logger.LogWarning(ex, "Bank refresh timed out.");
+            op.Warning(
+                "Bank refresh timed out. " +
+                "/health/ready will stay unhealthy until banks are populated.");
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bank refresh failed at startup.");
+            op.Warning(
+                "Bank refresh failed. /health/ready will stay unhealthy " +
+                "until banks are populated.");
+            return;
+        }
+
+        var bankCountAfter = await _dbContext.Banks
+            .CountAsync(cancellationToken);
+
+        if (bankCountAfter == 0)
+        {
+            op.Warning(
+                "Bank refresh completed but no banks were inserted. " +
+                "The provider may be returning an empty list.");
+            return;
+        }
+
+        op.Success($"Bank refresh completed. Banks available: {bankCountAfter}.");
     }
 }

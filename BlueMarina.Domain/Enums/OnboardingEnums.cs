@@ -183,7 +183,7 @@ public enum CompanyDocumentStatus
     Rejected
 }
 
-public enum ConsentType
+public enum ConsentTypeEnum
 {
     MarketingUpdates,
     AccountAgreement,

@@ -160,14 +160,14 @@ public sealed class SubmitSignatureCommand
             if (request.OptInMarketUpdates)
             {
                 var existingConsent = await _unitOfWork.Query<Consent>()
-                    .FirstOrDefaultAsync(x => x.UserId == request.UserId && x.Type == ConsentType.MarketingUpdates, cancellationToken);
+                    .FirstOrDefaultAsync(x => x.UserId == request.UserId && x.Type == ConsentTypeEnum.MarketingUpdates, cancellationToken);
 
                 if (existingConsent == null)
                 {
                     await _unitOfWork.AddAsync(new Consent
                     {
                         UserId = request.UserId,
-                        Type = ConsentType.MarketingUpdates,
+                        Type = ConsentTypeEnum.MarketingUpdates,
                         Version = accountAgreement.Version, // Saving "v1"
                         Granted = true
                     }, cancellationToken);

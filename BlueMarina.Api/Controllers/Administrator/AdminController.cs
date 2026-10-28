@@ -235,4 +235,26 @@ public class AdminController(
         var result = await _mediator.Send(command, cancellationToken);
         return StatusCode((int)result.StatusCode, result);
     }
+
+
+    /// <summary>
+    /// Refresh the bank list from the external provider
+    /// </summary>
+    /// <remarks>
+    /// Fetches the latest banks from the external provider and reconciles them with the local store:
+    /// new codes are inserted, existing ones are updated and re-activated, and codes no longer
+    /// returned are deactivated. The banks cache is invalidated on success.
+    /// </remarks>
+    [HttpPost("banks/refresh")]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    public async Task<IActionResult> RefreshBanks(
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new RefreshBanks.Command(),
+            cancellationToken);
+
+        return StatusCode((int)result.StatusCode, result);
+    }
 }

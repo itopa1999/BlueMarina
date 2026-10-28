@@ -7,6 +7,7 @@ using BlueMarina.Infrastructure.Service;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using BlueMarina.Domain.Entities.Home;
 
 namespace BlueMarina.Infrastructure.Persistence;
 
@@ -55,6 +56,10 @@ public sealed class ApplicationDbContext
     public DbSet<UserOnboardingProgress> UserOnboardingProgresses => Set<UserOnboardingProgress>();
     public DbSet<State> States => Set<State>();
     public DbSet<Lga> Lgas => Set<Lga>();
+
+    // --- Home Entities ---
+    public DbSet<Bank> Banks => Set<Bank>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
