@@ -27,7 +27,7 @@ public class PlatformValidationMiddleware
         "/health", 
         "/swagger", 
         "/hangfire",
-        "/api/v1/auth/verify-email" 
+        "/api/v1/auth/verify-email"
     };
 
     public PlatformValidationMiddleware(RequestDelegate next)
@@ -48,7 +48,14 @@ public class PlatformValidationMiddleware
 
         if (MatchesPath(path, InternalPaths))
         {
-            context.Items["Platform"] = Platforms.Internal; 
+            if (path.StartsWith("/api/v1/auth/verify-email", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Items["Platform"] = Platforms.Mobile;
+            }
+            else
+            {
+                context.Items["Platform"] = Platforms.Internal; 
+            }
             await _next(context);
             return;
         }

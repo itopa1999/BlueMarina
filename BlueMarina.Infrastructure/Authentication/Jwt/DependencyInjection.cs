@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using System.Text;
 using BlueMarina.Application.Interfaces.Security;
+using BlueMarina.Shared.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,48 +15,51 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Bind JWT Settings
         services.Configure<JwtSettings>(
             configuration.GetSection(JwtSettings.SectionName));
 
-        // Register Services
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddScoped<ITokenHasher, TokenHasher>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
-        // Get JWT Settings
         var jwtSettings = configuration
             .GetSection(JwtSettings.SectionName)
             .Get<JwtSettings>()
-            ?? throw new InvalidOperationException(
-                "JWT configuration is missing.");
+            ?? throw new InvalidOperationException("JWT configuration is missing.");
 
-        // Configure Authentication
         services
             .AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
-
-                options.DefaultChallengeScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
-
-                options.DefaultScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(options =>
             {
-                // ✅ Read token from cookie only
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        var accessToken = context.Request.Cookies["access_token"];
-                        if (!string.IsNullOrEmpty(accessToken))
+                        var platform = context.HttpContext.Items["Platform"] as string;
+
+                        if (string.Equals(platform, Platforms.Web, StringComparison.OrdinalIgnoreCase))
                         {
-                            context.Token = accessToken;
+                            var cookieToken = context.Request.Cookies["access_token"];
+                            if (!string.IsNullOrEmpty(cookieToken))
+                            {
+                                context.Token = cookieToken;
+                            }
+                            return Task.CompletedTask;
                         }
+
+                        var header = context.Request.Headers["Authorization"].ToString();
+                        if (!string.IsNullOrEmpty(header) &&
+                            header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = header.Substring("Bearer ".Length).Trim();
+                        }
+
                         return Task.CompletedTask;
                     },
 
@@ -71,28 +76,26 @@ public static class DependencyInjection
                     }
                 };
 
-                
-                options.TokenValidationParameters =
-                    new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidateLifetime = true,
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
 
-                        ValidIssuer = jwtSettings.Issuer,
-                        ValidAudience = jwtSettings.Audience,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
 
-                        IssuerSigningKey =
-                            new SymmetricSecurityKey(
-                                Encoding.UTF8.GetBytes(
-                                    jwtSettings.SecretKey)),
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
 
-                        ClockSkew = TimeSpan.Zero
-                    };
+                    RoleClaimType = ClaimTypes.Role,
+                    NameClaimType = ClaimTypes.NameIdentifier,
+
+                    ClockSkew = TimeSpan.Zero
+                };
             });
 
-        // Configure Authorization
         services.AddAuthorization();
 
         return services;

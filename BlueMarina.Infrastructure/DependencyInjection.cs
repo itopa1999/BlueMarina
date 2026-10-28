@@ -94,6 +94,8 @@ public static class DependencyInjection
         services.AddScoped<IBvnService, BvnService>();
         services.AddScoped<INinService, NinService>();
         services.AddScoped<IFileStorageService, FileStorageService>();
+        services.AddScoped<ITransactionPinService, TransactionPinService>();
+        services.AddScoped<IPinChallenge, PinChallengeService>();
         
 
         services.AddScoped<IIdentityProviderService, IdentityProviderService>();

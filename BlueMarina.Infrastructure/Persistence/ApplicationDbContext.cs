@@ -32,6 +32,7 @@ public sealed class ApplicationDbContext
     public DbSet<DeviceApprovalRequest> DeviceApprovalRequests => Set<DeviceApprovalRequest>();
     public DbSet<SignInAttempt> SignInAttempts => Set<SignInAttempt>();
     public DbSet<TwoFactorMethod> TwoFactorMethods => Set<TwoFactorMethod>();
+    public DbSet<PinChallenge> PinChallenges => Set<PinChallenge>();
 
     // --- Onboarding Entities ---
     public DbSet<Address> Addresses => Set<Address>();

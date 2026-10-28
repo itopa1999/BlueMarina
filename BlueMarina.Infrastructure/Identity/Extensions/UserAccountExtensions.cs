@@ -337,6 +337,9 @@ public static class UserAccountExtensions
     public static string GetStatusDescription(this User user) =>
         user.Status switch
         {
+            UserStatus.PendingVerification =>
+                "Your account is pending verification. Please verify your email and phone number to activate your account.",
+
             UserStatus.Active =>
                 "Your account is in good standing and fully operational.",
 

@@ -55,3 +55,13 @@ public enum DeviceApprovalStatus
     Denied,
     Expired
 }
+
+public enum PinChallengeType
+{
+    BankAccountDeletion,
+    AddBankAccount,
+    AccountDeletion,
+    ManualTransferToBank,
+    ManualPayUtilities
+
+}
