@@ -82,7 +82,7 @@ public class AdminController(
     /// Retrieves the details of a specific user using their Public ID.
     /// Pass the target user's Public ID as a query parameter: `?userId=BM12345`.
     /// </remarks>
-    [HttpGet("/roles")]
+    [HttpGet("roles")]
     [ProducesResponseType(typeof(BaseResult<AdminUserDto>), (int)HttpStatusCode.OK)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
     public async Task<IActionResult> GetUser(
@@ -235,5 +235,4 @@ public class AdminController(
         var result = await _mediator.Send(command, cancellationToken);
         return StatusCode((int)result.StatusCode, result);
     }
-
 }

@@ -101,7 +101,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("addresses");
+                    b.ToTable("addresses", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.AgreementAcceptance", b =>
@@ -160,7 +160,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("agreement_acceptances");
+                    b.ToTable("agreement_acceptances", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.AgreementVersion", b =>
@@ -221,7 +221,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("Type", "Version")
                         .IsUnique();
 
-                    b.ToTable("agreement_versions");
+                    b.ToTable("agreement_versions", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Company", b =>
@@ -301,7 +301,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("RcNumber")
                         .IsUnique();
 
-                    b.ToTable("companies");
+                    b.ToTable("companies", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.CompanyDocument", b =>
@@ -362,7 +362,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("company_documents");
+                    b.ToTable("company_documents", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.CompanyInvitation", b =>
@@ -435,7 +435,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
-                    b.ToTable("company_invitations");
+                    b.ToTable("company_invitations", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.CompanyMember", b =>
@@ -521,7 +521,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("company_members");
+                    b.ToTable("company_members", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Consent", b =>
@@ -575,7 +575,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("consents");
+                    b.ToTable("consents", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.IdDocument", b =>
@@ -635,6 +635,12 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedByStaffUserId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -654,7 +660,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("id_documents");
+                    b.ToTable("id_documents", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.IdentityCheck", b =>
@@ -719,7 +725,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("identity_checks");
+                    b.ToTable("identity_checks", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Lga", b =>
@@ -765,7 +771,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("lgas");
+                    b.ToTable("lgas", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.NextOfKin", b =>
@@ -831,7 +837,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("next_of_kins");
+                    b.ToTable("next_of_kins", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.SelfieCheck", b =>
@@ -873,11 +879,17 @@ namespace BlueMarina.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<DateTime?>("ReviewDueBy")
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ReviewDueBy")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long?>("ReviewedByStaffId")
-                        .HasColumnType("bigint");
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedByStaffUserId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -893,7 +905,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("selfie_checks");
+                    b.ToTable("selfie_checks", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.Signature", b =>
@@ -949,7 +961,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("signatures");
+                    b.ToTable("signatures", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.State", b =>
@@ -1053,7 +1065,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("tax_residencies");
+                    b.ToTable("tax_residencies", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierLimit", b =>
@@ -1119,7 +1131,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("Tier")
                         .IsUnique();
 
-                    b.ToTable("tier_limits");
+                    b.ToTable("tier_limits", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierUpgradeItem", b =>
@@ -1175,7 +1187,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("TierUpgradeRequestId");
 
-                    b.ToTable("tier_upgrade_items");
+                    b.ToTable("tier_upgrade_items", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierUpgradeRequest", b =>
@@ -1238,7 +1250,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("tier_upgrade_requests");
+                    b.ToTable("tier_upgrade_requests", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.UserOnboardingProgress", b =>
@@ -1392,7 +1404,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("credentials");
+                    b.ToTable("credentials", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.Device", b =>
@@ -1473,7 +1485,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("device");
+                    b.ToTable("device", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.DeviceApprovalRequest", b =>
@@ -1534,7 +1546,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("device_approval_requests");
+                    b.ToTable("device_approval_requests", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.OtpCode", b =>
@@ -1675,7 +1687,7 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.HasIndex("UserId", "Purpose", "Channel")
                         .IsUnique();
 
-                    b.ToTable("otp_lockouts");
+                    b.ToTable("otp_lockouts", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.RefreshToken", b =>
@@ -1821,7 +1833,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("signIn_attempts");
+                    b.ToTable("signIn_attempts", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorMethod", b =>
@@ -1879,7 +1891,7 @@ namespace BlueMarina.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("two_factor_methods");
+                    b.ToTable("two_factor_methods", (string)null);
                 });
 
             modelBuilder.Entity("BlueMarina.Infrastructure.Identity.User", b =>

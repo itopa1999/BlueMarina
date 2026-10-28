@@ -19,6 +19,7 @@ using static BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2.SubmitIdDo
 using static BlueMarina.Application.BBL.Commands.Onboarding.Kyc.Tier2.SubmitSelfieCommand;
 using static BlueMarina.Application.BBL.Queries.Kyc.GetLgasByStateQuery;
 using static BlueMarina.Application.BBL.Queries.Kyc.GetStatesQuery;
+using static BlueMarina.Application.BBL.Queries.Kyc.GetTierLimitsQuery;
 
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
@@ -264,6 +265,31 @@ public class KycController(
             UserId = UserPublicId ?? string.Empty
         };
         
+        var result = await _mediator.Send(query, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// Get Tier Limits (Comparison Table)
+    /// </summary>
+    /// <remarks>
+    /// Returns the limits for all account tiers in the specified currency.
+    /// The current user's tier is flagged with `isCurrentTier: true` so the UI can highlight their current plan.
+    /// </remarks>
+    [HttpGet("tier-limits")]
+    [Authorize(Roles = RolesConstants.Customer)]
+    [ProducesResponseType(typeof(BaseResult<TierLimitsResponseDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> GetMyLimits(
+        [FromQuery] string currency = CurrencyCode.NGN,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetTierLimitsQuery.Query
+        {
+            UserId = UserPublicId ?? string.Empty,
+            Currency = currency
+        };
+
         var result = await _mediator.Send(query, cancellationToken);
         return StatusCode((int)result.StatusCode, result);
     }

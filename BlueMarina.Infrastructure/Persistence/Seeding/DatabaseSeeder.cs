@@ -50,6 +50,7 @@ public sealed class DatabaseSeeder
     {
         await SeedAgreementVersionsAsync(cancellationToken);
         await SeedLocationsAsync(cancellationToken);
+        await SeedTierLimitsAsync(cancellationToken);
         await SeedSuperAdminAsync(cancellationToken);
     }
 
@@ -126,6 +127,24 @@ public sealed class DatabaseSeeder
         }
     }
 
+    private async Task SeedTierLimitsAsync(CancellationToken cancellationToken)
+    {
+        using var op = OperationLogger.Start(_logger, "SeedTierLimits");
+
+        if (await _dbContext.TierLimits.AnyAsync(cancellationToken))
+        {
+            op.Success("Tier limits already seeded.");
+            return;
+        }
+
+        var tierLimits = DefaultTierLimit.Create();
+        
+        await _dbContext.TierLimits.AddRangeAsync(tierLimits, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        op.Success($"Seeded {tierLimits.Count} tier limit records.");
+    }
+
     private async Task SeedSuperAdminAsync(CancellationToken cancellationToken)
     {
         using var op = OperationLogger.Start(_logger, "SeedSuperAdmin");
@@ -174,7 +193,6 @@ public sealed class DatabaseSeeder
                 "Invalid phone number format in Seed__SuperAdmin__PhoneNumber.");
         }
 
-        // Generate a unique PublicId (same logic as IdentityService)
         string publicId;
         var maxAttempts = 5;
         var attempt = 0;

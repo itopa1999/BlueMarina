@@ -1,3 +1,4 @@
+using BlueMarina.Shared.Constants;
 
 namespace BlueMarina.Domain.ValueObjects;
 
@@ -8,17 +9,17 @@ public static class CurrencyRules
             new Dictionary<string, int>(
                 StringComparer.OrdinalIgnoreCase)
             {
-                ["NGN"] = 2,
-                ["USD"] = 2,
-                ["GBP"] = 2,
-                ["EUR"] = 2,
-                ["GHS"] = 2,
-                ["KES"] = 2,
-                ["ZAR"] = 2,
-                ["JPY"] = 0,
-                ["KRW"] = 0,
-                ["BHD"] = 3,
-                ["KWD"] = 3,
+                [CurrencyCode.NGN] = 2,
+                [CurrencyCode.USD] = 2,
+                // ["GBP"] = 2,
+                // ["EUR"] = 2,
+                // ["GHS"] = 2,
+                // ["KES"] = 2,
+                // ["ZAR"] = 2,
+                // ["JPY"] = 0,
+                // ["KRW"] = 0,
+                // ["BHD"] = 3,
+                // ["KWD"] = 3,
             };
 
     public static string NormalizeAndValidate(string currency)

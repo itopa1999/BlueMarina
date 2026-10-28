@@ -15,6 +15,12 @@ public static class RolesConstants
 
 }
 
+public static class CurrencyCode
+{
+    public const string NGN = "NGN";
+    public const string USD = "USD";
+}
+
 public static class RoleExtensions
 {
     public static bool IsCustomer(this IEnumerable<string> roles) =>
