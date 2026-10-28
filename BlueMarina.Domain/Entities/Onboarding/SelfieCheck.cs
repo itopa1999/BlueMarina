@@ -15,6 +15,9 @@ public class SelfieCheck : BaseEntity
     public string? MediaUrl { get; set; }
     public SelfieCheckStatus Status { get; set; }
     public int AttemptNumber { get; set; }
-    public DateTime? ReviewDueBy { get; set; }
-    public long? ReviewedByStaffId { get; set; }
+    public DateTimeOffset? ReviewDueBy { get; set; }
+    public string? ReviewedByStaffUserId { get; set; }
+
+    public string? RejectionReason { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
 }

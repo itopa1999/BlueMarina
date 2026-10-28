@@ -19,5 +19,7 @@ public class IdDocument : BaseEntity
     public string ImageUrl { get; set; } = string.Empty;
     public IdDocumentStatus Status { get; set; }
     public int AttemptNumber { get; set; }
+    public string? ReviewedByStaffUserId { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
 }

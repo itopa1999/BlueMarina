@@ -110,6 +110,7 @@ public sealed class SubmitSelfieCommand
 
                 selfieCheck.AttemptNumber++;
                 selfieCheck.MediaUrl = "http://localhost:5014/swagger/index.html";
+                selfieCheck.RejectionReason = null;
                 _unitOfWork.Update(selfieCheck);
             }
 
@@ -136,7 +137,7 @@ public sealed class SubmitSelfieCommand
             {
                 selfieCheck.Status = SelfieCheckStatus.ManualReview;
                 
-                resultDto.Status = "InReview";
+                resultDto.Status = SelfieCheckStatus.ManualReview.ToString();
                 resultDto.AttemptsLeft = 0;
                 resultDto.RejectionReason = "You have reached the maximum attempts. Your account is now in manual review.";
                 
@@ -155,9 +156,10 @@ public sealed class SubmitSelfieCommand
             if (isPassed)
             {
                 selfieCheck.Status = SelfieCheckStatus.Passed;
+                selfieCheck.RejectionReason = null;
                 progress!.Tier2_SelfieDone = true;
                 
-                resultDto.Status = "Passed";
+                resultDto.Status = SelfieCheckStatus.Passed.ToString();
                 resultDto.AttemptsLeft = MaxAttempts - selfieCheck.AttemptNumber;
                 resultDto.RejectionReason = null;
                 op.Success("Selfie passed.");
@@ -166,7 +168,7 @@ public sealed class SubmitSelfieCommand
             {
                 selfieCheck.Status = SelfieCheckStatus.Failed;
                 
-                resultDto.Status = "Failed";
+                resultDto.Status = SelfieCheckStatus.Failed.ToString();
                 resultDto.AttemptsLeft = MaxAttempts - selfieCheck.AttemptNumber;
                 resultDto.RejectionReason = rejectionReason;
                 op.Warning("Selfie failed.");

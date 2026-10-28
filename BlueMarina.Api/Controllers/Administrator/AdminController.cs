@@ -101,4 +101,139 @@ public class AdminController(
         return StatusCode((int)result.StatusCode, result);
 
     }
+
+    /// <summary>
+    /// List Selfie Checks (with filters and search)
+    /// </summary>
+    /// <remarks>
+    /// Returns a paginated list of selfie checks. Supports:
+    /// - `search` (matches UserId)
+    /// - `userId` (exact match)
+    /// - `status` (Pending, Passed, Failed, ManualReview)
+    /// - `createdFrom` / `createdTo` (ISO 8601)
+    /// - `page` (default 1), `pageSize` (default 20, max 100)
+    /// </remarks>
+    [HttpGet("kyc/selfie-checks")]
+    [Authorize(Roles = RolesConstants.AllAdmins)]
+    [ProducesResponseType(typeof(BaseResult<GetSelfieChecksQuery.SelfieChecksPagedResponse>), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> GetSelfieChecks(
+        [FromQuery] GetSelfieChecksQuery.Query query,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(query, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// Get a Single Selfie Check by ID
+    /// </summary>
+    /// <remarks>
+    /// Returns the full details of a single selfie check, including the associated user's profile (name, email, phone, tier).
+    /// </remarks>
+    [HttpGet("kyc/selfie-checks/{id:long}")]
+    [Authorize(Roles = RolesConstants.AllAdmins)]
+    [ProducesResponseType(typeof(BaseResult<SelfieCheckDetailDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> GetSelfieCheckById(
+        [FromRoute] long id,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetSelfieCheckByIdQuery.Query { Id = id };
+        var result = await _mediator.Send(query, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// Review a User's Selfie (Approve or Reject)
+    /// </summary>
+    /// <remarks>
+    /// Manually reviews a selfie that was flagged for manual review. 
+    /// Set `isApproved` to `true` to approve, or `false` to reject (which requires `rejectionReason`).
+    /// Pass the target user's Public ID as a query parameter: `?userId=BM12345`.
+    /// </remarks>
+    [HttpPost("kyc/selfie/review")]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Conflict)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Unauthorized)]
+    public async Task<IActionResult> ReviewSelfie(
+        [FromQuery] string userId,
+        [FromBody] ReviewSelfieCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = userId;
+        command.ReviewBy = UserPublicId ?? string.Empty;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// List ID Documents (with filters and search)
+    /// </summary>
+    /// <remarks>
+    /// Returns a paginated list of ID documents. Supports:
+    /// - `search` (matches NameOnId, IdNumber, or UserId)
+    /// - `userId` (exact match)
+    /// - `status` (Captured, Accepted, Unreadable, Expired, NameMismatch, ManualReview, Rejected)
+    /// - `type` (NinSlip, Passport, DriversLicence, VotersCard)
+    /// - `createdFrom` / `createdTo` (ISO 8601)
+    /// - `page` (default 1), `pageSize` (default 20, max 100)
+    /// </remarks>
+    [HttpGet("kyc/id-documents")]
+    [ProducesResponseType(typeof(BaseResult<GetIdDocumentsQuery.IdDocumentsPagedResponse>), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> GetIdDocuments(
+        [FromQuery] GetIdDocumentsQuery.Query query,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(query, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// Get a Single ID Document by ID
+    /// </summary>
+    /// <remarks>
+    /// Returns the full details of a single ID document, including the associated user's profile (name, email, phone, tier).
+    /// </remarks>
+    [HttpGet("kyc/id-documents/{id:long}")]
+    [ProducesResponseType(typeof(BaseResult<IdDocumentDetailDto>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> GetIdDocumentById(
+        [FromRoute] long id,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetIdDocumentByIdQuery.Query { Id = id };
+        var result = await _mediator.Send(query, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
+
+    /// <summary>
+    /// Review a User's ID Document (Approve or Reject)
+    /// </summary>
+    /// <remarks>
+    /// Manually reviews an ID document that was flagged for manual review. 
+    /// Set `isApproved` to `true` to approve, or `false` to reject (which requires `rejectionReason`).
+    /// Pass the target user's Public ID as a query parameter: `?userId=BM12345`.
+    /// </remarks>
+    [HttpPost("kyc/id-document/review")]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.NotFound)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Conflict)]
+    [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Unauthorized)]
+    public async Task<IActionResult> ReviewIdDocument(
+        [FromQuery] string userId,
+        [FromBody] ReviewIdDocumentCommand.Command command,
+        CancellationToken cancellationToken)
+    {
+        command.UserId = userId;
+        command.ReviewBy = UserPublicId ?? string.Empty;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return StatusCode((int)result.StatusCode, result);
+    }
+
 }
