@@ -1,6 +1,7 @@
 using BlueMarina.Application.Common.Settings;
 using BlueMarina.Application.Interfaces.Caching;
 using BlueMarina.Application.Interfaces.ExternalAPI;
+using BlueMarina.Application.Interfaces.GateWay;
 using BlueMarina.Application.Interfaces.IdentityVerification;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Application.Interfaces.Security;
@@ -8,6 +9,7 @@ using BlueMarina.Application.Interfaces.Storage;
 using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Infrastructure.Caching;
 using BlueMarina.Infrastructure.ExternalAPI;
+using BlueMarina.Infrastructure.GateWay;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Infrastructure.IdentityVerification;
 using BlueMarina.Infrastructure.IdentityVerification.BVN;
@@ -96,6 +98,7 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, FileStorageService>();
         services.AddScoped<ITransactionPinService, TransactionPinService>();
         services.AddScoped<IPinChallenge, PinChallengeService>();
+        services.AddScoped<IGateWayInitiatorService, GateWayInitiatorService>();
         
 
         services.AddScoped<IIdentityProviderService, IdentityProviderService>();

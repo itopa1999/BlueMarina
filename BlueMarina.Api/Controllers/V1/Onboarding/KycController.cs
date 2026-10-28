@@ -150,7 +150,7 @@ public class KycController(
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.Conflict)]
     [ProducesResponseType(typeof(BaseResult), (int)HttpStatusCode.InternalServerError)]
     public async Task<IActionResult> SubmitSignature(
-        [FromBody] SubmitSignatureCommand.Command command,
+        [FromForm] SubmitSignatureCommand.Command command,
         CancellationToken cancellationToken)
     {
         command.UserId = UserPublicId ?? string.Empty;

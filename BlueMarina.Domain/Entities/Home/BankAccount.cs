@@ -34,5 +34,4 @@ public class BankAccount : BaseEntity
     public bool IsDefault { get; set; }
     public bool IsVerified { get; set; }
     public bool NameMatchesBvn { get; set; }
-    public DateTime? RemovedAt { get; set; }
 }

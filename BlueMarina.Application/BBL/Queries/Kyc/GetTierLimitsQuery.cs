@@ -5,7 +5,6 @@ using BlueMarina.Application.Interfaces.Identity;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities.Onboarding;
 using BlueMarina.Domain.Enums;
-using BlueMarina.Domain.ValueObjects;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
@@ -33,8 +32,8 @@ public sealed class GetTierLimitsQuery
     {
         public AccountTier Tier { get; set; }
         public bool IsCurrentTier { get; set; }
-        public Money DailyLimit { get; set; }
-        public Money? BalanceCap { get; set; }
+        public decimal DailyLimit { get; set; }
+        public decimal? BalanceCap { get; set; }
         public bool CanInvest { get; set; }
         public bool CanWithdraw { get; set; }
         public bool CanBorrow { get; set; }
@@ -72,8 +71,8 @@ public sealed class GetTierLimitsQuery
                 {
                     Tier = x.Tier,
                     IsCurrentTier = x.Tier == user.Tier,
-                    DailyLimit = x.DailyLimit,
-                    BalanceCap = x.BalanceCap.MinorUnits == long.MaxValue ? null : x.BalanceCap,
+                    DailyLimit = x.DailyLimit.ToDecimal(),
+                    BalanceCap = x.BalanceCap.MinorUnits == long.MaxValue ? null : x.BalanceCap.ToDecimal(),
                     CanInvest = x.CanInvest,
                     CanWithdraw = x.CanWithdraw,
                     CanBorrow = x.CanBorrow,

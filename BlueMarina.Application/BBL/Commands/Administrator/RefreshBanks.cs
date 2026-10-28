@@ -4,10 +4,12 @@ using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities.Home;
 using BlueMarina.Shared.Common.Results;
+using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BlueMarina.Application.BBL.Commands.Administrator;
 
@@ -27,13 +29,13 @@ public sealed class RefreshBanks
 
         public Handler(
             IExternalApiClient externalApiClient,
-            ExternalApiSettings externalApiSettings,
+            IOptions<ExternalApiSettings> externalApiSettings,
             IUnitOfWork unitOfWork,
             ICacheService cacheService,
             ILogger<Handler> logger)
         {
             _externalApiClient = externalApiClient;
-            _externalApiSettings = externalApiSettings;
+            _externalApiSettings = externalApiSettings.Value;
             _unitOfWork = unitOfWork;
             _cacheService = cacheService;
             _logger = logger;
@@ -58,6 +60,21 @@ public sealed class RefreshBanks
                 );
             }
 
+            var uniqueBanks = banks
+                .Where(b => !string.IsNullOrWhiteSpace(b.Code))
+                .GroupBy(b => b.Code, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            if (uniqueBanks.Count == 0)
+            {
+                op.Success("No valid bank codes returned from external API; nothing to refresh.");
+                return new BaseResult(
+                    HttpStatusCode.OK,
+                    "No banks to refresh."
+                );
+            }
+
             var existingBanks = await _unitOfWork.Query<Bank>()
                 .ToListAsync(cancellationToken);
 
@@ -68,16 +85,8 @@ public sealed class RefreshBanks
                     group => group.First(),
                     StringComparer.OrdinalIgnoreCase);
 
-            var bankCodes = banks
-                .Select(bank => bank.Code)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-
-            foreach (var bankData in banks)
+            foreach (var bankData in uniqueBanks)
             {
-                if (string.IsNullOrWhiteSpace(bankData.Code))
-                    continue;
-
                 if (!existingBanksByCode.TryGetValue(
                         bankData.Code,
                         out var existingBank))
@@ -99,8 +108,6 @@ public sealed class RefreshBanks
 
                 existingBank.Name = bankData.Name;
                 existingBank.Logo = bankData.Logo;
-
-                _unitOfWork.Update(existingBank);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
