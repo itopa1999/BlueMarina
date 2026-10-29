@@ -192,13 +192,12 @@ public sealed class VerifyBankAccount
 
             if (request.IsDefault)
             {
-            var hasDefaultAccount = await _unitOfWork.Query<BankAccount>()
-                .Where(
-                    x => x.UserId == request.UserId
-                    && x.IsDefault)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(c => c.IsDefault, false),
-                    cancellationToken);
+                var currentDefaults = await _unitOfWork.Query<BankAccount>()
+                    .Where(x => x.UserId == request.UserId && x.IsDefault)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var account in currentDefaults)
+                    account.IsDefault = false;
             }
 
             var bankAccount = new BankAccount
