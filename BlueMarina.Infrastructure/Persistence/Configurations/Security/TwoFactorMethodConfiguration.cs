@@ -17,8 +17,13 @@ public class TwoFactorMethodConfiguration : IEntityTypeConfiguration<TwoFactorMe
         builder.HasOne<User>()
                .WithMany()
                .HasForeignKey(x => x.UserId)
-.HasPrincipalKey(x => x.PublicId)
+                .HasPrincipalKey(x => x.PublicId)
                .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.BackupCodes)
+            .WithOne(x => x.TwoFactorMethod)
+            .HasForeignKey(x => x.TwoFactorMethodId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

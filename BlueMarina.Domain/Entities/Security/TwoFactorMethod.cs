@@ -16,4 +16,15 @@ public class TwoFactorMethod : BaseEntity
     public string? SecretEncrypted { get; set; }
     public bool IsPrimary { get; set; }
     public DateTimeOffset EnabledAt { get; set; }
+    public ICollection<TwoFactorBackupCode> BackupCodes { get; set; } = new List<TwoFactorBackupCode>();
+}
+
+
+[Table("two_factor_backup_codes")]
+public class TwoFactorBackupCode : BaseEntity
+{
+    public long TwoFactorMethodId { get; set; }
+    public TwoFactorMethod TwoFactorMethod { get; set; } = null!;
+    public string CodeHash { get; set; } = string.Empty;
+    public DateTimeOffset? UsedAt { get; set; }
 }

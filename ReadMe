@@ -13,3 +13,8 @@
     "containerization": "docker"
   },
 
+POST   /api/v1/2fa/authenticator/setup          → returns secret + QR URI (not yet confirmed)
+POST   /api/v1/2fa/authenticator/confirm        → user submits TOTP, factor becomes ConfirmedAt
+POST   /api/v1/2fa/email/confirm                → verify OTP
+POST   /api/v1/2fa/backup-codes/regenerate       → rotate backup codes
+POST   /api/v1/2fa/verify                        → verify TOTP/email/backup during login or step-up
