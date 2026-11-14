@@ -1,0 +1,19 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using BlueMarina.Domain.Common;
+using BlueMarina.Domain.Enums;
+
+namespace BlueMarina.Domain.Entities.Onboarding;
+
+/// <summary>
+/// A published version of terms, privacy policy or account agreement.
+/// </summary>
+
+[Table("agreement_versions")]
+public class AgreementVersion : BaseEntity
+{
+    public AgreementType Type { get; set; }
+    public string Version { get; set; } = string.Empty;
+    public DateTimeOffset EffectiveAt { get; set; }
+    public string ContentUrl { get; set; } = string.Empty;
+    public bool IsCurrent { get; set; }
+}

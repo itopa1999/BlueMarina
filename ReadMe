@@ -1,0 +1,20 @@
+"BackendTechStack": {
+    "language": "C# 12",
+    "framework": "ASP.NET Core Web API v8.0",
+    "architecture": "Clean Architecture (Domain, Application, Infrastructure, API, Shared, Test)",
+    "pattern": "CQRS with MediatR",
+    "orm": "Entity Framework Core v8.0",
+    "database": "PostgreSQL",
+    "caching": "Redis",
+    "backgroundJobs": "Hangfire (PostgreSQL Storage)",
+    "authentication": "ASP.NET Core Identity + JWT Bearer Tokens",
+    "apiDocumentation": "Swagger / OpenAPI (Swashbuckle v6.6.2)",
+    "apiVersioning": "Asp.Versioning.Mvc v8.1.1",
+    "containerization": "docker"
+  },
+
+POST   /api/v1/2fa/authenticator/setup          → returns secret + QR URI (not yet confirmed)
+POST   /api/v1/2fa/authenticator/confirm        → user submits TOTP, factor becomes ConfirmedAt
+POST   /api/v1/2fa/email/confirm                → verify OTP
+POST   /api/v1/2fa/backup-codes/regenerate       → rotate backup codes
+POST   /api/v1/2fa/verify                        → verify TOTP/email/backup during login or step-up
