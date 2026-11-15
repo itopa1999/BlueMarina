@@ -55,19 +55,20 @@ public sealed class UnitOfWork : IUnitOfWork
             .BeginTransactionAsync(isolationLevel, cancellationToken);
     }
 
-    public async Task CommitTransactionAsync(
-        CancellationToken cancellationToken = default)
+    public async Task CommitTransactionAsync(CancellationToken ct = default)
     {
-        if (_transaction is null)
+        var transaction = _transaction
+            ?? throw new InvalidOperationException("No active transaction to commit.");
+
+        try
         {
-            return;
+            await transaction.CommitAsync(ct);
         }
-
-        var transaction = _transaction;
-        _transaction = null;
-
-        await transaction.CommitAsync(cancellationToken);
-        await transaction.DisposeAsync();
+        finally
+        {
+            _transaction = null;
+            await transaction.DisposeAsync();
+        }
     }
 
     public async Task RollbackTransactionAsync(

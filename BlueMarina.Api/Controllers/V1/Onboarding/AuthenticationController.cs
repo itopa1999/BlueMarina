@@ -25,7 +25,7 @@ using static BlueMarina.Application.BBL.Commands.Onboarding.Authentication.Verif
 namespace BlueMarina.Api.Controllers.V1.Onboarding;
 
 [ApiController]
-[RestrictPlatform(Platforms.Mobile, Platforms.Swagger)]
+[RestrictPlatform(Platforms.Mobile, Platforms.Swagger, Platforms.Internal)]
 [Route("api/v{version:apiVersion}/auth")]
 [ApiVersion("1.0")]
 public class AuthenticationController(
@@ -82,7 +82,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Resends the verification OTP to the user's unverified phone number. 
-    /// Subject to rate-limiting and max attempt lockout rules.
     /// </remarks>
     [HttpPost("resend-otp-sms")]
     [ProducesResponseType(typeof(BaseResult<ResendVerificationOtpResponseDto>), (int)HttpStatusCode.OK)]
@@ -102,7 +101,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Sends a new verification link to the authenticated user's email address. 
-    /// Requires a valid JWT Bearer token.
     /// </remarks>
     [HttpPost("resend-email-verification-link")]
     [Authorize(Roles = RolesConstants.Customer)]
@@ -127,7 +125,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// This endpoint is hit when a user clicks the link in their email inbox.
-    /// It returns a raw HTML success or failure page, not JSON, so the user can see the result in their browser.
     /// </remarks>
     [HttpGet("verify-email")]
     [AllowAnonymous]
@@ -166,8 +163,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Allows an authenticated user to set their 6-digit login PIN.
-    /// The PIN is hashed securely before being stored in the database.
-    /// Weak PINs (e.g., 123456, 111111) will be rejected.
     /// </remarks>
     [HttpPost("set-login-pin")]
     [Authorize(Roles = RolesConstants.Customer)]
@@ -192,7 +187,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Validates the SMS OTP provided by the user. 
-    /// Upon success, marks the phone as verified, consumes the OTP, and issues the first set of JWT Access and Refresh tokens.
     /// </remarks>
     [HttpPost("verify-account")]
     [ProducesResponseType(typeof(BaseResult<VerifyAccountResponseDto>), (int)HttpStatusCode.OK)]
@@ -213,7 +207,6 @@ public class AuthenticationController(
     /// <remarks>
     /// Authenticates a user using email or phone number and password. 
     /// If successful and 2FA is not required, it issues JWT tokens. 
-    /// If 2FA is enabled, it returns a response prompting the user to complete the 2FA step.
     /// </remarks>
     [HttpPost("login")]
     [ProducesResponseType(typeof(BaseResult<LoginResponseDto>), (int)HttpStatusCode.OK)]
@@ -232,8 +225,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Exchanges a valid Refresh Token for a new Access Token and a new Refresh Token.
-    /// **Note:** The provided (old) Refresh Token is immediately revoked to prevent replay attacks (Token Rotation).
-    /// If the token is expired, revoked, or invalid, it returns a 401.
     /// </remarks>
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(BaseResult<RefreshTokenResponseDto>), (int)HttpStatusCode.OK)]
@@ -253,8 +244,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Invalidates the provided Refresh Token, preventing it from being used to generate new Access Tokens.
-    /// Requires a valid JWT Bearer token in the Authorization header. 
-    /// The current Access Token will remain valid until its natural expiration, but the user will be fully logged out once they attempt to refresh.
     /// </remarks>
     [HttpPost("logout")]
     [Authorize(Roles = RolesConstants.Customer)]
@@ -276,7 +265,7 @@ public class AuthenticationController(
     /// Request Password Reset OTP
     /// </summary>
     /// <remarks>
-    /// Initiates the password reset flow. If the provided email or phone exists, a 6-digit OTP is sent to both SMS and Email.
+    /// Initiates the password reset flow. Requires the user's email address or phone number.
     /// </remarks>
     [HttpPost("forget-password")]
     [ProducesResponseType(typeof(BaseResult<ForgotPasswordResponseDto>), (int)HttpStatusCode.OK)]
@@ -296,7 +285,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Initiates the PIN reset flow. Requires the user's account password for verification. 
-    /// If correct, a 6-digit OTP is sent to both SMS and Email.
     /// </remarks>
     [HttpPost("forget-pin")]
     [Authorize(Roles = RolesConstants.Customer)]
@@ -353,7 +341,6 @@ public class AuthenticationController(
     /// </summary>
     /// <remarks>
     /// Completes the PIN reset flow. Requires the ChallengeKey returned from the Verify OTP step.
-    /// Revokes all active sessions upon successful reset.
     /// </remarks>
     [HttpPost("reset-pin")]
     [Authorize(Roles = RolesConstants.Customer)]
@@ -372,8 +359,7 @@ public class AuthenticationController(
     /// Change Password
     /// </summary>
     /// <remarks>
-    /// Allows an authenticated user to change their password by providing their old and new passwords.
-    /// Revokes all active sessions upon successful change.
+    /// Authenticated user change their password by providing their old and new passwords.
     /// </remarks>
     [HttpPost("change-password")]
     [Authorize(Roles = RolesConstants.Customer)]

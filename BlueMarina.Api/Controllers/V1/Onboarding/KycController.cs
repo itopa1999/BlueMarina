@@ -37,8 +37,8 @@ public class KycController(
     /// Initiate Identity Verification (Tier 1)
     /// </summary>
     /// <remarks>
-    /// Starts the KYC process by providing a BVN or NIN. 
-    /// The system sends a one-time password (OTP) to the phone number registered with the provided identity.
+    /// Providing a BVN or NIN. 
+    /// A one-time password (OTP) to the phone number registered with the provided identity.
     /// </remarks>
     [HttpPost("tier1/identity/initiate")]
     [EnableRateLimiting(RateLimitPolicies.AuthStrict)]

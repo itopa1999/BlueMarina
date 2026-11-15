@@ -23,6 +23,63 @@ namespace BlueMarina.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Cash.MainWallet", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.ComplexProperty<Dictionary<string, object>>("BalanceMinor", "BlueMarina.Domain.Entities.Cash.MainWallet.BalanceMinor#Money", b1 =>
+                        {
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("balance_currency");
+
+                            b1.Property<long>("MinorUnits")
+                                .HasColumnType("bigint")
+                                .HasColumnName("balance_minor_units");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("main_wallets", (string)null);
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Home.Bank", b =>
                 {
                     b.Property<long>("Id")
@@ -173,9 +230,6 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.Property<string>("PaystackRecipientCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("RemovedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -2096,6 +2150,55 @@ namespace BlueMarina.Infrastructure.Migrations
                     b.ToTable("signIn_attempts");
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorBackupCode", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("TwoFactorMethodId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TwoFactorMethodId");
+
+                    b.ToTable("two_factor_backup_codes");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorMethod", b =>
                 {
                     b.Property<long>("Id")
@@ -2713,6 +2816,17 @@ namespace BlueMarina.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorBackupCode", b =>
+                {
+                    b.HasOne("BlueMarina.Domain.Entities.Security.TwoFactorMethod", "TwoFactorMethod")
+                        .WithMany("BackupCodes")
+                        .HasForeignKey("TwoFactorMethodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TwoFactorMethod");
+                });
+
             modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorMethod", b =>
                 {
                     b.HasOne("BlueMarina.Infrastructure.Identity.User", null)
@@ -2789,6 +2903,11 @@ namespace BlueMarina.Infrastructure.Migrations
             modelBuilder.Entity("BlueMarina.Domain.Entities.Onboarding.TierUpgradeRequest", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("BlueMarina.Domain.Entities.Security.TwoFactorMethod", b =>
+                {
+                    b.Navigation("BackupCodes");
                 });
 #pragma warning restore 612, 618
         }

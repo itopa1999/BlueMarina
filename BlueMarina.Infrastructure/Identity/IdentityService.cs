@@ -113,7 +113,8 @@ public sealed class IdentityService : IIdentityService
             Status = UserStatus.PendingVerification,
             ReferredByUserId = referredByUserId,
             ReferredByCode = referredByCode,
-            Tier = AccountTier.Tier1
+            Tier = AccountTier.Tier1,
+            OwnReferralCode = $"{publicId}{Random.Shared.Next(1000, 9999)}"
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -123,8 +124,6 @@ public sealed class IdentityService : IIdentityService
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             return (false, errors, string.Empty, 0);
         }
-
-        user.OwnReferralCode = $"{user.PublicId}{Random.Shared.Next(1000, 9999)}";
 
         var updateResult = await _userManager.UpdateAsync(user);
 

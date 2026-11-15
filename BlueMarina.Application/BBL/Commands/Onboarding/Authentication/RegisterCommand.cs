@@ -15,6 +15,8 @@ using BlueMarina.Domain.Enums;
 using BlueMarina.Shared.Constants;
 using BlueMarina.Application.Interfaces.ExternalAPI;
 using BlueMarina.Domain.Entities.Onboarding;
+using BlueMarina.Domain.Entities.Cash;
+using BlueMarina.Domain.ValueObjects;
 
 namespace BlueMarina.Application.BBL.Commands.Onboarding.Authentication;
 
@@ -157,6 +159,14 @@ public sealed class RegisterCommand
                 return new BaseResult<RegistrationResponseDto>(
                     HttpStatusCode.BadRequest, roleError);
             }
+
+            var mainWallet = new MainWallet
+            {
+                UserId = publicId,
+                BalanceMinor = Money.Zero("NGN")
+            };
+
+            await _unitOfWork.AddAsync(mainWallet, cancellationToken);
 
             var credential = new Credential
             {
