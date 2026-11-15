@@ -1,15 +1,12 @@
 using System.Net;
-using BlueMarina.Application.Interfaces.Caching;
-using BlueMarina.Application.Interfaces.ExternalAPI;
+using BlueMarina.Application.Interfaces.GateWay;
 using BlueMarina.Application.Interfaces.Persistence;
 using BlueMarina.Domain.Entities.Home;
 using BlueMarina.Shared.Common.Results;
-using BlueMarina.Shared.Constants;
 using BlueMarina.Shared.Logging;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace BlueMarina.Application.BBL.Commands.Administrator;
 
@@ -21,23 +18,17 @@ public sealed class RefreshBanks
 
     public sealed class Handler : IRequestHandler<Command, BaseResult>
     {
-        private readonly IExternalApiClient _externalApiClient;
-        private readonly ExternalApiSettings _externalApiSettings;
+        private readonly IGateWayInitiatorService _gateWayInitiatorService;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ICacheService _cacheService;
         private readonly ILogger<Handler> _logger;
 
         public Handler(
-            IExternalApiClient externalApiClient,
-            IOptions<ExternalApiSettings> externalApiSettings,
+            IGateWayInitiatorService gateWayInitiatorService,
             IUnitOfWork unitOfWork,
-            ICacheService cacheService,
             ILogger<Handler> logger)
         {
-            _externalApiClient = externalApiClient;
-            _externalApiSettings = externalApiSettings.Value;
+            _gateWayInitiatorService = gateWayInitiatorService;
             _unitOfWork = unitOfWork;
-            _cacheService = cacheService;
             _logger = logger;
         }
 
@@ -47,88 +38,23 @@ public sealed class RefreshBanks
         {
             using var op = OperationLogger.Start(_logger, "RefreshBanks");
 
-            var banks = await _externalApiClient.GetAsync<List<BankData>>(
-                _externalApiSettings.NigerianBanksUrl,
-                cancellationToken: cancellationToken);
+            var result = await _gateWayInitiatorService.GetNairaBanksAsync(
+                cancellationToken);
 
-            if (banks is null || banks.Count == 0)
+            if (!result.CallSucceeded)
             {
-                op.Success("No banks returned from external API; nothing to refresh.");
+                op.Warning("Unable to retrieve banks from gateway.");
+
                 return new BaseResult(
-                    HttpStatusCode.OK,
-                    "No banks to refresh."
+                    HttpStatusCode.BadGateway,
+                    result.Message ?? "Unable to retrieve banks."
                 );
             }
-
-            var uniqueBanks = banks
-                .Where(b => !string.IsNullOrWhiteSpace(b.Code))
-                .GroupBy(b => b.Code, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
-
-            if (uniqueBanks.Count == 0)
-            {
-                op.Success("No valid bank codes returned from external API; nothing to refresh.");
-                return new BaseResult(
-                    HttpStatusCode.OK,
-                    "No banks to refresh."
-                );
-            }
-
-            var existingBanks = await _unitOfWork.Query<Bank>()
-                .ToListAsync(cancellationToken);
-
-            var existingBanksByCode = existingBanks
-                .GroupBy(b => b.Code, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.First(),
-                    StringComparer.OrdinalIgnoreCase);
-
-            foreach (var bankData in uniqueBanks)
-            {
-                if (!existingBanksByCode.TryGetValue(
-                        bankData.Code,
-                        out var existingBank))
-                {
-                    var newBank = new Bank
-                    {
-                        Name = bankData.Name,
-                        Code = bankData.Code,
-                        Logo = bankData.Logo,
-                    };
-
-                    await _unitOfWork.AddAsync(
-                        newBank,
-                        cancellationToken);
-
-                    existingBanksByCode[bankData.Code] = newBank;
-                    continue;
-                }
-
-                existingBank.Name = bankData.Name;
-                existingBank.Logo = bankData.Logo;
-            }
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            // await _cacheService.DeletePrefixAsync(
-            //     CacheKeys.BanksPrefix,
-            //     cancellationToken);
-
-            op.Success("Banks refreshed successfully.");
-
+            
             return new BaseResult(
                 HttpStatusCode.OK,
-                "Bank Refreshed successfully."
+                "Banks refreshed successfully."
             );
-        }
-
-        private sealed class BankData
-        {
-            public string Name { get; set; } = string.Empty;
-            public string Code { get; set; } = string.Empty;
-            public string? Logo { get; set; }
         }
     }
 }

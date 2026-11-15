@@ -16,7 +16,7 @@ using static BlueMarina.Application.BBL.Queries.Administrator.GetAdminUserQuery;
 namespace BlueMarina.Api.Controllers.Administrator;
 
 [ApiController]
-[Authorize(Roles = RolesConstants.AllAdmins)]
+// [Authorize(Roles = RolesConstants.AllAdmins)]
 [RestrictPlatform(Platforms.Web, Platforms.Swagger)]
 [Route("api/v{version:apiVersion}/admin/user")]
 [ApiVersion("1.0")]

@@ -122,4 +122,20 @@ public static class ExtensionHelper
             _ => false
         };
     }
+
+
+    public static class AccountNumberHelper
+    {
+        public static string Mask(string? accountNumber)
+        {
+            if (string.IsNullOrWhiteSpace(accountNumber))
+                return string.Empty;
+
+            if (accountNumber.Length <= 4)
+                return new string('*', accountNumber.Length);
+
+            return new string('*', accountNumber.Length - 4)
+                + accountNumber[^4..];
+        }
+    }
 }

@@ -10,9 +10,10 @@ using BlueMarina.Shared.Logging;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using static BlueMarina.Application.Helpers.ExtensionHelper;
 
 
-namespace BlueMarina.Application.BBL.Commands.BanksAccount;
+namespace BlueMarina.Application.BBL.Commands.Home.BanksAccount;
 
 public sealed class AddBankAccount
 {
@@ -138,12 +139,28 @@ public sealed class AddBankAccount
                 bankCode,
                 cancellationToken);
 
-            if (account is null)
+            if (!account.CallSucceeded)
             {
                 op.Warning($"Provider could not resolve account: {accountNumber} at {bankCode}.");
                 return new BaseResult<AddBankAccountDto>(
                     HttpStatusCode.BadRequest,
                     "Unable to verify bank account.");
+            }
+
+            if (string.IsNullOrWhiteSpace(account.AccountNumber) || string.IsNullOrWhiteSpace(account.AccountName))
+            {
+                op.Warning($"Provider returned incomplete account data for {accountNumber} at {bankCode}.");
+                return new BaseResult<AddBankAccountDto>(
+                    HttpStatusCode.BadRequest,
+                    "Unable to verify bank account.");
+            }
+
+            if (!string.Equals(account.AccountNumber, accountNumber, StringComparison.Ordinal))
+            {
+                op.Warning($"Resolved account number mismatch. Expected: {accountNumber}, Resolved: {account.AccountNumber}");
+                return new BaseResult<AddBankAccountDto>(
+                    HttpStatusCode.BadRequest,
+                    "Resolved account number does not match the provided account number.");
             }
 
             op.Success(
@@ -154,7 +171,7 @@ public sealed class AddBankAccount
                 account.Message!,
                 new AddBankAccountDto
                 {
-                    AccountNumber = account.AccountNumber,
+                    AccountNumber = AccountNumberHelper.Mask(account.AccountNumber),
                     AccountName = account.AccountName,
                     BankName = bank.Name,
                     BankCode = bank.Code,
@@ -162,5 +179,3 @@ public sealed class AddBankAccount
         }
     }
 }
-
-// todo create a helper to asterik the bank account

@@ -4,6 +4,7 @@ using BlueMarina.Api.Configurations;
 using BlueMarina.Api.Filters;
 using BlueMarina.Api.RateLimiting;
 using BlueMarina.Application.BBL.Commands.BanksAccount;
+using BlueMarina.Application.BBL.Commands.Home.BanksAccount;
 using BlueMarina.Application.BBL.Queries.BanksAccount;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Shared.Constants;
@@ -11,8 +12,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using static BlueMarina.Application.BBL.Commands.BanksAccount.AddBankAccount;
 using static BlueMarina.Application.BBL.Commands.BanksAccount.VerifyBankAccount;
+using static BlueMarina.Application.BBL.Commands.Home.BanksAccount.AddBankAccount;
 using static BlueMarina.Application.BBL.Queries.BanksAccount.GetAllBankAccount;
 using static BlueMarina.Application.BBL.Queries.BanksAccount.GetBanks;
 

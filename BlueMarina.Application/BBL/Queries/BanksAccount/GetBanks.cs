@@ -4,6 +4,7 @@ using MediatR;
 using BlueMarina.Shared.Common.Results;
 using BlueMarina.Application.Interfaces.Persistence;
 using Microsoft.EntityFrameworkCore;
+using BlueMarina.Domain.Entities.Home;
 
 namespace BlueMarina.Application.BBL.Queries.BanksAccount;
 
@@ -39,7 +40,7 @@ public sealed class GetBanks
             Query request,
             CancellationToken cancellationToken)
         {
-            var query = _unitOfWork.Query<Domain.Entities.Home.Bank>()
+            var query = _unitOfWork.Query<Bank>()
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(request.Name))

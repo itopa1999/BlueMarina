@@ -163,7 +163,7 @@ public sealed class RegisterCommand
             var mainWallet = new MainWallet
             {
                 UserId = publicId,
-                BalanceMinor = Money.Zero("NGN")
+                BalanceMinor = Money.Zero(CurrencyCode.NGN)
             };
 
             await _unitOfWork.AddAsync(mainWallet, cancellationToken);

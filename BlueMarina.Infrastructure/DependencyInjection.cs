@@ -10,6 +10,7 @@ using BlueMarina.Infrastructure.Authentication.Jwt;
 using BlueMarina.Infrastructure.Caching;
 using BlueMarina.Infrastructure.ExternalAPI;
 using BlueMarina.Infrastructure.GateWay;
+using BlueMarina.Infrastructure.GateWay.Paystack;
 using BlueMarina.Infrastructure.Identity;
 using BlueMarina.Infrastructure.IdentityVerification;
 using BlueMarina.Infrastructure.IdentityVerification.BVN;
@@ -91,6 +92,9 @@ public static class DependencyInjection
         services.Configure<ExternalApiSettings>(
             configuration.GetSection(ExternalApiSettings.SectionName));
 
+        services.Configure<PaystackSettings>(
+            configuration.GetSection(PaystackSettings.SectionName));
+
         services.AddHttpClient<IExternalApiClient, ExternalApiClient>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IBvnService, BvnService>();
@@ -99,6 +103,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionPinService, TransactionPinService>();
         services.AddScoped<IPinChallenge, PinChallengeService>();
         services.AddScoped<IGateWayInitiatorService, GateWayInitiatorService>();
+        services.AddScoped<IPaystackService, PaystackService>();
         
 
         services.AddScoped<IIdentityProviderService, IdentityProviderService>();

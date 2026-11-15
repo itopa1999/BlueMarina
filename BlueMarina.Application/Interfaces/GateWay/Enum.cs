@@ -9,3 +9,10 @@ public sealed class ResolveBankAccountResult
     public string AccountName { get; set; } = string.Empty;
     public int? BankId { get; set; }
 }
+
+public sealed class GetBanksResult
+{
+    public bool CallSucceeded { get; set; }
+    public string? Message { get; set; }
+
+}

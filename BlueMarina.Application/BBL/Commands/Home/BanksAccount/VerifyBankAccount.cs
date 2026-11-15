@@ -32,6 +32,7 @@ public sealed class VerifyBankAccount
 
         [Required, MaxLength(20), RegularExpression(@"^[a-zA-Z0-9]+$")]
         public string BankCode { get; init; } = string.Empty;
+
         public bool IsDefault { get; set; }
 
         public bool Consent { get; init; }
@@ -50,6 +51,8 @@ public sealed class VerifyBankAccount
     public sealed class Handler
         : IRequestHandler<Command, BaseResult<VerifyBankAccountDto>>
     {
+        private const int MaxBankAccountsPerUser = 10;
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGateWayInitiatorService _gateWayInitiatorService;
         private readonly IIdentityService _identityService;
@@ -83,33 +86,6 @@ public sealed class VerifyBankAccount
                 return new BaseResult<VerifyBankAccountDto>(
                     HttpStatusCode.BadRequest,
                     "User identity is required.");
-            }
-
-            var permissions = await _identityService.GetPermissionsAsync(
-                request.UserId,
-                cancellationToken);
-
-            if (permissions is null)
-            {
-                op.Error($"Permissions unavailable for user {request.UserId}.");
-                return new BaseResult<VerifyBankAccountDto>(
-                    HttpStatusCode.InternalServerError,
-                    "We couldn't verify your account permissions right now. Please try again in a moment.");
-            }
-
-            if (!permissions.CanPerformSensitiveOperations)
-            {
-                op.Warning(
-                    $"Sensitive-operation gate blocked AddBankAccount for user {request.UserId}. " +
-                    $"Status: {permissions.StatusLabel}, Reason: {permissions.RestrictionReason}");
-
-                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
-                    ? "Your account is currently restricted from performing this operation. Please contact support."
-                    : permissions.StatusDescription;
-
-                return new BaseResult<VerifyBankAccountDto>(
-                    HttpStatusCode.Locked,
-                    userMessage);
             }
 
             var accountNumber = request.AccountNumber.Trim();
@@ -147,6 +123,33 @@ public sealed class VerifyBankAccount
                     "Consent is required to add this bank account.");
             }
 
+            var permissions = await _identityService.GetPermissionsAsync(
+                request.UserId,
+                cancellationToken);
+
+            if (permissions is null)
+            {
+                op.Error($"Permissions unavailable for user {request.UserId}.");
+                return new BaseResult<VerifyBankAccountDto>(
+                    HttpStatusCode.InternalServerError,
+                    "We couldn't verify your account permissions right now. Please try again in a moment.");
+            }
+
+            if (!permissions.CanPerformSensitiveOperations)
+            {
+                op.Warning(
+                    $"Sensitive-operation gate blocked AddBankAccount for user {request.UserId}. " +
+                    $"Status: {permissions.StatusLabel}, Reason: {permissions.RestrictionReason}");
+
+                var userMessage = string.IsNullOrWhiteSpace(permissions.StatusDescription)
+                    ? "Your account is currently restricted from performing this operation. Please contact support."
+                    : permissions.StatusDescription;
+
+                return new BaseResult<VerifyBankAccountDto>(
+                    HttpStatusCode.Locked,
+                    userMessage);
+            }
+
             var bank = await _unitOfWork.Query<Bank>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -161,19 +164,36 @@ public sealed class VerifyBankAccount
                     "Invalid bank.");
             }
 
-            var existingAccount = await _unitOfWork.Query<BankAccount>()
-                .FirstOrDefaultAsync(
-                    x => x.UserId == request.UserId
-                         && x.AccountNumber == accountNumber,
-                    cancellationToken);
+            var userAccounts = await _unitOfWork.Query<BankAccount>()
+                .IgnoreQueryFilters()
+                .Where(x => x.UserId == request.UserId)
+                .ToListAsync(cancellationToken);
 
-            if (existingAccount is not null)
+            var existingAccount = userAccounts
+                .FirstOrDefault(x => x.AccountNumber == accountNumber);
+
+            if (existingAccount is not null && !existingAccount.IsDeleted)
             {
                 op.Warning($"Bank account already exists: {accountNumber}");
                 return new BaseResult<VerifyBankAccountDto>(
                     HttpStatusCode.Conflict,
                     "This bank account has already been added.");
             }
+
+            var activeBankAccountCount = userAccounts.Count(x => !x.IsDeleted);
+
+            if (activeBankAccountCount >= MaxBankAccountsPerUser)
+            {
+                op.Warning(
+                    $"Bank account limit reached for user {request.UserId}. " +
+                    $"Current active count: {activeBankAccountCount}, limit: {MaxBankAccountsPerUser}.");
+                return new BaseResult<VerifyBankAccountDto>(
+                    HttpStatusCode.BadRequest,
+                    $"You can only have up to {MaxBankAccountsPerUser} linked bank accounts. " +
+                    $"Please remove one before adding another.");
+            }
+
+            var hasDefaultAccount = userAccounts.Any(x => x.IsDefault && !x.IsDeleted);
 
             var verifiedAccount = await _gateWayInitiatorService.ResolveBankAccountAsync(
                 accountNumber,
@@ -188,37 +208,66 @@ public sealed class VerifyBankAccount
                     "Unable to verify bank account.");
             }
 
-            // Todo check if accountname and profile name is same or partial same
+            var shouldBeDefault = request.IsDefault || !hasDefaultAccount;
+            var now = DateTimeOffset.UtcNow;
 
-            if (request.IsDefault)
+            BankAccount bankAccount;
+
+            if (existingAccount is not null && existingAccount.IsDeleted)
             {
-                var currentDefaults = await _unitOfWork.Query<BankAccount>()
-                    .Where(x => x.UserId == request.UserId && x.IsDefault)
-                    .ToListAsync(cancellationToken);
+                existingAccount.IsDeleted           = false;
+                existingAccount.DeletedAt           = null;
+                existingAccount.DeletedBy           = null;
+                existingAccount.AccountName         = verifiedAccount.AccountName;
+                existingAccount.BankCode            = bank.Code;
+                existingAccount.BankName            = bank.Name;
+                existingAccount.BankImageUrl        = bank.Logo;
+                existingAccount.IsDefault           = shouldBeDefault;
+                existingAccount.VerifiedAt          = now;
+                existingAccount.VerificationMessage = "Account verified and reactivated.";
+                existingAccount.ConsentGiven        = true;
+                existingAccount.ConsentGivenAt      = now;
+                existingAccount.ConsentVersion      = "v1";
+                existingAccount.Currency            = CurrencyCode.NGN;
 
-                foreach (var account in currentDefaults)
-                    account.IsDefault = false;
+                _unitOfWork.Update(existingAccount);
+                bankAccount = existingAccount;
+            }
+            else
+            {
+                bankAccount = new BankAccount
+                {
+                    UserId              = request.UserId,
+                    AccountNumber       = verifiedAccount.AccountNumber,
+                    AccountName         = verifiedAccount.AccountName,
+                    BankCode            = bank.Code,
+                    BankName            = bank.Name,
+                    BankImageUrl        = bank.Logo!,
+                    IsDefault           = shouldBeDefault,
+                    VerifiedAt          = now,
+                    VerificationMessage = "Account verified and added successfully.",
+                    ConsentGiven        = true,
+                    ConsentGivenAt      = now,
+                    ConsentVersion      = "v1",
+                    NameMatchesBvn      = true,
+                    Currency            = CurrencyCode.NGN
+                };
+
+                await _unitOfWork.AddAsync(bankAccount, cancellationToken);
             }
 
-            var bankAccount = new BankAccount
+            if (shouldBeDefault && hasDefaultAccount)
             {
-                UserId = request.UserId,
-                AccountNumber = verifiedAccount.AccountNumber,
-                AccountName = verifiedAccount.AccountName,
-                BankCode = bank.Code,
-                BankName = bank.Name,
-                BankImageUrl = bank.Logo!,
-                IsDefault = request.IsDefault,
-                VerifiedAt = DateTimeOffset.UtcNow,
-                VerificationMessage = "Account verified and added successfully.",
-                ConsentGiven = true,
-                ConsentGivenAt = DateTimeOffset.UtcNow,
-                ConsentVersion = "v1",
-                NameMatchesBvn = true,
-                Currency = CurrencyCode.NGN,
-            };
+                var previousDefault = userAccounts
+                    .FirstOrDefault(x => x.IsDefault && !x.IsDeleted);
 
-            await _unitOfWork.AddAsync(bankAccount, cancellationToken);
+                if (previousDefault is not null && previousDefault.Id != bankAccount.Id)
+                {
+                    previousDefault.IsDefault = false;
+                    _unitOfWork.Update(previousDefault);
+                }
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             op.Success(
@@ -229,12 +278,12 @@ public sealed class VerifyBankAccount
                 "Bank account added successfully.",
                 new VerifyBankAccountDto
                 {
-                    Id = bankAccount.Id,
+                    Id            = bankAccount.Id,
                     AccountNumber = verifiedAccount.AccountNumber,
-                    AccountName = bankAccount.AccountName,
-                    BankCode = bank.Code,
-                    BankName = bankAccount.BankName,
-                    IsDefault = bankAccount.IsDefault,
+                    AccountName   = bankAccount.AccountName,
+                    BankCode      = bank.Code,
+                    BankName      = bankAccount.BankName,
+                    IsDefault     = bankAccount.IsDefault,
                 });
         }
     }
