@@ -34,8 +34,6 @@ public class BankAccountController(
     /// </summary>
     /// <remarks>
     /// Returns the banks available for linking a bank account, optionally filtered by name.
-    /// Pass <c>?name=access</c> for a partial, case-insensitive match; omit it to return
-    /// the full list. Results are cached and refreshed by the admin refresh endpoint.
     /// </remarks>
     [HttpGet("list-banks")]
     [EnableRateLimiting(RateLimitPolicies.Read)]
@@ -58,10 +56,7 @@ public class BankAccountController(
     /// Initiate adding a bank account
     /// </summary>
     /// <remarks>
-    /// Starts the add-account flow: validates the supplied account number and bank code
-    /// and prepares the account for verification. The caller must be a customer and
-    /// consent to account verification. Follow up with <c>POST add-verify</c> to complete
-    /// the link. The user is taken from the authenticated principal, not the request body.
+    /// Starts the add account flow: validates the supplied account number and bank code
     /// </remarks>
     [HttpPost("iniatiate-add")]
     [EnableRateLimiting(RateLimitPolicies.Sensitive)]
@@ -87,10 +82,6 @@ public class BankAccountController(
     /// </summary>
     /// <remarks>
     /// Resolves the account number with the bank's gateway, persists the verified bank
-    /// account, and marks it as the default if requested. Rejects duplicate accounts for
-    /// the same user, invalid bank codes, and accounts that fail verification.
-    /// Requires <c>Consent = true</c>. The user's id, email and first name are taken
-    /// from the authenticated principal.
     /// </remarks>
     [HttpPost("add-verify")]
     [EnableRateLimiting(RateLimitPolicies.Sensitive)]
@@ -115,8 +106,7 @@ public class BankAccountController(
     /// List the caller's linked bank accounts
     /// </summary>
     /// <remarks>
-    /// Returns every bank account linked by the authenticated customer, including the
-    /// default account flag. The user is taken from the authenticated principal.
+    /// Returns every bank account linked by the authenticated customer
     /// </remarks>
     [HttpGet]
     [EnableRateLimiting(RateLimitPolicies.Read)]
